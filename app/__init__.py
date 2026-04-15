@@ -23,4 +23,10 @@ def create_app():
     # Connect the login manager to the app
     login_manager.init_app(app)
 
+    # Import all models so SQLAlchemy knows about every table.
+    # This must happen inside create_app() to avoid circular import errors.
+    # A circular import is when file A imports file B, and file B imports file A
+    # — Python gets confused. Importing inside the function avoids this.
+    from app import models  # noqa: F401
+
     return app
