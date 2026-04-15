@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 2rem; text-align: center;">
+  <h2 style="color: var(--text-primary); font-size: 1.8rem; margin-bottom: 1rem;">
+    🎉 Login Successful!
+  </h2>
+  <p style="color: var(--text-secondary); font-size: 1rem;">
+    Welcome, <strong>{{ current_user.username }}</strong>. 
+    The real dashboard is coming in the next step.
+  </p>
+  <br />
+  <a href="{{ url_for('auth.logout') }}" 
+     style="color: var(--color-primary); font-weight: 600;">
+    → Logout
+  </a>
+</div>
+{% endblock %}

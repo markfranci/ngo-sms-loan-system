@@ -1,0 +1,124 @@
+{# This page inherits from base.html and defines only its unique blocks. #}
+{% extends 'base.html' %}
+
+<!-- Set the browser tab title -->
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+
+  <!-- Left side — branding / illustration -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="auth-logo">🏦</div>
+      <h1 class="auth-brand-name">NGO Loan System</h1>
+      <p class="auth-tagline">Empowering SME groups through smart, SMS-based loan management.</p>
+    </div>
+
+    <div class="auth-features">
+      <div class="feature-item">
+        <span class="feature-icon">📱</span>
+        <span>SMS-based member registration</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📊</span>
+        <span>Automated loan assessments</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">👥</span>
+        <span>Group & member management</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📋</span>
+        <span>Custom survey templates</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right side — the login form -->
+  <div class="auth-right">
+    <div class="auth-card">
+
+      <div class="auth-card-header">
+        <h2 class="auth-title">Welcome back</h2>
+        <p class="auth-subtitle">Sign in to your account to continue</p>
+      </div>
+
+      <!--
+        method="POST" means when the button is clicked,
+        the form data is sent to the same URL (/login) as a POST request.
+        Our auth.login() route handles that POST and checks the credentials.
+      -->
+      <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form" id="login-form">
+
+        <!-- Email field -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-input"
+            placeholder="admin@ngo.org"
+            required
+            autofocus
+          />
+        </div>
+
+        <!-- Password field -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-input"
+              placeholder="Enter your password"
+              required
+            />
+            <!--
+              This button toggles password visibility (show/hide).
+              The logic is handled by a small JavaScript snippet below.
+            -->
+            <button type="button" class="toggle-password" id="toggle-password" aria-label="Toggle password visibility">
+              👁
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit button -->
+        <button type="submit" class="btn-primary btn-full" id="login-submit">
+          Sign In
+        </button>
+
+      </form>
+
+      <p class="auth-footer-note">
+        Forgot your credentials? Contact your system administrator.
+      </p>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Toggle password visibility when the eye button is clicked
+  const toggleBtn = document.getElementById('toggle-password');
+  const passwordInput = document.getElementById('password');
+
+  toggleBtn.addEventListener('click', function () {
+    // Switch between 'password' (hidden) and 'text' (visible)
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      toggleBtn.textContent = '🙈';  // change icon to indicate it's visible
+    } else {
+      passwordInput.type = 'password';
+      toggleBtn.textContent = '👁';   // restore original icon
+    }
+  });
+</script>
+{% endblock %}

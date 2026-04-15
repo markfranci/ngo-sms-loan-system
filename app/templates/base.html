@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!--
+    The 'title' block lets each child page set its own browser tab title.
+    If a child doesn't set one, we fall back to "NGO Loan System".
+  -->
+  <title>{% block title %}NGO Loan System{% endblock %} | SME Loan Management</title>
+
+  <meta name="description" content="NGO SMS-based loan management system for SME groups in Kenya." />
+
+  <!-- Google Fonts — Inter for clean, modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Our main stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+  <!-- Allow child pages to add their own extra CSS -->
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+  <!--
+    Only show the navbar if the user is logged in.
+    current_user is provided by Flask-Login automatically.
+    is_authenticated = True means the user has logged in.
+  -->
+  {% if current_user.is_authenticated %}
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span class="navbar-logo">🏦</span>
+      <span class="navbar-title">NGO Loan System</span>
+    </div>
+
+    <div class="navbar-links">
+      <a href="{{ url_for('main.dashboard') }}" class="nav-link">Dashboard</a>
+      <a href="#" class="nav-link">Members</a>
+      <a href="#" class="nav-link">Groups</a>
+      <a href="#" class="nav-link">Surveys</a>
+      <a href="#" class="nav-link">Loans</a>
+    </div>
+
+    <div class="navbar-user">
+      <span class="user-badge">{{ current_user.role | capitalize }}</span>
+      <span class="user-name">{{ current_user.username }}</span>
+      <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+    </div>
+  </nav>
+  {% endif %}
+
+  <!--
+    Flash messages — these are one-time notifications shown after an action.
+    For example: "Invalid email or password" or "Logged out successfully".
+    get_flashed_messages() returns all messages queued with flash().
+    'with_categories=True' lets us know the type (danger, success, info)
+    so we can style them differently.
+  -->
+  {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!--
+    The 'content' block is where each child page inserts its own HTML.
+    Think of this like a frame — the base is the frame,
+    child pages put their picture inside.
+  -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Allow child pages to add their own scripts at the bottom -->
+  {% block extra_js %}{% endblock %}
+
+</body>
+</html>

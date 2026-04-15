@@ -29,4 +29,18 @@ def create_app():
     # — Python gets confused. Importing inside the function avoids this.
     from app import models  # noqa: F401
 
+    # ----------------------------------------------------------------
+    # Register Blueprints
+    # Each blueprint is a group of related routes.
+    # We register them here so Flask knows they exist.
+    # ----------------------------------------------------------------
+
+    # Auth blueprint — handles /login and /logout
+    from app.routes.auth import auth
+    app.register_blueprint(auth)
+
+    # Main blueprint — handles /dashboard and core pages
+    from app.routes.main import main
+    app.register_blueprint(main)
+
     return app
