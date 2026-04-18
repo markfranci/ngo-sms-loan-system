@@ -1,46 +1,102 @@
 from flask import Blueprint, request, jsonify, Response
 from app import db
 from app.models.sms_log import SMSLog
+from app.models.member import Member
+from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
 
-# We create a new Blueprint named 'whatsapp'. This tells Flask to group these routes together.
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
 
-# This route listens for POST requests at '/whatsapp/incoming'.
-# A POST request is how external servers (like Twilio) send data securely to your app.
 @whatsapp.route('/incoming', methods=['POST'])
 def incoming_message():
-    # Twilio sends data as an HTML form (like when you submit a website form).
-    # 'From' contains the sender's WhatsApp number (e.g., 'whatsapp:+123456789')
-    sender_id = request.form.get('From')
-    
-    # 'Body' contains the actual text message the user typed.
-    message_body = request.form.get('Body')
+    sender_id = request.form.get('From', '')
+    clean_phone = sender_id.replace('whatsapp:', '')
+    message_body = request.form.get('Body', '').strip()
     
     if not sender_id or not message_body:
-        # If it's missing data, return an error code (400 Bad Request)
         return jsonify({'error': 'Missing data'}), 400
 
-    # Create a new record in our database using the SMSLog model we reviewed earlier.
-    new_message = SMSLog(
-        sender=sender_id,
-        recipient='System', # For now, we just mark it as sent to the system
-        message=message_body,
-        direction='incoming', # It came into our app
-        status='received'
-    )
+    member = Member.query.filter_by(phone_number=clean_phone).first()
     
-    # Save it to MariaDB!
+    new_message = SMSLog(
+        sender=clean_phone,
+        recipient='System',
+        message=message_body,
+        direction='incoming',
+        status='received',
+        member_id=member.id if member else None
+    )
     db.session.add(new_message)
     db.session.commit()
     
-    # Generate an automated reply using Twilio's XML format (TwiML)
-    # Twilio reads this string and automatically texts the user back.
-    reply_text = f"We have received your message: '{message_body}'. An admin will review it soon."
+    # ---------------------------------------------------------
+    # CHATBOT MEMORY ENGINE
+    # ---------------------------------------------------------
+    if not member:
+        reply_text = "Sorry, your phone number is not registered."
+    else:
+        # Check if the member's brain says they are currently taking a survey
+        if member.current_survey_id:
+            survey = SurveyTemplate.query.get(member.current_survey_id)
+            
+            # Count how many questions they've answered for this specific survey
+            answered_count = SurveyResponse.query.join(SurveyQuestion).filter(
+                SurveyResponse.member_id == member.id,
+                SurveyQuestion.template_id == survey.id
+            ).count()
+            
+            if answered_count < len(survey.questions):
+                # Save their message as the answer to the current question
+                current_question = survey.questions[answered_count]
+                new_response = SurveyResponse(
+                    member_id=member.id,
+                    question_id=current_question.id,
+                    answer=message_body
+                )
+                db.session.add(new_response)
+                db.session.commit()
+                
+                # Check if there is another question after this one
+                next_index = answered_count + 1
+                if next_index < len(survey.questions):
+                    next_question = survey.questions[next_index]
+                    reply_text = f"Got it. Next question:\n\n{next_index + 1}. {next_question.question_text}"
+                    if next_question.question_type == 'multiple_choice':
+                         reply_text += f"\nOptions: {next_question.options}"
+                else:
+                    # No more questions! Clear their memory.
+                    member.current_survey_id = None
+                    db.session.commit()
+                    reply_text = "Thank you! You have completed the survey."
+            else:
+                member.current_survey_id = None
+                db.session.commit()
+                reply_text = "You have already finished this survey."
+
+        # If they aren't taking a survey, check if they are trying to start one
+        elif message_body.upper().startswith("START "):
+            try:
+                survey_id = int(message_body.split(" ")[1])
+                survey = SurveyTemplate.query.get(survey_id)
+                
+                if survey and survey.questions:
+                    # Give the member's brain the survey ID so they remember they are taking it
+                    member.current_survey_id = survey.id
+                    db.session.commit()
+                    
+                    first_question = survey.questions[0]
+                    reply_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
+                    if first_question.question_type == 'multiple_choice':
+                         reply_text += f"\nOptions: {first_question.options}"
+                else:
+                    reply_text = "That survey does not exist or has no questions."
+            except:
+                reply_text = "Invalid format. Send 'START [ID]' to begin a survey."
+        else:
+             reply_text = f"Hello {member.full_name}, we received your message! Reply 'START 1' to take an assessment."
+
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
     <Response>
         <Message>{reply_text}</Message>
     </Response>
     """
-    
-    # We must return the response wrapped as XML so Twilio knows how to read it
     return Response(twiml_response, mimetype='text/xml')

@@ -51,4 +51,8 @@ def create_app():
     from app.routes.whatsapp import whatsapp
     app.register_blueprint(whatsapp)
 
+    # Surveys blueprint — handles Survey template logic
+    from app.routes.surveys import surveys
+    app.register_blueprint(surveys)
+
     return app

@@ -35,6 +35,9 @@ class Member(db.Model):
     # This links to the 'id' column in the 'groups' table
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
 
+    # Chatbot Memory: Tracks which survey the user is currently taking
+    current_survey_id = db.Column(db.Integer, db.ForeignKey('survey_templates.id'), nullable=True)
+
     # Automatically records the exact date and time the member was registered
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
 
