@@ -47,4 +47,8 @@ def create_app():
     from app.routes.groups import groups
     app.register_blueprint(groups)
 
+    # WhatsApp blueprint — handles incoming WhatsApp Webhooks
+    from app.routes.whatsapp import whatsapp
+    app.register_blueprint(whatsapp)
+
     return app
