@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Create Group{% endblock %}
+
+{% block content %}
+<div class="form-wrapper" style="max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <h2 style="margin-bottom: 1.5rem; color: #1e293b;">Create New Group</h2>
+
+    <form method="POST" action="{{ url_for('groups.create') }}">
+        <div style="margin-bottom: 1.5rem;">
+            <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Group Name: *</label>
+            <input type="text" id="name" name="name" required style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Description:</label>
+            <textarea id="description" name="description" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <label for="assigned_staff_id" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Assign to Staff Member (Optional):</label>
+            <select id="assigned_staff_id" name="assigned_staff_id" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; background-color: white;">
+                <option value="">-- Select Staff --</option>
+                {% for staff in staff_members %}
+                <option value="{{ staff.id }}">{{ staff.username if staff.username else staff.email }}</option>
+                {% endfor %}
+            </select>
+            <p style="font-size: 0.875rem; color: #64748b; margin-top: 0.5rem;">Only Staff members can be assigned to manage a group.</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Create Group</button>
+            <a href="{{ url_for('groups.index') }}" class="btn" style="padding: 0.75rem 1.5rem; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 4px;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

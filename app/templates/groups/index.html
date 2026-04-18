@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Groups</h2>
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">Create New Group</a>
+    {% endif %}
+</div>
+
+{% if groups %}
+<div class="table-container" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+            <tr>
+                <th style="padding: 1rem;">Name</th>
+                <th style="padding: 1rem;">Description</th>
+                <th style="padding: 1rem;">Created At</th>
+                {% if current_user.role == 'admin' %}
+                <th style="padding: 1rem;">Assigned Staff</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 1rem; font-weight: 500; color: #1e293b;">{{ group.name }}</td>
+                <td style="padding: 1rem; color: #64748b;">{{ group.description }}</td>
+                <td style="padding: 1rem; color: #64748b;">{{ group.created_at.strftime('%Y-%m-%d') }}</td>
+                {% if current_user.role == 'admin' %}
+                <td style="padding: 1rem;">
+                    {% if group.manager %}
+                        <span style="background: #e0f2fe; color: #0284c7; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
+                            {{ group.manager.username if group.manager.username else group.manager.email }}
+                        </span>
+                    {% else %}
+                        <span style="color: #94a3b8; font-style: italic;">Unassigned</span>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div style="background: white; padding: 3rem; text-align: center; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <p style="color: #64748b; font-size: 1.125rem; margin-bottom: 1rem;">No groups found.</p>
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">Create the first group</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -43,4 +43,8 @@ def create_app():
     from app.routes.main import main
     app.register_blueprint(main)
 
+    # Groups blueprint — handles /groups routes
+    from app.routes.groups import groups
+    app.register_blueprint(groups)
+
     return app

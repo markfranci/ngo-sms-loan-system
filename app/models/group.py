@@ -21,6 +21,9 @@ class Group(db.Model):
     # db.ForeignKey links this column to the 'id' column in the 'users' table
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
+    # Which staff member is managing this group
+    assigned_staff_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # ----------------------------------------------------------------
@@ -35,6 +38,9 @@ class Group(db.Model):
 
     # The user who created this group
     creator = db.relationship('User', foreign_keys=[created_by])
+
+    # The staff member assigned to manage this group
+    manager = db.relationship('User', foreign_keys=[assigned_staff_id])
 
     def __repr__(self):
         return f'<Group {self.name}>'
