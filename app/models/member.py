@@ -60,3 +60,28 @@ class Member(db.Model):
 
     def __repr__(self):
         return f'<Member {self.full_name} ({self.phone_number})>'
+
+# ====================================================================
+
+class RegistrationSession(db.Model):
+    """
+    Temporary table to hold conversational state while an unregistered 
+    member completes the multi-step registration flow via WhatsApp.
+    """
+    __tablename__ = 'registration_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    phone_number = db.Column(db.String(20), unique=True, nullable=False)
+    
+    # 1: Waiting for Full Name
+    # 2: Waiting for ID Number
+    step = db.Column(db.Integer, nullable=False, default=1)
+    
+    # Data collected incrementally
+    full_name = db.Column(db.String(100), nullable=True)
+    id_number = db.Column(db.String(20), nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<RegistrationSession phone={self.phone_number} step={self.step}>'

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, Response
 from app import db
 from app.models.sms_log import SMSLog
-from app.models.member import Member
+from app.models.member import Member, RegistrationSession
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
 
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
@@ -32,7 +32,43 @@ def incoming_message():
     # CHATBOT MEMORY ENGINE
     # ---------------------------------------------------------
     if not member:
-        reply_text = "Sorry, your phone number is not registered."
+        # Check if they are in the middle of registering
+        session = RegistrationSession.query.filter_by(phone_number=clean_phone).first()
+        
+        if not session:
+            if message_body.strip().upper() == 'START':
+                # Start registration wizard
+                new_session = RegistrationSession(phone_number=clean_phone, step=1)
+                db.session.add(new_session)
+                db.session.commit()
+                reply_text = "Welcome to the NGO SMS Loan System! Let's get you registered.\n\nPlease reply with your Full Name."
+            else:
+                reply_text = "Welcome! Your phone number is not registered. Please send 'START' to begin registration."
+        else:
+            if session.step == 1:
+                session.full_name = message_body
+                session.step = 2
+                db.session.commit()
+                reply_text = f"Thanks, {message_body}. Now, please reply with your National ID Number."
+            elif session.step == 2:
+                session.id_number = message_body
+                
+                # Finalize member creation!
+                new_member = Member(
+                    full_name=session.full_name,
+                    id_number=session.id_number,
+                    phone_number=session.phone_number
+                )
+                db.session.add(new_member)
+                
+                # Update the SMS log we just saved so it attaches to the new member
+                new_message.member = new_member
+                
+                # Clean up the temporary session state
+                db.session.delete(session)
+                db.session.commit()
+                
+                reply_text = "Registration complete! 🎉\n\nYou are now an active SME member. You will be notified when surveys or loans are assigned to you."
     else:
         # Check if the member's brain says they are currently taking a survey
         if member.current_survey_id:
