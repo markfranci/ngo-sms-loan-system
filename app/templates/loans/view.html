@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment #{{ loan.id }}{% endblock %}
+{% block header %}Assessment Details{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('loans.index') }}" class="btn btn-outline-secondary rounded-pill shadow-sm">
+    <i class="bi bi-arrow-left"></i> Back to List
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row fade-in">
+    <!-- Automated Score Card -->
+    <div class="col-md-5 mb-4">
+        <div class="card border-0 shadow-sm glass-panel h-100 text-center">
+            <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-center">
+                <h5 class="fw-bold text-muted mb-4">Automated Score</h5>
+                
+                <div class="position-relative d-inline-block mx-auto mb-4" style="width: 150px; height: 150px;">
+                    <svg class="w-100 h-100" viewBox="0 0 36 36">
+                        <path class="text-light" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                        <path class="{% if loan.score >= 70 %}text-success{% elif loan.score >= 40 %}text-warning{% else %}text-danger{% endif %}" stroke-dasharray="{{ loan.score }}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                    </svg>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <h1 class="display-5 fw-bold mb-0 {% if loan.score >= 70 %}text-success{% elif loan.score >= 40 %}text-warning{% else %}text-danger{% endif %}">{{ loan.score|int }}</h1>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    {% if loan.score >= 70 %}
+                        <span class="badge bg-success py-2 px-3 fs-6 rounded-pill">High Confidence</span>
+                    {% elif loan.score >= 40 %}
+                        <span class="badge bg-warning text-dark py-2 px-3 fs-6 rounded-pill">Moderate Risk</span>
+                    {% else %}
+                        <span class="badge bg-danger py-2 px-3 fs-6 rounded-pill">High Risk</span>
+                    {% endif %}
+                </div>
+
+                <!-- Final Decision Form -->
+                <div class="mt-auto pt-3 border-top">
+                    <h6 class="fw-bold mb-3">Final Decision</h6>
+                    <form action="{{ url_for('loans.update_status', loan_id=loan.id) }}" method="POST">
+                        <div class="d-flex justify-content-center gap-2">
+                            <button type="submit" name="status" value="approved" class="btn {% if loan.status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill px-4" {% if loan.status == 'approved' %}disabled{% endif %}>
+                                <i class="bi bi-check-circle"></i> Approve
+                            </button>
+                            <button type="submit" name="status" value="rejected" class="btn {% if loan.status == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %} rounded-pill px-4" {% if loan.status == 'rejected' %}disabled{% endif %}>
+                                <i class="bi bi-x-circle"></i> Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Details -->
+    <div class="col-md-7 mb-4">
+        <div class="card border-0 shadow-sm glass-panel h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                    <h5 class="fw-bold mb-0 text-primary">Application Details</h5>
+                    {% if loan.status == 'approved' %}
+                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i> Approved</span>
+                    {% elif loan.status == 'rejected' %}
+                        <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i> Rejected</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> Pending</span>
+                    {% endif %}
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-6 mb-3 mb-sm-0">
+                        <span class="text-muted d-block small fw-bold">Applicant</span>
+                        <a href="{{ url_for('members.profile', id=loan.member.id) }}" class="fw-bold text-decoration-none fs-5">{{ loan.member.full_name }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                        <div class="text-muted small">{{ loan.member.phone_number }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small fw-bold">Amount Requested</span>
+                        <h4 class="fw-bold m-0 font-monospace">KSh {{ "{:,.2f}".format(loan.amount_requested) }}</h4>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-6 mb-3 mb-sm-0">
+                        <span class="text-muted d-block small fw-bold">Group Segment</span>
+                        {% if loan.member.group %}
+                            <span class="badge bg-secondary">{{ loan.member.group.name }}</span>
+                        {% else %}
+                            <span class="text-muted">None</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small fw-bold">Date of Assessment</span>
+                        <div class="fw-bold">{{ loan.created_at.strftime('%B %d, %Y - %H:%M') }}</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="text-muted d-block small fw-bold mb-2">Staff Notes</span>
+                    {% if loan.notes %}
+                        <div class="p-3 bg-light rounded text-dark fst-italic shadow-sm">
+                            "{{ loan.notes }}"
+                        </div>
+                    {% else %}
+                        <div class="text-muted fst-italic">No notes provided during assessment.</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-0">
+                    <span class="text-muted d-block small fw-bold mb-2">Assessed By</span>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                            {{ loan.assessor.username[0]|upper }}
+                        </div>
+                        <span class="fw-bold">{{ loan.assessor.username }}</span>
+                        <span class="badge bg-dark ms-2">{{ loan.assessor.role }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

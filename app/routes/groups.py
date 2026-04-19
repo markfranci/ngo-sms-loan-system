@@ -53,3 +53,15 @@ def create():
         
     staff_members = User.query.filter_by(role='staff').all()
     return render_template('groups/create.html', staff_members=staff_members)
+
+@groups.route('/<int:group_id>')
+@login_required
+def view_group(group_id):
+    group = Group.query.get_or_404(group_id)
+    
+    # If the user is staff, ensure they can only view groups assigned to them
+    if current_user.role == 'staff' and group.assigned_staff_id != current_user.id:
+        flash('You do not have permission to view this group.', 'danger')
+        return redirect(url_for('groups.index'))
+        
+    return render_template('groups/view.html', group=group)

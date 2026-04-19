@@ -55,4 +55,16 @@ def create_app():
     from app.routes.surveys import surveys
     app.register_blueprint(surveys)
 
+    # Members blueprint — handles /members routes
+    from app.routes.members import members
+    app.register_blueprint(members)
+
+    # SMS Logs blueprint — handles /sms routes
+    from app.routes.sms_logs import sms
+    app.register_blueprint(sms)
+
+    # Loans blueprint — handles /loans routes
+    from app.routes.loans import loans_bp
+    app.register_blueprint(loans_bp)
+
     return app

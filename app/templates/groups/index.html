@@ -20,6 +20,7 @@
                 {% if current_user.role == 'admin' %}
                 <th style="padding: 1rem;">Assigned Staff</th>
                 {% endif %}
+                <th style="padding: 1rem; text-align: center;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -39,6 +40,9 @@
                     {% endif %}
                 </td>
                 {% endif %}
+                <td style="padding: 1rem; text-align: center;">
+                    <a href="{{ url_for('groups.view_group', group_id=group.id) }}" style="background: #e0f2fe; color: #0284c7; padding: 0.4rem 0.8rem; border-radius: 4px; text-decoration: none; font-size: 0.875rem; font-weight: 500;">View Group</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
