@@ -67,4 +67,8 @@ def create_app():
     from app.routes.loans import loans_bp
     app.register_blueprint(loans_bp)
 
+    # Reports blueprint — handles /reports routes
+    from app.routes.reports import reports_bp
+    app.register_blueprint(reports_bp)
+
     return app
