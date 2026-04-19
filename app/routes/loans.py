@@ -2,9 +2,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.models.loan import Loan
 from app.models.member import Member
 from app.models.survey import SurveyResponse
-from app.decorators import login_required, role_required
+from app.decorators import admin_required
 from app import db
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 loans_bp = Blueprint('loans', __name__, url_prefix='/loans')
 
@@ -92,7 +92,7 @@ def new(member_id):
 
 @loans_bp.route('/<int:loan_id>/status', methods=['POST'])
 @login_required
-@role_required('admin')
+@admin_required
 def update_status(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     status = request.form.get('status')

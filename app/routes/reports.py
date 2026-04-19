@@ -2,7 +2,7 @@ import csv
 import io
 from flask import Blueprint, render_template, make_response
 from flask_login import login_required
-from app.decorators import role_required
+from app.decorators import admin_required
 from app.models.member import Member
 from app.models.group import Group
 from app.models.loan import Loan
@@ -11,7 +11,7 @@ reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
 @reports_bp.route('/')
 @login_required
-@role_required('admin')
+@admin_required
 def index():
     """
     Renders the central reports hub where staff can download CSV files.
@@ -20,7 +20,7 @@ def index():
 
 @reports_bp.route('/export/members')
 @login_required
-@role_required('admin')
+@admin_required
 def export_members():
     """
     Generates and downloads a CSV of all members.
@@ -55,7 +55,7 @@ def export_members():
     
 @reports_bp.route('/export/loans')
 @login_required
-@role_required('admin')
+@admin_required
 def export_loans():
     """
     Generates and downloads a CSV of all loan assessments.
@@ -88,7 +88,7 @@ def export_loans():
 
 @reports_bp.route('/export/groups')
 @login_required
-@role_required('admin')
+@admin_required
 def export_groups():
     """
     Generates and downloads a CSV of all SME groups and their aggregates.
