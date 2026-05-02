@@ -1,90 +1,99 @@
 {% extends 'base.html' %}
-
 {% block title %}New Assessment - {{ member.full_name }}{% endblock %}
-{% block header %}New Loan Assessment{% endblock %}
 
 {% block content %}
-<div class="row fade-in">
-    <!-- Member Summary Sidebar -->
-    <div class="col-md-4 mb-4">
-        <div class="card border-0 shadow-sm glass-panel h-100">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0 text-center">
-                <div class="avatar-circle rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 32px;">
-                    {{ member.full_name[0]|upper }}
-                </div>
-                <h4 class="mb-1">{{ member.full_name }}</h4>
-                <p class="text-muted"><i class="bi bi-telephone"></i> {{ member.phone_number }}</p>
-                {% if member.group %}
-                    <span class="badge bg-secondary mb-3">{{ member.group.name }}</span>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                <h6 class="fw-bold text-muted mb-3"><i class="bi bi-lightning-charge text-warning"></i> Quick Financials (from Surveys)</h6>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Est. Total Income:</span>
-                    <span class="fw-bold text-success">KSh {{ "{:,.2f}".format(total_income) }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-3">
-                    <span>Est. Total Expenses:</span>
-                    <span class="fw-bold text-danger">KSh {{ "{:,.2f}".format(total_expenses) }}</span>
-                </div>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-bold">Est. Net Positive:</span>
-                    <span class="fw-bold fs-5 {% if total_income - total_expenses > 0 %}text-success{% else %}text-danger{% endif %}">
-                        KSh {{ "{:,.2f}".format(total_income - total_expenses) }}
-                    </span>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-0 pb-4">
-                <a href="{{ url_for('members.profile', id=member.id) }}" class="btn btn-outline-secondary w-100 rounded-pill">View Full Profile</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assessment Form -->
-    <div class="col-md-8 mb-4">
-        <div class="card border-0 shadow-sm glass-panel">
-            <div class="card-body p-4 p-md-5">
-                <h5 class="fw-bold mb-4 text-primary">Run Assessment</h5>
-                <form method="POST">
-                    <div class="mb-4">
-                        <label for="amount_requested" class="form-label fw-bold">Requested Loan Amount (KSh)</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light">KSh</span>
-                            <input type="number" step="0.01" class="form-control" id="amount_requested" name="amount_requested" required placeholder="e.g. 50000">
-                        </div>
-                        <div class="form-text">Amount the member is requesting to borrow.</div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="notes" class="form-label fw-bold">Assessment Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="4" placeholder="Any initial remarks or observations about the member's capacity to repay..."></textarea>
-                    </div>
-
-                    <div class="alert alert-info d-flex align-items-center mb-4 border-0">
-                        <i class="bi bi-info-circle-fill fs-3 me-3"></i>
-                        <div>
-                            <strong>Automated Scoring</strong><br>
-                            Submitting this form will automatically calculate an assessment score based on the member's survey financial data and group standing.
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('members.profile', id=member.id) }}" class="btn btn-light rounded-pill px-4">Cancel</a>
-                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                            <i class="bi bi-calculator me-1"></i> Calculate & Create Assessment
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>New Loan Assessment</h2>
+    <p>Run an automated assessment for {{ member.full_name }}.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost">
+      <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to Profile
+    </a>
+  </div>
 </div>
 
-<style>
-    .avatar-circle {
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-</style>
+<div class="detail-grid detail-grid-half">
+
+  <!-- Member Summary Sidebar -->
+  <div class="glass-card text-center">
+    <div style="margin-bottom:1.5rem;">
+      <div class="avatar avatar-lg avatar-purple" style="margin:0 auto 1rem;">
+        {{ member.full_name[0]|upper }}
+      </div>
+      <h3 style="margin-bottom:0.25rem;">{{ member.full_name }}</h3>
+      <p class="td-mono text-secondary" style="font-size:0.9rem;">{{ member.phone_number }}</p>
+      {% if member.group %}
+        <span class="badge badge-neutral mt-1">{{ member.group.name }}</span>
+      {% endif %}
+    </div>
+
+    <div class="glass-card-header" style="margin-top:1.5rem;">
+      <h3 class="glass-card-title" style="font-size:0.85rem;">
+        <i data-lucide="zap" style="width:16px;height:16px;color:var(--color-warning);vertical-align:middle;"></i>
+        Quick Financials (from Surveys)
+      </h3>
+    </div>
+
+    <div class="finance-row">
+      <span class="finance-label">Est. Total Income:</span>
+      <span class="finance-value text-success">KSh {{ "{:,.2f}".format(total_income) }}</span>
+    </div>
+    <div class="finance-row">
+      <span class="finance-label">Est. Total Expenses:</span>
+      <span class="finance-value text-danger">KSh {{ "{:,.2f}".format(total_expenses) }}</span>
+    </div>
+    <hr class="finance-divider">
+    <div class="finance-row">
+      <span class="finance-label fw-bold">Est. Net Positive:</span>
+      <span class="finance-value {% if total_income - total_expenses > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.1rem;">
+        KSh {{ "{:,.2f}".format(total_income - total_expenses) }}
+      </span>
+    </div>
+
+    <div style="margin-top:1.5rem;">
+      <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost btn-full">View Full Profile</a>
+    </div>
+  </div>
+
+  <!-- Assessment Form -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <h3 class="glass-card-title">Run Assessment</h3>
+    </div>
+
+    <form method="POST">
+      <div class="form-group">
+        <label for="amount_requested" class="form-label">Requested Loan Amount (KSh)</label>
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="padding:0.75rem 1rem;background:var(--color-surface-3);border:1px solid var(--color-border);border-right:none;border-radius:var(--radius-md) 0 0 var(--radius-md);color:var(--text-muted);font-size:0.85rem;font-weight:600;">KSh</span>
+          <input type="number" step="0.01" class="form-input" id="amount_requested" name="amount_requested" required placeholder="e.g. 50000" style="border-radius:0 var(--radius-md) var(--radius-md) 0;">
+        </div>
+        <span class="form-hint">Amount the member is requesting to borrow.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="notes" class="form-label">Assessment Notes</label>
+        <textarea class="form-textarea" id="notes" name="notes" rows="4" placeholder="Any initial remarks or observations about the member's capacity to repay..."></textarea>
+      </div>
+
+      <div class="info-alert mb-3">
+        <i data-lucide="info"></i>
+        <div>
+          <strong>Automated Scoring</strong>
+          Submitting this form will automatically calculate an assessment score based on the member's survey financial data and group standing.
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
+          <i data-lucide="calculator" style="width:16px;height:16px;"></i> Calculate & Create Assessment
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
 {% endblock %}

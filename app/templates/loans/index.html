@@ -1,86 +1,81 @@
 {% extends 'base.html' %}
-
 {% block title %}Loan Assessments{% endblock %}
-{% block header %}Loan Assessments{% endblock %}
 
 {% block content %}
-<div class="row fade-in">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm glass-panel">
-            <div class="card-body p-4">
-                {% if loans %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="border-0 rounded-start">ID</th>
-                                <th class="border-0">Member Name</th>
-                                <th class="border-0">Group</th>
-                                <th class="border-0">Requested (KSh)</th>
-                                <th class="border-0">Score</th>
-                                <th class="border-0">Status</th>
-                                <th class="border-0">Date</th>
-                                <th class="border-0 rounded-end text-end">Options</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for loan in loans %}
-                            <tr>
-                                <td class="fw-bold text-muted">#{{ loan.id }}</td>
-                                <td>
-                                    <div class="fw-bold">{{ loan.member.full_name }}</div>
-                                    <div class="small text-muted">{{ loan.member.phone_number }}</div>
-                                </td>
-                                <td>
-                                    {% if loan.member.group %}
-                                        <span class="badge bg-secondary">{{ loan.member.group.name }}</span>
-                                    {% else %}
-                                        <span class="text-muted small">None</span>
-                                    {% endif %}
-                                </td>
-                                <td class="font-monospace">
-                                    {{ "{:,.2f}".format(loan.amount_requested) if loan.amount_requested else 'N/A' }}
-                                </td>
-                                <td style="min-width: 150px;">
-                                    <div class="d-flex align-items-center">
-                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
-                                            <div class="progress-bar {% if loan.score >= 70 %}bg-success{% elif loan.score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" 
-                                                 role="progressbar" 
-                                                 style="width: {{ loan.score }}%;" 
-                                                 aria-valuenow="{{ loan.score }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                        <span class="small fw-bold">{{ loan.score|int }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if loan.status == 'approved' %}
-                                        <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i> Approved</span>
-                                    {% elif loan.status == 'rejected' %}
-                                        <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i> Rejected</span>
-                                    {% else %}
-                                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td class="small">{{ loan.created_at.strftime('%Y-%m-%d') }}</td>
-                                <td class="text-end">
-                                    <a href="{{ url_for('loans.view', loan_id=loan.id) }}" class="btn btn-sm btn-outline-primary transition-all rounded-pill shadow-sm">
-                                        View Details <i class="bi bi-arrow-right ms-1"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <div class="display-3 text-primary opacity-50 mb-3"><i class="bi bi-wallet2"></i></div>
-                    <h3 class="fw-bold">No Loan Assessments Yet</h3>
-                    <p class="text-muted mb-0">Assess members to view loans here.</p>
-                </div>
-                {% endif %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>Loan Assessments</h2>
+    <p>Review and manage all loan assessment applications.</p>
+  </div>
+</div>
+
+<div class="glass-card">
+  {% if loans %}
+  <div class="table-wrapper">
+    <table class="data-table" id="loans-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Member</th>
+          <th>Group</th>
+          <th>Requested (KSh)</th>
+          <th>Score</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th style="text-align:right;">Options</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td class="td-primary">#{{ loan.id }}</td>
+          <td>
+            <div class="td-primary">{{ loan.member.full_name }}</div>
+            <div class="text-muted" style="font-size:0.8rem;">{{ loan.member.phone_number }}</div>
+          </td>
+          <td>
+            {% if loan.member.group %}
+              <span class="badge badge-neutral">{{ loan.member.group.name }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:0.8rem;">None</span>
+            {% endif %}
+          </td>
+          <td class="td-mono">{{ "{:,.2f}".format(loan.amount_requested) if loan.amount_requested else 'N/A' }}</td>
+          <td style="min-width:140px;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill {% if loan.score >= 70 %}high{% elif loan.score >= 40 %}medium{% else %}low{% endif %}"
+                     style="width:{{ loan.score }}%;"></div>
+              </div>
+              <span class="fw-bold" style="font-size:0.85rem;min-width:24px;">{{ loan.score|int }}</span>
             </div>
-        </div>
-    </div>
+          </td>
+          <td>
+            {% if loan.status == 'approved' %}
+              <span class="badge badge-success"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> Approved</span>
+            {% elif loan.status == 'rejected' %}
+              <span class="badge badge-danger"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> Rejected</span>
+            {% else %}
+              <span class="badge badge-warning"><i data-lucide="clock" style="width:12px;height:12px;"></i> Pending</span>
+            {% endif %}
+          </td>
+          <td>{{ loan.created_at.strftime('%Y-%m-%d') }}</td>
+          <td style="text-align:right;">
+            <a href="{{ url_for('loans.view', loan_id=loan.id) }}" class="btn btn-sm btn-outline-primary" id="view-loan-{{ loan.id }}">
+              Details <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i data-lucide="wallet"></i></div>
+    <h3>No Loan Assessments Yet</h3>
+    <p>Assess members from their profiles to view loans here.</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

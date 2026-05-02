@@ -2,58 +2,71 @@
 {% block title %}Groups{% endblock %}
 
 {% block content %}
-<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="page-header">
+  <div class="page-header-text">
     <h2>Groups</h2>
+    <p>Manage SME group segments.</p>
+  </div>
+  <div class="page-header-actions">
     {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">Create New Group</a>
+    <a href="{{ url_for('groups.create') }}" class="btn btn-primary" id="btn-create-group">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i> Create New Group
+    </a>
     {% endif %}
+  </div>
 </div>
 
 {% if groups %}
-<div class="table-container" style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-    <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-            <tr>
-                <th style="padding: 1rem;">Name</th>
-                <th style="padding: 1rem;">Description</th>
-                <th style="padding: 1rem;">Created At</th>
-                {% if current_user.role == 'admin' %}
-                <th style="padding: 1rem;">Assigned Staff</th>
-                {% endif %}
-                <th style="padding: 1rem; text-align: center;">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for group in groups %}
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 1rem; font-weight: 500; color: #1e293b;">{{ group.name }}</td>
-                <td style="padding: 1rem; color: #64748b;">{{ group.description }}</td>
-                <td style="padding: 1rem; color: #64748b;">{{ group.created_at.strftime('%Y-%m-%d') }}</td>
-                {% if current_user.role == 'admin' %}
-                <td style="padding: 1rem;">
-                    {% if group.manager %}
-                        <span style="background: #e0f2fe; color: #0284c7; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.875rem;">
-                            {{ group.manager.username if group.manager.username else group.manager.email }}
-                        </span>
-                    {% else %}
-                        <span style="color: #94a3b8; font-style: italic;">Unassigned</span>
-                    {% endif %}
-                </td>
-                {% endif %}
-                <td style="padding: 1rem; text-align: center;">
-                    <a href="{{ url_for('groups.view_group', group_id=group.id) }}" style="background: #e0f2fe; color: #0284c7; padding: 0.4rem 0.8rem; border-radius: 4px; text-decoration: none; font-size: 0.875rem; font-weight: 500;">View Group</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+<div class="glass-card">
+  <div class="table-wrapper">
+    <table class="data-table" id="groups-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Created</th>
+          {% if current_user.role == 'admin' %}
+          <th>Assigned Staff</th>
+          {% endif %}
+          <th style="text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td class="td-primary">{{ group.name }}</td>
+          <td>{{ group.description }}</td>
+          <td>{{ group.created_at.strftime('%Y-%m-%d') }}</td>
+          {% if current_user.role == 'admin' %}
+          <td>
+            {% if group.manager %}
+              <span class="badge badge-info">{{ group.manager.username if group.manager.username else group.manager.email }}</span>
+            {% else %}
+              <span class="badge badge-neutral" style="font-style:italic;">Unassigned</span>
+            {% endif %}
+          </td>
+          {% endif %}
+          <td style="text-align:center;">
+            <a href="{{ url_for('groups.view_group', group_id=group.id) }}" class="btn btn-sm btn-outline-primary" id="view-group-{{ group.id }}">
+              <i data-lucide="eye" style="width:14px;height:14px;"></i> View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
 </div>
 {% else %}
-<div style="background: white; padding: 3rem; text-align: center; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-    <p style="color: #64748b; font-size: 1.125rem; margin-bottom: 1rem;">No groups found.</p>
+<div class="glass-card">
+  <div class="empty-state">
+    <div class="empty-state-icon"><i data-lucide="network"></i></div>
+    <h3>No Groups Found</h3>
+    <p>Create your first group to organize SME members.</p>
     {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">Create the first group</a>
+    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">Create First Group</a>
     {% endif %}
+  </div>
 </div>
 {% endif %}
 {% endblock %}

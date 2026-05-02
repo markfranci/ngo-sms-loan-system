@@ -2,111 +2,128 @@
 {% block title %}{{ member.full_name }} Profile{% endblock %}
 
 {% block content %}
-<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-  <div>
-    <h2 style="margin-bottom: 0.25rem;">Member Profile: {{ member.full_name }}</h2>
-    <p style="color: #64748b; font-size: 0.9rem;">Phone: {{ member.phone_number }}</p>
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>{{ member.full_name }}</h2>
+    <p class="td-mono">{{ member.phone_number }}</p>
   </div>
-  <div style="display: flex; gap: 1rem;">
-    <a href="{{ url_for('loans.new', member_id=member.id) }}" class="btn" style="background: var(--color-primary); color: white; text-decoration: none; border-radius: 4px; padding: 0.5rem 1rem;">&#43; New Loan Assessment</a>
-    <a href="{{ url_for('members.index') }}" class="btn" style="background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 4px; padding: 0.5rem 1rem;">&larr; Back to Directory</a>
+  <div class="page-header-actions">
+    <a href="{{ url_for('loans.new', member_id=member.id) }}" class="btn btn-primary" id="btn-new-loan">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i> New Loan Assessment
+    </a>
+    <a href="{{ url_for('members.index') }}" class="btn btn-ghost" id="btn-back-members">
+      <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+    </a>
   </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start;">
-  
+<div class="detail-grid detail-grid-2">
+
   <!-- Left Column: Details & Surveys -->
-  <div style="display: flex; flex-direction: column; gap: 2rem;">
-    
-    <!-- Member Details Card -->
-    <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem;">
-      <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1rem;">Personal Details</h3>
-      <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+  <div class="flex-col gap-4">
+
+    <!-- Personal Details Card -->
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <h3 class="glass-card-title">Personal Details</h3>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Full Name</span>
+        <span class="detail-value">{{ member.full_name }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">ID Number</span>
+        <span class="detail-value">{{ member.id_number or 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Gender</span>
+        <span class="detail-value">{{ member.gender|capitalize if member.gender else 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Location</span>
+        <span class="detail-value">{{ member.location or 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Group</span>
         <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Full Name</span>
-          <span style="color: #334155;">{{ member.full_name }}</span>
-        </div>
-        <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">ID Number</span>
-          <span style="color: #334155;">{{ member.id_number or 'N/A' }}</span>
-        </div>
-        <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Gender</span>
-          <span style="color: #334155;">{{ member.gender|capitalize if member.gender else 'N/A' }}</span>
-        </div>
-        <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Location</span>
-          <span style="color: #334155;">{{ member.location or 'N/A' }}</span>
-        </div>
-        <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Group</span>
           {% if member.group %}
-          <span style="background: #f1f5f9; color: #334155; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ member.group.name }}</span>
+          <span class="badge badge-primary">{{ member.group.name }}</span>
           {% else %}
-          <span style="color: #94a3b8; font-style: italic;">Unassigned</span>
+          <span class="badge badge-neutral" style="font-style:italic;">Unassigned</span>
           {% endif %}
-        </div>
-        <div>
-          <span style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Registered Date</span>
-          <span style="color: #334155;">{{ member.registered_at.strftime('%Y-%m-%d %H:%M') }}</span>
+
+          <form method="POST" action="{{ url_for('members.assign_group', member_id=member.id) }}" style="margin-top:0.75rem;display:flex;gap:0.5rem;align-items:center;">
+            <select name="group_id" class="form-select" style="flex:1;padding:0.4rem 2rem 0.4rem 0.6rem;font-size:0.8rem;">
+              <option value="">-- Assign Group --</option>
+              {% for group in groups %}
+              <option value="{{ group.id }}" {% if member.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+          </form>
         </div>
       </div>
+      <div class="detail-item">
+        <span class="detail-label">Registered</span>
+        <span class="detail-value">{{ member.registered_at.strftime('%Y-%m-%d %H:%M') }}</span>
+      </div>
     </div>
-    
+
     <!-- Survey Responses Card -->
-    <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem;">
-      <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1rem;">Survey Responses</h3>
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <h3 class="glass-card-title">Survey Responses</h3>
+      </div>
       {% if member.survey_responses %}
-        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;">
-          {% for response in member.survey_responses %}
-          <li style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem;">{{ response.question.template.title }}</div>
-            <strong style="color: #0f172a; display: block; margin-bottom: 0.5rem;">Q: {{ response.question.question_text }}</strong>
-            <div style="color: #475569; padding-left: 1rem; border-left: 2px solid var(--color-primary);">A: {{ response.answer }}</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem; text-align: right;">{{ response.submitted_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          </li>
-          {% endfor %}
-        </ul>
+        {% for response in member.survey_responses %}
+        <div class="survey-response-item">
+          <div class="survey-response-template">{{ response.question.template.title }}</div>
+          <div class="survey-response-question">Q: {{ response.question.question_text }}</div>
+          <div class="survey-response-answer">A: {{ response.answer }}</div>
+          <div class="survey-response-time">{{ response.submitted_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        {% endfor %}
       {% else %}
-        <p style="color: #94a3b8; font-style: italic; margin: 0;">No survey responses yet.</p>
+        <p class="text-muted" style="font-style:italic;">No survey responses yet.</p>
       {% endif %}
     </div>
 
   </div>
 
   <!-- Right Column: SMS History -->
-  <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem;">
-    <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1.5rem;">SMS Communication History</h3>
-    
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <h3 class="glass-card-title">SMS Communication History</h3>
+    </div>
+
     {% if sms_logs %}
-    <div style="overflow-y: auto; max-height: 800px; padding-right: 0.5rem;">
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        {% for log in sms_logs %}
-          {% if log.direction == 'incoming' %}
-          <!-- Incoming Bubble -->
-          <div style="align-self: flex-start; max-width: 80%; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; border-bottom-left-radius: 0; padding: 1rem;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem; display: flex; justify-content: space-between;">
-              <span><strong>{{ member.full_name }}</strong> sent:</span>
-            </div>
-            <div style="color: #334155; line-height: 1.5;">{{ log.message }}</div>
-            <div style="font-size: 0.7rem; color: #94a3b8; text-align: right; margin-top: 0.5rem;">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+    <div class="chat-feed">
+      {% for log in sms_logs %}
+        {% if log.direction == 'incoming' %}
+        <div class="chat-bubble chat-bubble-in">
+          <div class="chat-meta">
+            <span><strong>{{ member.full_name }}</strong> sent:</span>
           </div>
-          {% else %}
-          <!-- Outgoing Bubble -->
-          <div style="align-self: flex-end; max-width: 80%; background: #dbeafe; border: 1px solid #bfdbfe; border-radius: 8px; border-bottom-right-radius: 0; padding: 1rem;">
-            <div style="font-size: 0.75rem; color: #1e3a8a; margin-bottom: 0.25rem; display: flex; justify-content: space-between;">
-              <span><strong>System</strong> sent:</span>
-              <span style="background: #bfdbfe; padding: 0.1rem 0.3rem; border-radius: 4px;">{{ log.status }}</span>
-            </div>
-            <div style="color: #1e3a8a; line-height: 1.5;">{{ log.message }}</div>
-            <div style="font-size: 0.7rem; color: #60a5fa; text-align: right; margin-top: 0.5rem;">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+          <div>{{ log.message }}</div>
+          <div class="chat-time">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+        {% else %}
+        <div class="chat-bubble chat-bubble-out">
+          <div class="chat-meta">
+            <span><strong>System</strong> sent:</span>
+            <span class="badge badge-info" style="font-size:0.65rem;">{{ log.status }}</span>
           </div>
-          {% endif %}
-        {% endfor %}
-      </div>
+          <div>{{ log.message }}</div>
+          <div class="chat-time">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+        {% endif %}
+      {% endfor %}
     </div>
     {% else %}
-    <p style="color: #94a3b8; font-style: italic; text-align: center; margin-top: 2rem;">No messages exchanged yet.</p>
+    <div class="empty-state">
+      <div class="empty-state-icon"><i data-lucide="message-square"></i></div>
+      <p>No messages exchanged yet.</p>
+    </div>
     {% endif %}
   </div>
 

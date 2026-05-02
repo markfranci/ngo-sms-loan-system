@@ -1,70 +1,51 @@
 {% extends 'base.html' %}
-
 {% block title %}System Reports & Exports{% endblock %}
-{% block header %}Data Exports{% endblock %}
 
 {% block content %}
-<div class="row fade-in">
-    <div class="col-12 mb-4">
-        <p class="text-muted lead">Download CSV extracts of system data. CSV files can be easily opened in Microsoft Excel or Google Sheets for advanced filtering, graphing, and financial reporting.</p>
-    </div>
-
-    <!-- SME Members Report -->
-    <div class="col-md-4 mb-4">
-        <div class="card border-0 shadow-sm glass-panel h-100 text-center transition-all hover-lift">
-            <div class="card-body p-4 p-md-5 d-flex flex-column align-items-center">
-                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
-                    <i class="bi bi-people-fill display-5"></i>
-                </div>
-                <h5 class="fw-bold mb-3">SME Members directory</h5>
-                <p class="text-muted small mb-4 flex-grow-1">A comprehensive extract containing all registered members, their phone numbers, IDs, and group assignments.</p>
-                <a href="{{ url_for('reports.export_members') }}" class="btn btn-primary rounded-pill px-4 shadow-sm w-100 mt-auto">
-                    <i class="bi bi-download me-1"></i> Download CSV
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loan Assessments Report -->
-    <div class="col-md-4 mb-4">
-        <div class="card border-0 shadow-sm glass-panel h-100 text-center transition-all hover-lift">
-            <div class="card-body p-4 p-md-5 d-flex flex-column align-items-center">
-                <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
-                    <i class="bi bi-cash-stack display-5"></i>
-                </div>
-                <h5 class="fw-bold mb-3">Loan Assessments</h5>
-                <p class="text-muted small mb-4 flex-grow-1">Export all historic and active loan requests, pulling requested amounts, automated risk scores, and current statuses.</p>
-                <a href="{{ url_for('reports.export_loans') }}" class="btn btn-success rounded-pill px-4 shadow-sm w-100 mt-auto">
-                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download CSV
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- SME Groups Report -->
-    <div class="col-md-4 mb-4">
-        <div class="card border-0 shadow-sm glass-panel h-100 text-center transition-all hover-lift">
-            <div class="card-body p-4 p-md-5 d-flex flex-column align-items-center">
-                <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
-                    <i class="bi bi-diagram-3-fill display-5"></i>
-                </div>
-                <h5 class="fw-bold mb-3">Group Segments</h5>
-                <p class="text-muted small mb-4 flex-grow-1">A high-level view showing all NGO managed SME groups, including aggregate metrics like active member counts and managers.</p>
-                <a href="{{ url_for('reports.export_groups') }}" class="btn btn-info text-white rounded-pill px-4 shadow-sm w-100 mt-auto">
-                    <i class="bi bi-cloud-download me-1"></i> Download CSV
-                </a>
-            </div>
-        </div>
-    </div>
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>Data Exports</h2>
+    <p>Download CSV extracts of system data. Open them in Excel or Google Sheets for advanced analysis.</p>
+  </div>
 </div>
 
-<style>
-    .hover-lift {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hover-lift:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
-    }
-</style>
+<div class="report-grid">
+
+  <!-- SME Members Report -->
+  <div class="report-card">
+    <div class="report-icon purple">
+      <i data-lucide="users"></i>
+    </div>
+    <h3>SME Members Directory</h3>
+    <p>A comprehensive extract containing all registered members, their phone numbers, IDs, and group assignments.</p>
+    <a href="{{ url_for('reports.export_members') }}" class="btn btn-primary btn-full" id="export-members">
+      <i data-lucide="download" style="width:16px;height:16px;"></i> Download CSV
+    </a>
+  </div>
+
+  <!-- Loan Assessments Report -->
+  <div class="report-card">
+    <div class="report-icon green">
+      <i data-lucide="wallet"></i>
+    </div>
+    <h3>Loan Assessments</h3>
+    <p>Export all historic and active loan requests, including requested amounts, automated risk scores, and statuses.</p>
+    <a href="{{ url_for('reports.export_loans') }}" class="btn btn-success btn-full" id="export-loans">
+      <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Download CSV
+    </a>
+  </div>
+
+  <!-- SME Groups Report -->
+  <div class="report-card">
+    <div class="report-icon blue">
+      <i data-lucide="network"></i>
+    </div>
+    <h3>Group Segments</h3>
+    <p>A high-level view showing all NGO managed SME groups, including member counts and assigned managers.</p>
+    <a href="{{ url_for('reports.export_groups') }}" class="btn btn-outline-primary btn-full" id="export-groups">
+      <i data-lucide="cloud-download" style="width:16px;height:16px;"></i> Download CSV
+    </a>
+  </div>
+
+</div>
 {% endblock %}

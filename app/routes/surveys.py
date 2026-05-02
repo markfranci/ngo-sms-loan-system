@@ -3,6 +3,8 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
 from app.models.member import Member
+from app.models.group import Group
+from app.models.sms_log import SMSLog
 
 # Create a new Blueprint for surveys
 surveys = Blueprint('surveys', __name__, url_prefix='/surveys')
@@ -51,6 +53,7 @@ def create():
 def view_survey(survey_id):
     # 1. Fetch the exact survey by its ID. If typed wrong, return 404 Error.
     survey = SurveyTemplate.query.get_or_404(survey_id)
+    groups = Group.query.all()
     
     if request.method == 'POST':
         # 2. Grab what you typed into the "Add Question" form
@@ -81,7 +84,48 @@ def view_survey(survey_id):
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
         
     # 5. Display the dashboard for this specific survey
-    return render_template('surveys/view_template.html', survey=survey)
+    return render_template('surveys/view_template.html', survey=survey, groups=groups)
+
+@surveys.route('/<int:survey_id>/dispatch', methods=['POST'])
+@login_required
+def dispatch_survey(survey_id):
+    survey = SurveyTemplate.query.get_or_404(survey_id)
+    group_id = request.form.get('group_id')
+    
+    if not group_id:
+        flash('Please select a group.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+        
+    group = Group.query.get_or_404(int(group_id))
+    
+    if not survey.questions:
+        flash('Cannot dispatch an empty survey. Please add questions first.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+        
+    first_question = survey.questions[0]
+    message_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
+    if first_question.question_type == 'multiple_choice':
+        message_text += f"\nOptions: {first_question.options}"
+        
+    dispatch_count = 0
+    for member in group.members:
+        member.current_survey_id = survey.id
+        
+        # Log the outgoing message
+        new_sms = SMSLog(
+            sender='System',
+            recipient=member.phone_number,
+            message=message_text,
+            direction='outgoing',
+            status='sent',
+            member_id=member.id
+        )
+        db.session.add(new_sms)
+        dispatch_count += 1
+        
+    db.session.commit()
+    flash(f'Survey successfully dispatched to {dispatch_count} members in {group.name}!', 'success')
+    return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
 @surveys.route('/<int:survey_id>/responses')
 @login_required

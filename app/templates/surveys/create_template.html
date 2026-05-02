@@ -2,24 +2,36 @@
 {% block title %}Create Survey{% endblock %}
 
 {% block content %}
-<div class="form-wrapper" style="max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-    <h2 style="margin-bottom: 1.5rem; color: #1e293b;">Create New Survey Template</h2>
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>Create New Survey</h2>
+    <p>Set up a new survey template to collect data from SME members.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('surveys.index') }}" class="btn btn-ghost">
+      <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+    </a>
+  </div>
+</div>
 
-    <form method="POST" action="{{ url_for('surveys.create') }}">
-        <div style="margin-bottom: 1.5rem;">
-            <label for="title" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Survey Title: *</label>
-            <input type="text" id="title" name="title" required placeholder="e.g. Business Assessment 2026" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
-        </div>
-        
-        <div style="margin-bottom: 2rem;">
-            <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Description / Purpose:</label>
-            <textarea id="description" name="description" rows="3" placeholder="Explain what answers this survey collects." style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;"></textarea>
-        </div>
-        
-        <div style="display: flex; gap: 1rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Save Survey Shell</button>
-            <a href="{{ url_for('surveys.index') }}" class="btn" style="padding: 0.75rem 1.5rem; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 4px;">Cancel</a>
-        </div>
-    </form>
+<div class="glass-card" style="max-width:640px;">
+  <form method="POST" action="{{ url_for('surveys.create') }}">
+    <div class="form-group">
+      <label for="title" class="form-label">Survey Title *</label>
+      <input type="text" id="title" name="title" required class="form-input" placeholder="e.g. Business Assessment 2026">
+    </div>
+
+    <div class="form-group">
+      <label for="description" class="form-label">Description / Purpose</label>
+      <textarea id="description" name="description" rows="3" class="form-textarea" placeholder="Explain what answers this survey collects."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="btn-save-survey">
+        <i data-lucide="save" style="width:16px;height:16px;"></i> Save Survey Shell
+      </button>
+      <a href="{{ url_for('surveys.index') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
 </div>
 {% endblock %}

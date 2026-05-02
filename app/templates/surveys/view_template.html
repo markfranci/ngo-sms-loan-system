@@ -2,73 +2,102 @@
 {% block title %}{{ survey.title }}{% endblock %}
 
 {% block content %}
-<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <div>
-        <h2 style="margin-bottom: 0.25rem;">{{ survey.title }}</h2>
-        <p style="color: #64748b; font-size: 0.9rem;">{{ survey.description }}</p>
-    </div>
-    <div>
-        <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-success" style="background: #22c55e; color: white; text-decoration: none; border-radius: 4px; padding: 0.5rem 1rem; margin-right: 0.5rem;">View Responses</a>
-        <a href="{{ url_for('surveys.index') }}" class="btn" style="background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 4px; padding: 0.5rem 1rem;">Back to Surveys</a>
-    </div>
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>{{ survey.title }}</h2>
+    <p>{{ survey.description }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-success" id="btn-view-responses">
+      <i data-lucide="message-circle" style="width:16px;height:16px;"></i> View Responses
+    </a>
+    <a href="{{ url_for('surveys.index') }}" class="btn btn-ghost">
+      <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+    </a>
+  </div>
 </div>
 
-<!-- List of Existing Questions -->
-<div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 2rem; margin-bottom: 2rem;">
-    <h3 style="margin-bottom: 1.5rem; color: #1e293b;">Survey Questions ({{ survey.questions|length }})</h3>
-    
-    {% if survey.questions %}
-        <ul style="list-style: none; padding: 0; margin: 0;">
-            {% for question in survey.questions %}
-            <li style="padding: 1rem; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 0.5rem; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between;">
-                    <strong style="color: #0f172a;">{{ question.order_number }}. {{ question.question_text }}</strong>
-                    <span style="background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: #64748b;">
-                        {{ question.question_type|capitalize }}
-                    </span>
-                </div>
-                {% if question.question_type == 'multiple_choice' %}
-                    <div style="margin-top: 0.5rem; color: #475569; font-size: 0.9rem; background: #f8fafc; padding: 0.5rem; border-radius: 4px;">
-                        <strong>Options:</strong> {{ question.options }}
-                    </div>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p style="color: #64748b; font-style: italic;">No questions added yet. Use the form below to create your first question!</p>
-    {% endif %}
+<!-- Questions List -->
+<div class="glass-card mb-3">
+  <div class="glass-card-header">
+    <h3 class="glass-card-title">Survey Questions ({{ survey.questions|length }})</h3>
+  </div>
+
+  {% if survey.questions %}
+    <div class="question-list">
+      {% for question in survey.questions %}
+      <div class="question-item">
+        <div class="question-header">
+          <span class="question-text">{{ question.order_number }}. {{ question.question_text }}</span>
+          <span class="badge badge-neutral">{{ question.question_type|capitalize }}</span>
+        </div>
+        {% if question.question_type == 'multiple_choice' %}
+          <div class="question-options">
+            <strong>Options:</strong> {{ question.options }}
+          </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted" style="font-style:italic;">No questions added yet. Use the form below to create your first question!</p>
+  {% endif %}
+</div>
+
+<!-- Dispatch Survey to Group -->
+<div class="glass-card mb-3">
+  <div class="glass-card-header">
+    <h3 class="glass-card-title">Dispatch Survey to Group</h3>
+  </div>
+  <form method="POST" action="{{ url_for('surveys.dispatch_survey', survey_id=survey.id) }}" style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
+      <label for="group_id" class="form-label">Select Group</label>
+      <select id="group_id" name="group_id" required class="form-select">
+        <option value="">-- Choose a Group --</option>
+        {% for group in groups %}
+          <option value="{{ group.id }}">{{ group.name }} ({{ group.members|length }} members)</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary" id="btn-dispatch-survey">
+        <i data-lucide="send" style="width:16px;height:16px;"></i> Dispatch to Group
+      </button>
+    </div>
+  </form>
 </div>
 
 <!-- Add New Question Form -->
-<div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 2rem;">
-    <h3 style="margin-bottom: 1.5rem; color: #1e293b;">Add New Question</h3>
-    
-    <form method="POST" action="{{ url_for('surveys.view_survey', survey_id=survey.id) }}">
-        <div style="margin-bottom: 1.5rem;">
-            <label for="question_text" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Question Text: *</label>
-            <input type="text" id="question_text" name="question_text" required placeholder="e.g. What is your primary source of income?" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
-        </div>
-        
-        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
-            <div style="flex: 1;">
-                <!-- This lets you choose text vs number vs choice! -->
-                <label for="question_type" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Answer Format:</label>
-                <select id="question_type" name="question_type" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; background: white;">
-                    <option value="text">Free Text</option>
-                    <option value="number">Number</option>
-                    <option value="multiple_choice">Multiple Choice</option>
-                </select>
-            </div>
-            
-            <div style="flex: 2;">
-                <!-- If it's multiple choice, you type the options here! -->
-                <label for="options" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569;">Options (Only if Multiple Choice):</label>
-                <input type="text" id="options" name="options" placeholder="e.g. 1. Farming, 2. Trading, 3. Other" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
-            </div>
-        </div>
-        
-        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">+ Append Question</button>
-    </form>
+<div class="glass-card">
+  <div class="glass-card-header">
+    <h3 class="glass-card-title">Add New Question</h3>
+  </div>
+
+  <form method="POST" action="{{ url_for('surveys.view_survey', survey_id=survey.id) }}">
+    <div class="form-group">
+      <label for="question_text" class="form-label">Question Text *</label>
+      <input type="text" id="question_text" name="question_text" required class="form-input" placeholder="e.g. What is your primary source of income?">
+    </div>
+
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:180px;">
+        <label for="question_type" class="form-label">Answer Format</label>
+        <select id="question_type" name="question_type" class="form-select">
+          <option value="text">Free Text</option>
+          <option value="number">Number</option>
+          <option value="multiple_choice">Multiple Choice</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="flex:2;min-width:260px;">
+        <label for="options" class="form-label">Options (Multiple Choice Only)</label>
+        <input type="text" id="options" name="options" class="form-input" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="btn-add-question">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i> Append Question
+    </button>
+  </form>
 </div>
 {% endblock %}

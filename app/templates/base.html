@@ -4,12 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!--
-    The 'title' block lets each child page set its own browser tab title.
-    If a child doesn't set one, we fall back to "NGO Loan System".
-  -->
   <title>{% block title %}NGO Loan System{% endblock %} | SME Loan Management</title>
-
   <meta name="description" content="NGO SMS-based loan management system for SME groups in Kenya." />
 
   <!-- Google Fonts — Inter for clean, modern typography -->
@@ -17,55 +12,142 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
+  <!-- Lucide Icons (lightweight SVG icon set) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <!-- Our main stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
 
-  <!-- Allow child pages to add their own extra CSS -->
   {% block extra_css %}{% endblock %}
 </head>
 
 <body>
 
-  <!--
-    Only show the navbar if the user is logged in.
-    current_user is provided by Flask-Login automatically.
-    is_authenticated = True means the user has logged in.
-  -->
   {% if current_user.is_authenticated %}
-  <nav class="navbar">
-    <div class="navbar-brand">
-      <span class="navbar-logo">🏦</span>
-      <span class="navbar-title">NGO Loan System</span>
+  <!-- ======================== SIDEBAR LAYOUT ======================== -->
+  <div class="app-layout">
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">
+          <i data-lucide="landmark"></i>
+        </div>
+        <div>
+          <div class="sidebar-brand-text">NGO Loan System</div>
+          <div class="sidebar-brand-sub">SME Management</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Overview</div>
+          <a href="{{ url_for('main.dashboard') }}" class="sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" id="nav-dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Management</div>
+          <a href="{{ url_for('members.index') }}" class="sidebar-link {% if request.endpoint and 'members' in request.endpoint %}active{% endif %}" id="nav-members">
+            <i data-lucide="users"></i>
+            <span>Members</span>
+          </a>
+          <a href="{{ url_for('groups.index') }}" class="sidebar-link {% if request.endpoint and 'groups' in request.endpoint %}active{% endif %}" id="nav-groups">
+            <i data-lucide="network"></i>
+            <span>Groups</span>
+          </a>
+          <a href="{{ url_for('loans.index') }}" class="sidebar-link {% if request.endpoint and 'loans' in request.endpoint %}active{% endif %}" id="nav-loans">
+            <i data-lucide="wallet"></i>
+            <span>Loans</span>
+          </a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Communications</div>
+          <a href="{{ url_for('surveys.index') }}" class="sidebar-link {% if request.endpoint and 'surveys' in request.endpoint %}active{% endif %}" id="nav-surveys">
+            <i data-lucide="clipboard-list"></i>
+            <span>Surveys</span>
+          </a>
+          <a href="{{ url_for('sms.logs') }}" class="sidebar-link {% if request.endpoint and 'sms' in request.endpoint %}active{% endif %}" id="nav-sms">
+            <i data-lucide="message-square"></i>
+            <span>SMS Logs</span>
+          </a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Analytics</div>
+          <a href="{{ url_for('reports.index') }}" class="sidebar-link {% if request.endpoint and 'reports' in request.endpoint %}active{% endif %}" id="nav-reports">
+            <i data-lucide="file-bar-chart"></i>
+            <span>Reports</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">
+            {{ current_user.username[0]|upper }}
+          </div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">{{ current_user.username }}</div>
+            <div class="sidebar-user-role">{{ current_user.role | capitalize }}</div>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" class="btn-sidebar-logout" title="Sign Out" id="btn-logout">
+            <i data-lucide="log-out"></i>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="top-header">
+        <div class="top-header-left">
+          <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-breadcrumb">
+            {% block breadcrumb %}
+            <a href="{{ url_for('main.dashboard') }}">Home</a>
+            {% endblock %}
+          </div>
+        </div>
+        <div class="top-header-right">
+          <span class="badge badge-primary">{{ current_user.role | capitalize }}</span>
+        </div>
+      </header>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <main class="page-content">
+        {% block content %}{% endblock %}
+      </main>
     </div>
 
-    <div class="navbar-links">
-      <a href="{{ url_for('main.dashboard') }}" class="nav-link">Dashboard</a>
-      <a href="{{ url_for('members.index') }}" class="nav-link">Members</a>
-      <a href="{{ url_for('groups.index') }}" class="nav-link">Groups</a>
-      <a href="{{ url_for('surveys.index') }}" class="nav-link">Surveys</a>
-      <a href="{{ url_for('sms.logs') }}" class="nav-link">SMS Logs</a>
-      <a href="{{ url_for('loans.index') }}" class="nav-link">Loans</a>
-      <a href="{{ url_for('reports.index') }}" class="nav-link">Reports</a>
-    </div>
+  </div>
 
-    <div class="navbar-user">
-      <span class="user-badge">{{ current_user.role | capitalize }}</span>
-      <span class="user-name">{{ current_user.username }}</span>
-      <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
-    </div>
-  </nav>
-  {% endif %}
+  {% else %}
+  <!-- ======================== AUTH LAYOUT (No Sidebar) ======================== -->
 
-  <!--
-    Flash messages — these are one-time notifications shown after an action.
-    For example: "Invalid email or password" or "Logged out successfully".
-    get_flashed_messages() returns all messages queued with flash().
-    'with_categories=True' lets us know the type (danger, success, info)
-    so we can style them differently.
-  -->
   {% with messages = get_flashed_messages(with_categories=True) %}
     {% if messages %}
-      <div class="flash-container">
+      <div class="flash-container" style="position:fixed;top:1rem;right:1rem;z-index:999;max-width:400px;">
         {% for category, message in messages %}
           <div class="flash flash-{{ category }}">
             {{ message }}
@@ -75,16 +157,35 @@
     {% endif %}
   {% endwith %}
 
-  <!--
-    The 'content' block is where each child page inserts its own HTML.
-    Think of this like a frame — the base is the frame,
-    child pages put their picture inside.
-  -->
   <main>
-    {% block content %}{% endblock %}
+    {% block content_auth %}{% endblock %}
   </main>
+  {% endif %}
 
-  <!-- Allow child pages to add their own scripts at the bottom -->
+  <!-- Initialize Lucide icons -->
+  <script>
+    lucide.createIcons();
+
+    // Mobile sidebar toggle
+    const toggle = document.getElementById('mobile-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (toggle && sidebar) {
+      toggle.addEventListener('click', function() {
+        sidebar.classList.toggle('open');
+        if (overlay) overlay.classList.toggle('active');
+      });
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', function() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+
   {% block extra_js %}{% endblock %}
 
 </body>
