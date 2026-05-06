@@ -101,30 +101,65 @@ def dispatch_survey(survey_id):
     if not survey.questions:
         flash('Cannot dispatch an empty survey. Please add questions first.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
-        
+
+    # Build the message with the first question
     first_question = survey.questions[0]
     message_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
     if first_question.question_type == 'multiple_choice':
         message_text += f"\nOptions: {first_question.options}"
-        
+
+    # Initialize the Twilio client for sending WhatsApp messages
+    from twilio.rest import Client
+    from flask import current_app
+
+    account_sid = current_app.config.get('TWILIO_ACCOUNT_SID')
+    auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
+    from_number = current_app.config.get('TWILIO_WHATSAPP_NUMBER')
+
+    if not account_sid or not auth_token:
+        flash('Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+    client = Client(account_sid, auth_token)
+
     dispatch_count = 0
+    fail_count = 0
+
     for member in group.members:
+        # Set the member's brain to remember they are taking this survey
         member.current_survey_id = survey.id
-        
+
+        # Actually send the WhatsApp message via Twilio
+        try:
+            twilio_message = client.messages.create(
+                body=message_text,
+                from_=from_number,
+                to=f'whatsapp:{member.phone_number}'
+            )
+            sms_status = 'sent'
+            dispatch_count += 1
+        except Exception as e:
+            sms_status = 'failed'
+            fail_count += 1
+            print(f"[Twilio Error] Failed to send to {member.phone_number}: {e}")
+
         # Log the outgoing message
         new_sms = SMSLog(
             sender='System',
             recipient=member.phone_number,
             message=message_text,
             direction='outgoing',
-            status='sent',
+            status=sms_status,
             member_id=member.id
         )
         db.session.add(new_sms)
-        dispatch_count += 1
         
     db.session.commit()
-    flash(f'Survey successfully dispatched to {dispatch_count} members in {group.name}!', 'success')
+
+    if fail_count > 0:
+        flash(f'Survey dispatched to {dispatch_count} members, {fail_count} failed. Check logs for details.', 'warning')
+    else:
+        flash(f'Survey successfully dispatched to {dispatch_count} members in {group.name}!', 'success')
     return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
 @surveys.route('/<int:survey_id>/responses')
