@@ -36,6 +36,17 @@
             <strong>Options:</strong> {{ question.options }}
           </div>
         {% endif %}
+        {% if question.skip_condition %}
+          <div class="question-options" style="margin-top:0.4rem;">
+            <span class="badge badge-warning" style="font-size:0.7rem;">Skip Logic</span>
+            If answer = <strong>"{{ question.skip_condition }}"</strong> → 
+            {% if question.skip_to_order == 0 %}
+              <strong>End Survey</strong>
+            {% else %}
+              Jump to <strong>Q{{ question.skip_to_order }}</strong>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -95,9 +106,34 @@
       </div>
     </div>
 
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;">
+      <div class="form-group" style="flex:2;min-width:200px;">
+        <label for="skip_condition" class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
+        <input type="text" id="skip_condition" name="skip_condition" class="form-input" placeholder="e.g. No">
+      </div>
+
+      <div class="form-group" style="flex:1;min-width:160px;">
+        <label for="skip_to_order" class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
+        <input type="number" id="skip_to_order" name="skip_to_order" class="form-input" min="0" placeholder="e.g. 6">
+      </div>
+    </div>
+
     <button type="submit" class="btn btn-primary" id="btn-add-question">
       <i data-lucide="plus" style="width:16px;height:16px;"></i> Append Question
     </button>
   </form>
+</div>
+
+<!-- Skip Logic Help -->
+<div class="glass-card">
+  <div class="glass-card-header">
+    <h3 class="glass-card-title">Skip Logic Help</h3>
+  </div>
+  <p class="text-muted" style="font-size:0.85rem;line-height:1.6;">
+    <strong>Skip logic</strong> lets you branch the survey based on a member's answer.<br>
+    • <strong>Skip Condition:</strong> The answer that triggers the skip (e.g. "No", "Mama Samaki"). Case-insensitive.<br>
+    • <strong>Skip To Question #:</strong> The question number to jump to. Use <strong>0</strong> to end the survey immediately.<br>
+    • If the answer does <em>not</em> match the condition, the survey proceeds to the next question normally.
+  </p>
 </div>
 {% endblock %}

@@ -60,6 +60,9 @@ def view_survey(survey_id):
         question_text = request.form.get('question_text')
         question_type = request.form.get('question_type')
         options = request.form.get('options') # Only used if they picked Multiple Choice
+        skip_condition = request.form.get('skip_condition', '').strip() or None
+        skip_to_order_raw = request.form.get('skip_to_order', '').strip()
+        skip_to_order = int(skip_to_order_raw) if skip_to_order_raw != '' else None
         
         if not question_text:
             flash('Question text cannot be empty.', 'danger')
@@ -73,7 +76,9 @@ def view_survey(survey_id):
             question_text=question_text,
             question_type=question_type,
             options=options,
-            order_number=next_order
+            order_number=next_order,
+            skip_condition=skip_condition,
+            skip_to_order=skip_to_order
         )
         
         # 4. Save the new question permanently to MariaDB
@@ -128,6 +133,7 @@ def dispatch_survey(survey_id):
     for member in group.members:
         # Set the member's brain to remember they are taking this survey
         member.current_survey_id = survey.id
+        member.current_question_order = first_question.order_number
 
         # Actually send the WhatsApp message via Twilio
         try:

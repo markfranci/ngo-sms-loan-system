@@ -79,6 +79,16 @@ class SurveyQuestion(db.Model):
     order_number = db.Column(db.Integer, nullable=False, default=1)
 
     # ----------------------------------------------------------------
+    # Skip Logic (optional)
+    # ----------------------------------------------------------------
+    # If the member's answer matches skip_condition (case-insensitive),
+    # jump to the question with order_number == skip_to_order.
+    # If skip_to_order is 0, the survey ends immediately.
+    # If the answer does NOT match, proceed to the next question linearly.
+    skip_condition = db.Column(db.String(100), nullable=True)
+    skip_to_order = db.Column(db.Integer, nullable=True)
+
+    # ----------------------------------------------------------------
     # Relationships
     # ----------------------------------------------------------------
 

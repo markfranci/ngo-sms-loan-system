@@ -39,7 +39,11 @@
           <td class="td-mono">{{ data.member.phone_number }}</td>
           {% for question in questions %}
           <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ data.answers.get(question.id, 'N/A') }}">
-            {{ data.answers.get(question.id, '<span class="text-muted" style="font-style:italic;">No response</span>')|safe }}
+            {% if data.answers.get(question.id) %}
+              {{ data.answers[question.id] }}
+            {% else %}
+              <span class="badge badge-neutral" style="font-size:0.7rem;font-style:italic;">Skipped</span>
+            {% endif %}
           </td>
           {% endfor %}
         </tr>

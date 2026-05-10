@@ -84,37 +84,67 @@ def incoming_message():
         if member.current_survey_id:
             survey = SurveyTemplate.query.get(member.current_survey_id)
             
-            # Count how many questions they've answered for this specific survey
-            answered_count = SurveyResponse.query.join(SurveyQuestion).filter(
-                SurveyResponse.member_id == member.id,
-                SurveyQuestion.template_id == survey.id
-            ).count()
+            # Find the current question by the order_number stored in the member's brain
+            current_question = SurveyQuestion.query.filter_by(
+                template_id=survey.id,
+                order_number=member.current_question_order
+            ).first()
             
-            if answered_count < len(survey.questions):
+            if current_question:
                 # Save their message as the answer to the current question
-                current_question = survey.questions[answered_count]
                 new_response = SurveyResponse(
                     member_id=member.id,
                     question_id=current_question.id,
                     answer=message_body
                 )
                 db.session.add(new_response)
-                db.session.commit()
                 
-                # Check if there is another question after this one
-                next_index = answered_count + 1
-                if next_index < len(survey.questions):
-                    next_question = survey.questions[next_index]
-                    reply_text = f"Got it. Next question:\n\n{next_index + 1}. {next_question.question_text}"
+                # ----- SKIP LOGIC ENGINE -----
+                # Decide which question comes next based on skip rules
+                next_question = None
+                
+                if current_question.skip_condition and current_question.skip_to_order is not None:
+                    # Check if the member's answer matches the skip condition (case-insensitive)
+                    if message_body.strip().lower() == current_question.skip_condition.strip().lower():
+                        if current_question.skip_to_order == 0:
+                            # skip_to_order = 0 means "end survey now"
+                            next_question = None
+                        else:
+                            # Jump to the specified question
+                            next_question = SurveyQuestion.query.filter_by(
+                                template_id=survey.id,
+                                order_number=current_question.skip_to_order
+                            ).first()
+                    else:
+                        # Answer didn't match skip condition — go to next question linearly
+                        next_question = SurveyQuestion.query.filter_by(
+                            template_id=survey.id,
+                            order_number=current_question.order_number + 1
+                        ).first()
+                else:
+                    # No skip rule on this question — go to next question linearly
+                    next_question = SurveyQuestion.query.filter_by(
+                        template_id=survey.id,
+                        order_number=current_question.order_number + 1
+                    ).first()
+                
+                if next_question:
+                    # Move to the next question
+                    member.current_question_order = next_question.order_number
+                    db.session.commit()
+                    reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
                     if next_question.question_type == 'multiple_choice':
                          reply_text += f"\nOptions: {next_question.options}"
                 else:
-                    # No more questions! Clear their memory.
+                    # No more questions — survey complete! Clear their memory.
                     member.current_survey_id = None
+                    member.current_question_order = None
                     db.session.commit()
                     reply_text = "Thank you! You have completed the survey."
             else:
+                # Safety: question not found, reset state
                 member.current_survey_id = None
+                member.current_question_order = None
                 db.session.commit()
                 reply_text = "You have already finished this survey."
 
@@ -125,8 +155,9 @@ def incoming_message():
                 survey = SurveyTemplate.query.get(survey_id)
                 
                 if survey and survey.questions:
-                    # Give the member's brain the survey ID so they remember they are taking it
+                    # Give the member's brain the survey ID and starting question
                     member.current_survey_id = survey.id
+                    member.current_question_order = survey.questions[0].order_number
                     db.session.commit()
                     
                     first_question = survey.questions[0]
