@@ -75,11 +75,13 @@ class RegistrationSession(db.Model):
     
     # 1: Waiting for Full Name
     # 2: Waiting for ID Number
+    # 3: Waiting for Gender
     step = db.Column(db.Integer, nullable=False, default=1)
     
     # Data collected incrementally
     full_name = db.Column(db.String(100), nullable=True)
     id_number = db.Column(db.String(20), nullable=True)
+    gender = db.Column(db.String(10), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

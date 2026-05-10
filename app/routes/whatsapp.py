@@ -52,23 +52,33 @@ def incoming_message():
                 reply_text = f"Thanks, {message_body}. Now, please reply with your National ID Number."
             elif session.step == 2:
                 session.id_number = message_body
-                
-                # Finalize member creation!
-                new_member = Member(
-                    full_name=session.full_name,
-                    id_number=session.id_number,
-                    phone_number=session.phone_number
-                )
-                db.session.add(new_member)
-                
-                # Update the SMS log we just saved so it attaches to the new member
-                new_message.member = new_member
-                
-                # Clean up the temporary session state
-                db.session.delete(session)
+                session.step = 3
                 db.session.commit()
-                
-                reply_text = "Registration complete! 🎉\n\nYou are now an active SME member. You will be notified when surveys or loans are assigned to you."
+                reply_text = "Great! Now, please reply with your Gender.\n\nType *Male* or *Female*."
+            elif session.step == 3:
+                gender_input = message_body.strip().lower()
+                if gender_input not in ('male', 'female'):
+                    reply_text = "Please reply with either *Male* or *Female*."
+                else:
+                    session.gender = gender_input
+                    
+                    # Finalize member creation!
+                    new_member = Member(
+                        full_name=session.full_name,
+                        id_number=session.id_number,
+                        phone_number=session.phone_number,
+                        gender=session.gender
+                    )
+                    db.session.add(new_member)
+                    
+                    # Update the SMS log we just saved so it attaches to the new member
+                    new_message.member = new_member
+                    
+                    # Clean up the temporary session state
+                    db.session.delete(session)
+                    db.session.commit()
+                    
+                    reply_text = "Registration complete! 🎉\n\nYou are now an active SME member. You will be notified when surveys or loans are assigned to you."
     else:
         # Check if the member's brain says they are currently taking a survey
         if member.current_survey_id:
