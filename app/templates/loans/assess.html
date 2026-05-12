@@ -2,10 +2,46 @@
 {% block title %}New Assessment - {{ member.full_name }}{% endblock %}
 
 {% block content %}
+<style>
+/* Tab Styles */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-base);
+}
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--color-surface-2);
+}
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.tab-content.active {
+  display: block;
+}
+</style>
+
 <div class="page-header">
   <div class="page-header-text">
-    <h2>New Loan Assessment</h2>
-    <p>Run an automated assessment for {{ member.full_name }}.</p>
+    <h2>Detailed Loan Assessment</h2>
+    <p>Complete the assessment form for {{ member.full_name }}.</p>
   </div>
   <div class="page-header-actions">
     <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost">
@@ -14,86 +50,292 @@
   </div>
 </div>
 
-<div class="detail-grid detail-grid-half">
+<div class="detail-grid detail-grid-half" style="grid-template-columns: 1fr;">
 
-  <!-- Member Summary Sidebar -->
-  <div class="glass-card text-center">
-    <div style="margin-bottom:1.5rem;">
-      <div class="avatar avatar-lg avatar-purple" style="margin:0 auto 1rem;">
-        {{ member.full_name[0]|upper }}
-      </div>
-      <h3 style="margin-bottom:0.25rem;">{{ member.full_name }}</h3>
-      <p class="td-mono text-secondary" style="font-size:0.9rem;">{{ member.phone_number }}</p>
-      {% if member.group %}
-        <span class="badge badge-neutral mt-1">{{ member.group.name }}</span>
-      {% endif %}
-    </div>
-
-    <div class="glass-card-header" style="margin-top:1.5rem;">
-      <h3 class="glass-card-title" style="font-size:0.85rem;">
-        <i data-lucide="zap" style="width:16px;height:16px;color:var(--color-warning);vertical-align:middle;"></i>
-        Quick Financials (from Surveys)
-      </h3>
-    </div>
-
-    <div class="finance-row">
-      <span class="finance-label">Est. Total Income:</span>
-      <span class="finance-value text-success">KSh {{ "{:,.2f}".format(total_income) }}</span>
-    </div>
-    <div class="finance-row">
-      <span class="finance-label">Est. Total Expenses:</span>
-      <span class="finance-value text-danger">KSh {{ "{:,.2f}".format(total_expenses) }}</span>
-    </div>
-    <hr class="finance-divider">
-    <div class="finance-row">
-      <span class="finance-label fw-bold">Est. Net Positive:</span>
-      <span class="finance-value {% if total_income - total_expenses > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.1rem;">
-        KSh {{ "{:,.2f}".format(total_income - total_expenses) }}
-      </span>
-    </div>
-
-    <div style="margin-top:1.5rem;">
-      <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost btn-full">View Full Profile</a>
-    </div>
-  </div>
-
-  <!-- Assessment Form -->
   <div class="glass-card">
-    <div class="glass-card-header">
-      <h3 class="glass-card-title">Run Assessment</h3>
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="openTab(event, 'tab-applicant')">Applicant Details</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-business')">Business Details</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-balance')">Balance Sheet</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-income')">Income Statement</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-inventory')">Inventory</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-cashflow')">Cash Flow</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-approval')">Recommendation</button>
     </div>
 
     <form method="POST">
-      <div class="form-group">
-        <label for="amount_requested" class="form-label">Requested Loan Amount (KSh)</label>
-        <div style="display:flex;align-items:center;gap:0;">
-          <span style="padding:0.75rem 1rem;background:var(--color-surface-3);border:1px solid var(--color-border);border-right:none;border-radius:var(--radius-md) 0 0 var(--radius-md);color:var(--text-muted);font-size:0.85rem;font-weight:600;">KSh</span>
-          <input type="number" step="0.01" class="form-input" id="amount_requested" name="amount_requested" required placeholder="e.g. 50000" style="border-radius:0 var(--radius-md) var(--radius-md) 0;">
+      
+      <!-- TAB: APPLICANT DETAILS -->
+      <div id="tab-applicant" class="tab-content active">
+        <h3 class="glass-card-title mb-3">Applicant & Group Information</h3>
+        <div class="form-group">
+          <label class="form-label">Applicant Name</label>
+          <input type="text" class="form-input" value="{{ member.full_name }}" disabled>
         </div>
-        <span class="form-hint">Amount the member is requesting to borrow.</span>
-      </div>
-
-      <div class="form-group">
-        <label for="notes" class="form-label">Assessment Notes</label>
-        <textarea class="form-textarea" id="notes" name="notes" rows="4" placeholder="Any initial remarks or observations about the member's capacity to repay..."></textarea>
-      </div>
-
-      <div class="info-alert mb-3">
-        <i data-lucide="info"></i>
-        <div>
-          <strong>Automated Scoring</strong>
-          Submitting this form will automatically calculate an assessment score based on the member's survey financial data and group standing.
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">County</label>
+            <input type="text" name="county" class="form-input" value="{{ survey_data.get('county', '') }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sub-County</label>
+            <input type="text" name="sub_county" class="form-input" value="{{ survey_data.get('sub_county', '') }}">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Ward</label>
+            <input type="text" name="ward" class="form-input" value="{{ survey_data.get('ward', '') }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Group Name</label>
+            <input type="text" name="group_name" class="form-input" value="{{ member.group.name if member.group else '' }}">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Male Participants</label>
+            <input type="number" name="male_participants" class="form-input" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Female Participants</label>
+            <input type="number" name="female_participants" class="form-input" value="0">
+          </div>
+        </div>
+        
+        <div style="margin-top:2rem;text-align:right;">
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-business')">Next: Business Details <i data-lucide="arrow-right"></i></button>
         </div>
       </div>
 
-      <div class="form-actions">
-        <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost">Cancel</a>
-        <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
-          <i data-lucide="calculator" style="width:16px;height:16px;"></i> Calculate & Create Assessment
-        </button>
+      <!-- TAB: BUSINESS DETAILS -->
+      <div id="tab-business" class="tab-content">
+        <h3 class="glass-card-title mb-3">Business Information</h3>
+        <div class="form-group">
+          <label class="form-label">Business Location</label>
+          <input type="text" name="business_location" class="form-input" value="{{ survey_data.get('business_location', '') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nature of Business</label>
+          <input type="text" name="nature_of_business" class="form-input" value="{{ survey_data.get('nature_of_business', '') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registration Number</label>
+          <input type="text" name="registration_number" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Completed Required Training?</label>
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
+            <input type="checkbox" name="training_completion" id="training_completion" style="width:18px;height:18px;">
+            <label for="training_completion" style="font-weight:500;">Yes, member has completed training</label>
+          </div>
+        </div>
+        
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-applicant')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-balance')">Next: Balance Sheet <i data-lucide="arrow-right"></i></button>
+        </div>
       </div>
+
+      <!-- TAB: BALANCE SHEET -->
+      <div id="tab-balance" class="tab-content">
+        <h3 class="glass-card-title mb-3">Balance Sheet</h3>
+        <div class="form-group">
+          <label class="form-label">Fixed Assets (KSh)</label>
+          <input type="number" step="0.01" name="fixed_assets" class="form-input" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Assets / Business Assets (KSh)</label>
+          <input type="number" step="0.01" name="current_assets" class="form-input" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Existing Debts / Liabilities (KSh)</label>
+          <input type="number" step="0.01" name="liabilities" class="form-input" value="0">
+        </div>
+        
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-business')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-income')">Next: Income Statement <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- TAB: INCOME STATEMENT -->
+      <div id="tab-income" class="tab-content">
+        <h3 class="glass-card-title mb-3">Income Statement (Monthly)</h3>
+        <div class="form-group">
+          <label class="form-label">Est. Revenue / Sales (KSh)</label>
+          <input type="number" step="0.01" name="revenue" class="form-input" value="{{ total_income }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Expenses (KSh)</label>
+          <input type="number" step="0.01" name="business_expenses" class="form-input" value="{{ total_expenses }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Family / Household Expenses (KSh)</label>
+          <input type="number" step="0.01" name="family_expenses" class="form-input" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Net Profit / Disposable Income (KSh)</label>
+          <input type="number" step="0.01" name="disposable_income" class="form-input" value="{{ total_income - total_expenses }}">
+          <span class="form-hint">Automatically calculated from surveys, but can be overridden.</span>
+        </div>
+        
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-balance')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-inventory')">Next: Inventory <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- TAB: INVENTORY -->
+      <div id="tab-inventory" class="tab-content">
+        <h3 class="glass-card-title mb-3">Inventory Listing</h3>
+        <div id="inventory-list">
+          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
+            <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
+            <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
+          </div>
+          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
+            <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
+            <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addInventoryRow()">+ Add Item</button>
+        
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-income')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-cashflow')">Next: Cash Flow <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- TAB: CASH FLOW -->
+      <div id="tab-cashflow" class="tab-content">
+        <h3 class="glass-card-title mb-3">Six-Month Cash Flow Analysis</h3>
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Cash Inflow</th>
+                <th>Cash Outflow</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in range(1, 7) %}
+              <tr>
+                <td><input type="text" name="month_name_{{ i }}" class="form-input" value="Month {{ i }}"></td>
+                <td><input type="number" step="0.01" name="cash_inflow_{{ i }}" class="form-input" value="0"></td>
+                <td><input type="number" step="0.01" name="cash_outflow_{{ i }}" class="form-input" value="0"></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-inventory')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-approval')">Next: Recommendation <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- TAB: RECOMMENDATION / APPROVAL -->
+      <div id="tab-approval" class="tab-content">
+        <h3 class="glass-card-title mb-3">Loan Details & Recommendation</h3>
+        <div class="form-group">
+          <label class="form-label">Loan Amount Requested (KSh)</label>
+          <input type="number" step="0.01" name="amount_requested" class="form-input" required placeholder="e.g. 50000">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Loan Term (Months)</label>
+            <input type="number" name="loan_term_months" class="form-input" value="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Proposed Monthly Instalment (KSh)</label>
+            <input type="number" step="0.01" name="monthly_instalment" class="form-input" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Loan Purpose</label>
+          <textarea name="loan_purpose" class="form-textarea" rows="2">{{ survey_data.get('loan_purpose', '') }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assessment Notes</label>
+          <textarea class="form-textarea" name="notes" rows="3" placeholder="Staff recommendations..."></textarea>
+        </div>
+
+        <div class="info-alert mb-3 mt-4">
+          <i data-lucide="info"></i>
+          <div>
+            <strong>Automated Scoring</strong>
+            Submitting this form will calculate a score based on disposable income, assets, debts, and group standing.
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-cashflow')"><i data-lucide="arrow-left"></i> Previous</button>
+          <div>
+            <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost" style="margin-right:10px;">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
+              <i data-lucide="calculator" style="width:16px;height:16px;"></i> Save Assessment & Calculate Score
+            </button>
+          </div>
+        </div>
+      </div>
+
     </form>
   </div>
 
 </div>
+
+<script>
+function openTab(evt, tabName) {
+  if (evt) evt.preventDefault();
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tab-content");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+    tabcontent[i].classList.remove("active");
+  }
+  tablinks = document.getElementsByClassName("tab-btn");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(tabName).style.display = "block";
+  document.getElementById(tabName).classList.add("active");
+  
+  if(evt) {
+    evt.currentTarget.className += " active";
+  } else {
+    // Find button that opens this tab
+    const btns = document.querySelectorAll('.tab-btn');
+    btns.forEach(b => {
+      if(b.getAttribute('onclick').includes(tabName)) {
+        b.className += " active";
+      }
+    });
+  }
+}
+
+function nextTab(tabName) {
+  openTab(null, tabName);
+}
+
+function addInventoryRow() {
+  const container = document.getElementById('inventory-list');
+  const row = document.createElement('div');
+  row.className = 'inventory-row';
+  row.style.display = 'grid';
+  row.style.gridTemplateColumns = '2fr 1fr 1fr';
+  row.style.gap = '1rem';
+  row.style.marginBottom = '1rem';
+  row.innerHTML = `
+    <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
+    <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
+    <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
+  `;
+  container.appendChild(row);
+}
+</script>
 {% endblock %}
