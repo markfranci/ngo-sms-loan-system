@@ -102,6 +102,25 @@ class SurveyQuestion(db.Model):
         return f'<SurveyQuestion #{self.order_number}: "{self.question_text[:40]}...">'
 
 
+class SurveySkipRule(db.Model):
+    """
+    Represents a specific skip rule for a SurveyQuestion.
+    If a member's answer matches the condition, they jump to skip_to_order.
+    """
+    __tablename__ = 'survey_skip_rules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    question_id = db.Column(db.Integer, db.ForeignKey('survey_questions.id'), nullable=False)
+    condition = db.Column(db.String(100), nullable=False)
+    skip_to_order = db.Column(db.Integer, nullable=False)
+
+    question = db.relationship('SurveyQuestion', backref=db.backref('skip_rules', lazy=True, cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<SurveySkipRule If "{self.condition}" -> Q{self.skip_to_order}>'
+
+
+
 # ====================================================================
 
 

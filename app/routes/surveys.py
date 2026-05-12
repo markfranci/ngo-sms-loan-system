@@ -60,9 +60,9 @@ def view_survey(survey_id):
         question_text = request.form.get('question_text')
         question_type = request.form.get('question_type')
         options = request.form.get('options') # Only used if they picked Multiple Choice
-        skip_condition = request.form.get('skip_condition', '').strip() or None
-        skip_to_order_raw = request.form.get('skip_to_order', '').strip()
-        skip_to_order = int(skip_to_order_raw) if skip_to_order_raw != '' else None
+        
+        skip_conditions = request.form.getlist('skip_condition[]')
+        skip_to_orders = request.form.getlist('skip_to_order[]')
         
         if not question_text:
             flash('Question text cannot be empty.', 'danger')
@@ -76,13 +76,26 @@ def view_survey(survey_id):
             question_text=question_text,
             question_type=question_type,
             options=options,
-            order_number=next_order,
-            skip_condition=skip_condition,
-            skip_to_order=skip_to_order
+            order_number=next_order
         )
         
-        # 4. Save the new question permanently to MariaDB
         db.session.add(new_question)
+        db.session.flush() # Get question ID
+        
+        from app.models.survey import SurveySkipRule
+        for i in range(len(skip_conditions)):
+            cond = skip_conditions[i].strip()
+            order_raw = skip_to_orders[i].strip() if i < len(skip_to_orders) else ''
+            
+            if cond and order_raw.isdigit():
+                rule = SurveySkipRule(
+                    question_id=new_question.id,
+                    condition=cond,
+                    skip_to_order=int(order_raw)
+                )
+                db.session.add(rule)
+        
+        # 4. Save the new question permanently to MariaDB
         db.session.commit()
         
         flash('Question added to survey!', 'success')
@@ -110,8 +123,9 @@ def dispatch_survey(survey_id):
     # Build the message with the first question
     first_question = survey.questions[0]
     message_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
-    if first_question.question_type == 'multiple_choice':
-        message_text += f"\nOptions: {first_question.options}"
+    if first_question.question_type == 'multiple_choice' and first_question.options:
+        formatted_options = '\n'.join([opt.strip() for opt in str(first_question.options).split(',') if opt.strip()])
+        message_text += f"\n\n{formatted_options}"
 
     # Initialize the Twilio client for sending WhatsApp messages
     from twilio.rest import Client

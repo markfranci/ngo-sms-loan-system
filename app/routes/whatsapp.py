@@ -102,27 +102,36 @@ def incoming_message():
                 # ----- SKIP LOGIC ENGINE -----
                 # Decide which question comes next based on skip rules
                 next_question = None
+                matched_rule = False
                 
-                if current_question.skip_condition and current_question.skip_to_order is not None:
-                    # Check if the member's answer matches the skip condition (case-insensitive)
+                # Check new multiple skip rules first
+                if current_question.skip_rules:
+                    for rule in current_question.skip_rules:
+                        if message_body.strip().lower() == rule.condition.strip().lower():
+                            matched_rule = True
+                            if rule.skip_to_order == 0:
+                                next_question = None
+                            else:
+                                next_question = SurveyQuestion.query.filter_by(
+                                    template_id=survey.id,
+                                    order_number=rule.skip_to_order
+                                ).first()
+                            break
+                            
+                # Fallback to legacy single skip condition if no new rules matched
+                if not matched_rule and current_question.skip_condition and current_question.skip_to_order is not None:
                     if message_body.strip().lower() == current_question.skip_condition.strip().lower():
+                        matched_rule = True
                         if current_question.skip_to_order == 0:
-                            # skip_to_order = 0 means "end survey now"
                             next_question = None
                         else:
-                            # Jump to the specified question
                             next_question = SurveyQuestion.query.filter_by(
                                 template_id=survey.id,
                                 order_number=current_question.skip_to_order
                             ).first()
-                    else:
-                        # Answer didn't match skip condition — go to next question linearly
-                        next_question = SurveyQuestion.query.filter_by(
-                            template_id=survey.id,
-                            order_number=current_question.order_number + 1
-                        ).first()
-                else:
-                    # No skip rule on this question — go to next question linearly
+
+                if not matched_rule:
+                    # No rules matched, or no rules exist — go to next question linearly
                     next_question = SurveyQuestion.query.filter_by(
                         template_id=survey.id,
                         order_number=current_question.order_number + 1
@@ -133,8 +142,9 @@ def incoming_message():
                     member.current_question_order = next_question.order_number
                     db.session.commit()
                     reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
-                    if next_question.question_type == 'multiple_choice':
-                         reply_text += f"\nOptions: {next_question.options}"
+                    if next_question.question_type == 'multiple_choice' and next_question.options:
+                         formatted_options = '\n'.join([opt.strip() for opt in str(next_question.options).split(',') if opt.strip()])
+                         reply_text += f"\n\n{formatted_options}"
                 else:
                     # No more questions — survey complete! Clear their memory.
                     member.current_survey_id = None
@@ -162,8 +172,9 @@ def incoming_message():
                     
                     first_question = survey.questions[0]
                     reply_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
-                    if first_question.question_type == 'multiple_choice':
-                         reply_text += f"\nOptions: {first_question.options}"
+                    if first_question.question_type == 'multiple_choice' and first_question.options:
+                         formatted_options = '\n'.join([opt.strip() for opt in str(first_question.options).split(',') if opt.strip()])
+                         reply_text += f"\n\n{formatted_options}"
                 else:
                     reply_text = "That survey does not exist or has no questions."
             except:

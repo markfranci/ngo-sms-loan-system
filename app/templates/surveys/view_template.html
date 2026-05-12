@@ -47,6 +47,22 @@
             {% endif %}
           </div>
         {% endif %}
+        {% if question.skip_rules %}
+          <div class="question-options" style="margin-top:0.4rem;">
+            <span class="badge badge-warning" style="font-size:0.7rem;">Skip Logic</span>
+            <ul style="margin-top:0.25rem; margin-left: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+            {% for rule in question.skip_rules %}
+              <li>If answer = <strong>"{{ rule.condition }}"</strong> → 
+              {% if rule.skip_to_order == 0 %}
+                <strong>End Survey</strong>
+              {% else %}
+                Jump to <strong>Q{{ rule.skip_to_order }}</strong>
+              {% endif %}
+              </li>
+            {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -106,17 +122,43 @@
       </div>
     </div>
 
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;">
-      <div class="form-group" style="flex:2;min-width:200px;">
-        <label for="skip_condition" class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
-        <input type="text" id="skip_condition" name="skip_condition" class="form-input" placeholder="e.g. No">
-      </div>
+    <div id="skip-rules-container">
+      <div class="skip-rule-row" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;align-items:flex-end;">
+        <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
+          <label class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
+          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. No">
+        </div>
 
-      <div class="form-group" style="flex:1;min-width:160px;">
-        <label for="skip_to_order" class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
-        <input type="number" id="skip_to_order" name="skip_to_order" class="form-input" min="0" placeholder="e.g. 6">
+        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+          <label class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
+          <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 6">
+        </div>
       </div>
     </div>
+    <div style="margin-top:0.5rem; margin-bottom: 1.5rem;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="addSkipRule()">+ Add Another Condition</button>
+    </div>
+    
+    <script>
+    function addSkipRule() {
+      const container = document.getElementById('skip-rules-container');
+      const row = document.createElement('div');
+      row.className = 'skip-rule-row';
+      row.style.cssText = 'display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;align-items:flex-end;';
+      row.innerHTML = `
+        <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
+          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. Yes">
+        </div>
+        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+          <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 2">
+        </div>
+        <div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="this.parentElement.parentElement.remove()" style="color:var(--color-danger);padding:0.6rem;">&times;</button>
+        </div>
+      `;
+      container.appendChild(row);
+    }
+    </script>
 
     <button type="submit" class="btn btn-primary" id="btn-add-question">
       <i data-lucide="plus" style="width:16px;height:16px;"></i> Append Question
