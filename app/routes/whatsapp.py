@@ -3,6 +3,7 @@ from app import db
 from app.models.sms_log import SMSLog
 from app.models.member import Member, RegistrationSession
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
+import re
 
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
 
@@ -143,7 +144,8 @@ def incoming_message():
                     db.session.commit()
                     reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
                     if next_question.question_type == 'multiple_choice' and next_question.options:
-                         formatted_options = '\n'.join([opt.strip() for opt in str(next_question.options).split(',') if opt.strip()])
+                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(next_question.options))
+                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
                          reply_text += f"\n\n{formatted_options}"
                 else:
                     # No more questions — survey complete! Clear their memory.
@@ -173,7 +175,8 @@ def incoming_message():
                     first_question = survey.questions[0]
                     reply_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
                     if first_question.question_type == 'multiple_choice' and first_question.options:
-                         formatted_options = '\n'.join([opt.strip() for opt in str(first_question.options).split(',') if opt.strip()])
+                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(first_question.options))
+                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
                          reply_text += f"\n\n{formatted_options}"
                 else:
                     reply_text = "That survey does not exist or has no questions."

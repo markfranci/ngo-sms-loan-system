@@ -124,7 +124,9 @@ def dispatch_survey(survey_id):
     first_question = survey.questions[0]
     message_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
     if first_question.question_type == 'multiple_choice' and first_question.options:
-        formatted_options = '\n'.join([opt.strip() for opt in str(first_question.options).split(',') if opt.strip()])
+        import re
+        parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(first_question.options))
+        formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
         message_text += f"\n\n{formatted_options}"
 
     # Initialize the Twilio client for sending WhatsApp messages
