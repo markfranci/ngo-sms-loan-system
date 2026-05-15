@@ -3,374 +3,494 @@
 
 {% block extra_css %}
 <style>
+  /* Odoo-like UI Adjustments */
+  .odoo-control-panel {
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border-radius: var(--radius-lg);
+  }
+
+  .odoo-breadcrumb h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .odoo-search-container {
+    position: relative;
+    flex-grow: 1;
+    max-width: 600px;
+    margin: 0 20px;
+    display: flex;
+  }
+
+  .odoo-search-bar {
+    width: 100%;
+    padding: 8px 15px 8px 35px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+  }
+
+  .odoo-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+  }
+
+  .odoo-search-dropdown-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-left: none;
+    padding: 0 10px;
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+    color: var(--text-secondary);
+    background-color: var(--bg-color);
+  }
+
+  .odoo-view-switchers {
+    display: flex;
+    gap: 5px;
+  }
+
+  .odoo-view-btn {
+    background: none;
+    border: 1px solid transparent;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 4px;
+  }
+
+  .odoo-view-btn.active {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+
+  /* Filter Panel */
+  .odoo-filter-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 15px;
+    z-index: 100;
+    margin-top: 5px;
+  }
+
+  .odoo-filter-panel.open {
+    display: block;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+  }
+
+  /* View Containers */
+  .view-container {
+    display: none;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    min-height: 400px;
+  }
+
+  .view-container.active {
+    display: block;
+  }
+
+  /* List View Table */
+  .odoo-list-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .odoo-list-table th, .odoo-list-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .odoo-list-table th {
+    font-weight: 500;
+    color: var(--text-secondary);
+    background-color: rgba(0,0,0,0.02);
+  }
+
+  /* Kanban View */
+  .odoo-kanban {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  .kanban-column {
+    min-width: 300px;
+    background-color: rgba(0,0,0,0.02);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .kanban-column-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+  }
+  .kanban-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .kanban-card-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+
+  /* Graph View */
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .chart-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-sm);
-  }
-  .chart-card h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-  }
-  .chart-container {
-    position: relative;
-    height: 250px;
-    width: 100%;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div class="page-header-text">
-    <h2>Analytics Dashboard & Exports</h2>
-    <p>View dynamic system metrics and download CSV extracts for advanced analysis.</p>
-  </div>
-</div>
-
-<div class="charts-grid">
-  <!-- Chart 1: Loan Status -->
-  <div class="chart-card">
-    <h3>Loan Application Status</h3>
-    <div class="chart-container">
-      <canvas id="loanStatusChart"></canvas>
-    </div>
+<div class="odoo-control-panel">
+  <div class="odoo-breadcrumb">
+    <h2>Reporting</h2>
   </div>
 
-  <!-- Chart 2: Gender Distribution -->
-  <div class="chart-card">
-    <h3>Member Gender Distribution</h3>
-    <div class="chart-container">
-      <canvas id="genderChart"></canvas>
-    </div>
-  </div>
-
-  <!-- Chart 3: Registrations Over Time -->
-  <div class="chart-card">
-    <h3>Registrations Over Time</h3>
-    <div class="chart-container">
-      <canvas id="registrationsChart"></canvas>
-    </div>
-  </div>
-</div>
-
-<h3 style="margin-bottom: 1rem; color: var(--text-primary);">Custom Report Builder</h3>
-<div class="report-card" style="margin-bottom: 2rem;">
-  <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">Select parameters and variables to generate a highly customized dataset.</p>
-  <form action="{{ url_for('reports.custom_export') }}" method="GET" class="custom-report-form">
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-      <!-- Entity Selection -->
-      <div class="form-group">
-        <label for="entity">Entity Data</label>
-        <select name="entity" id="entity" class="form-control" onchange="toggleFilters()">
-          <option value="members">SME Members</option>
-          <option value="loans">Loan Assessments</option>
-        </select>
-      </div>
-      
-      <!-- Date Range (Applies to both) -->
-      <div class="form-group">
-        <label for="start_date">Start Date</label>
-        <input type="date" name="start_date" id="start_date" class="form-control">
-      </div>
-      
-      <div class="form-group">
-        <label for="end_date">End Date</label>
-        <input type="date" name="end_date" id="end_date" class="form-control">
-      </div>
-
-      <!-- Group Filter (Applies to both) -->
-      <div class="form-group">
-        <label for="group_id">Filter by Group</label>
-        <select name="group_id" id="group_id" class="form-control">
-          <option value="all">All Groups</option>
-          {% for group in groups %}
-          <option value="{{ group.id }}">{{ group.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Entity Specific Filters</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-      
-      <!-- Member Specific Filters -->
-      <div class="form-group member-filter">
-        <label for="gender">Gender</label>
-        <select name="gender" id="gender" class="form-control">
-          <option value="all">All Genders</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-      </div>
-      
-      <div class="form-group member-filter">
-        <label for="location">Location / Town</label>
-        <input type="text" name="location" id="location" class="form-control" placeholder="Search location...">
-      </div>
-
-      <div class="form-group member-filter">
-        <label for="phone_number">Phone Number</label>
-        <input type="text" name="phone_number" id="phone_number" class="form-control" placeholder="Search phone...">
-      </div>
-      
-      <div class="form-group member-filter">
-        <label for="id_number">National ID</label>
-        <input type="text" name="id_number" id="id_number" class="form-control" placeholder="Search ID...">
-      </div>
-
-      <!-- Loan Specific Filters -->
-      <div class="form-group loan-filter" style="display: none;">
-        <label for="status">Loan Status</label>
-        <select name="status" id="status" class="form-control">
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </div>
-
-      <div class="form-group loan-filter" style="display: none;">
-        <label for="min_amount">Min Amount Requested</label>
-        <input type="number" name="min_amount" id="min_amount" class="form-control" placeholder="0">
-      </div>
-
-      <div class="form-group loan-filter" style="display: none;">
-        <label for="max_amount">Max Amount Requested</label>
-        <input type="number" name="max_amount" id="max_amount" class="form-control" placeholder="Any">
-      </div>
-
-      <div class="form-group loan-filter" style="display: none;">
-        <label for="min_score">Min Automated Score</label>
-        <input type="number" name="min_score" id="min_score" class="form-control" placeholder="0" min="0" max="100">
-      </div>
-    </div>
-
-    <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Variables (Columns) to Export</h4>
-    <div style="margin-bottom: 1.5rem;">
-      <!-- Member Columns -->
-      <div id="member-columns" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <label><input type="checkbox" name="columns" value="id" checked> ID</label>
-        <label><input type="checkbox" name="columns" value="full_name" checked> Full Name</label>
-        <label><input type="checkbox" name="columns" value="phone_number" checked> Phone Number</label>
-        <label><input type="checkbox" name="columns" value="id_number" checked> ID Number</label>
-        <label><input type="checkbox" name="columns" value="gender" checked> Gender</label>
-        <label><input type="checkbox" name="columns" value="location" checked> Location</label>
-        <label><input type="checkbox" name="columns" value="group_name" checked> Group Name</label>
-        <label><input type="checkbox" name="columns" value="registered_at" checked> Registered Date</label>
-        <label><input type="checkbox" name="columns" value="current_survey_id"> Current Survey</label>
-      </div>
-      
-      <!-- Loan Columns -->
-      <div id="loan-columns" style="display: none; gap: 1rem; flex-wrap: wrap;">
-        <label><input type="checkbox" name="columns" value="id" checked> Loan ID</label>
-        <label><input type="checkbox" name="columns" value="applicant_name" checked> Applicant Name</label>
-        <label><input type="checkbox" name="columns" value="phone_number" checked> Phone Number</label>
-        <label><input type="checkbox" name="columns" value="group_name" checked> Group Name</label>
-        <label><input type="checkbox" name="columns" value="amount_requested" checked> Requested Amount</label>
-        <label><input type="checkbox" name="columns" value="score" checked> Automated Score</label>
-        <label><input type="checkbox" name="columns" value="status" checked> Status</label>
-        <label><input type="checkbox" name="columns" value="notes" checked> Notes</label>
-        <label><input type="checkbox" name="columns" value="assessed_by" checked> Assessed By</label>
-        <label><input type="checkbox" name="columns" value="created_at" checked> Assessment Date</label>
-        <label><input type="checkbox" name="columns" value="updated_at"> Last Updated Date</label>
-      </div>
-    </div>
-    
-    <button type="submit" class="btn btn-primary">
-      <i data-lucide="filter" style="width:16px;height:16px;"></i> Generate Custom CSV
+  <div class="odoo-search-container">
+    <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
+    <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search..." onkeyup="if(event.key === 'Enter') loadData()">
+    <button class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
+      <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
     </button>
-  </form>
+
+    <!-- Advanced Filter Panel Popup -->
+    <div class="odoo-filter-panel" id="filter-panel">
+      <div class="filter-grid">
+        <div class="form-group">
+          <label>Entity</label>
+          <select id="filter-entity" class="form-control" onchange="updateFilterVisibility(); loadData();">
+            <option value="members">Members</option>
+            <option value="loans">Loans</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Group</label>
+          <select id="filter-group" class="form-control" onchange="loadData()">
+            <option value="all">All Groups</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}">{{ group.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <!-- Member Specific -->
+        <div class="form-group member-filter">
+          <label>Gender</label>
+          <select id="filter-gender" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-group member-filter">
+          <label>Location</label>
+          <input type="text" id="filter-location" class="form-control" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+
+        <!-- Loan Specific -->
+        <div class="form-group loan-filter" style="display:none;">
+          <label>Status</label>
+          <select id="filter-status" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('reports.custom_export') }}?' + getFilterParamsString()">
+          <i data-lucide="download" style="width:14px;height:14px;"></i> Export Data
+        </button>
+        <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="odoo-view-switchers">
+    <button class="odoo-view-btn active" onclick="switchView('list')" id="btn-view-list" title="List View">
+      <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+    </button>
+    <button class="odoo-view-btn" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
+      <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+    </button>
+    <button class="odoo-view-btn" onclick="switchView('graph')" id="btn-view-graph" title="Graph View">
+      <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i>
+    </button>
+  </div>
 </div>
 
-<h3 style="margin-bottom: 1rem; color: var(--text-primary);">General Data Exports</h3>
-<div class="report-grid">
-  <!-- SME Members Report -->
-  <div class="report-card">
-    <div class="report-icon purple">
-      <i data-lucide="users"></i>
-    </div>
-    <h3>SME Members Directory</h3>
-    <p>A comprehensive extract containing all registered members, their phone numbers, IDs, and group assignments.</p>
-    <a href="{{ url_for('reports.export_members') }}" class="btn btn-primary btn-full" id="export-members">
-      <i data-lucide="download" style="width:16px;height:16px;"></i> Download CSV
-    </a>
-  </div>
-
-  <!-- Loan Assessments Report -->
-  <div class="report-card">
-    <div class="report-icon green">
-      <i data-lucide="wallet"></i>
-    </div>
-    <h3>Loan Assessments</h3>
-    <p>Export all historic and active loan requests, including requested amounts, automated risk scores, and statuses.</p>
-    <a href="{{ url_for('reports.export_loans') }}" class="btn btn-success btn-full" id="export-loans">
-      <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Download CSV
-    </a>
-  </div>
-
-  <!-- SME Groups Report -->
-  <div class="report-card">
-    <div class="report-icon blue">
-      <i data-lucide="network"></i>
-    </div>
-    <h3>Group Segments</h3>
-    <p>A high-level view showing all NGO managed SME groups, including member counts and assigned managers.</p>
-    <a href="{{ url_for('reports.export_groups') }}" class="btn btn-outline-primary btn-full" id="export-groups">
-      <i data-lucide="cloud-download" style="width:16px;height:16px;"></i> Download CSV
-    </a>
+<!-- List View Container -->
+<div id="view-list" class="view-container active">
+  <div style="overflow-x: auto;">
+    <table class="odoo-list-table" id="list-table">
+      <thead id="list-thead"></thead>
+      <tbody id="list-tbody"></tbody>
+    </table>
   </div>
 </div>
+
+<!-- Kanban View Container -->
+<div id="view-kanban" class="view-container">
+  <div class="odoo-kanban" id="kanban-board">
+    <!-- Rendered via JS -->
+  </div>
+</div>
+
+<!-- Graph View Container -->
+<div id="view-graph" class="view-container">
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Distribution</h3>
+      <div class="chart-container" style="height: 300px; position: relative;">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-  // Setup standard chart options for dark mode compatibility if needed
-  Chart.defaults.color = '#9ca3af';
-  Chart.defaults.font.family = 'Inter, sans-serif';
-  
-  const commonOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          padding: 20,
-          boxWidth: 12
-        }
-      }
-    }
-  };
+  let currentData = [];
+  let currentChart = null;
 
-  // 1. Loan Status Chart
-  const loanStatusCtx = document.getElementById('loanStatusChart').getContext('2d');
-  new Chart(loanStatusCtx, {
-    type: 'doughnut',
-    data: {
-      labels: {{ loan_status_data.labels | tojson }},
-      datasets: [{
-        data: {{ loan_status_data.counts | tojson }},
-        backgroundColor: [
-          '#10b981', // Approved (green)
-          '#f59e0b', // Pending (yellow)
-          '#ef4444', // Rejected (red)
-          '#6366f1'  // Other
-        ],
-        borderWidth: 0,
-        hoverOffset: 4
-      }]
-    },
-    options: {
-      ...commonOptions,
-      cutout: '70%'
-    }
-  });
+  function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+  }
 
-  // 2. Gender Distribution Chart
-  const genderCtx = document.getElementById('genderChart').getContext('2d');
-  new Chart(genderCtx, {
-    type: 'pie',
-    data: {
-      labels: {{ gender_data.labels | tojson }},
-      datasets: [{
-        data: {{ gender_data.counts | tojson }},
-        backgroundColor: [
-          '#3b82f6', // Male (blue)
-          '#ec4899', // Female (pink)
-          '#8b5cf6'  // Unknown (purple)
-        ],
-        borderWidth: 0,
-        hoverOffset: 4
-      }]
-    },
-    options: commonOptions
-  });
+  function updateFilterVisibility() {
+    const entity = document.getElementById('filter-entity').value;
+    document.querySelectorAll('.member-filter').forEach(el => el.style.display = (entity === 'members') ? 'block' : 'none');
+    document.querySelectorAll('.loan-filter').forEach(el => el.style.display = (entity === 'loans') ? 'block' : 'none');
+  }
 
-  // 3. Registrations Over Time Chart
-  const registrationsCtx = document.getElementById('registrationsChart').getContext('2d');
-  new Chart(registrationsCtx, {
-    type: 'bar',
-    data: {
-      labels: {{ registration_data.labels | tojson }},
-      datasets: [{
-        label: 'New Members',
-        data: {{ registration_data.counts | tojson }},
-        backgroundColor: '#6366f1',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      ...commonOptions,
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(156, 163, 175, 0.1)'
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          }
-        }
-      }
-    }
-  });
-
-  // Toggle Filters for Custom Report Builder
-  function toggleFilters() {
-    const entity = document.getElementById('entity').value;
+  function switchView(viewName) {
+    document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.odoo-view-btn').forEach(el => el.classList.remove('active'));
     
-    // Toggle filter rows
-    const memberFilters = document.querySelectorAll('.member-filter');
-    const loanFilters = document.querySelectorAll('.loan-filter');
+    document.getElementById(`view-${viewName}`).classList.add('active');
+    document.getElementById(`btn-view-${viewName}`).classList.add('active');
     
-    // Toggle column sections
-    const memberColumns = document.getElementById('member-columns');
-    const loanColumns = document.getElementById('loan-columns');
+    renderView(viewName);
+  }
 
+  function getFilterParamsString() {
+    const entity = document.getElementById('filter-entity').value;
+    const search = document.getElementById('search-input').value;
+    const group = document.getElementById('filter-group').value;
+    
+    let params = `entity=${entity}&search=${encodeURIComponent(search)}&group_id=${group}`;
+    
     if (entity === 'members') {
-      memberFilters.forEach(f => f.style.display = 'block');
-      loanFilters.forEach(f => f.style.display = 'none');
-      
-      memberColumns.style.display = 'flex';
-      loanColumns.style.display = 'none';
-      
-      // Select appropriate checkboxes
-      memberColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = false);
-      loanColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = true);
-      
-      document.getElementById('status').value = 'all';
-    } else if (entity === 'loans') {
-      memberFilters.forEach(f => f.style.display = 'none');
-      loanFilters.forEach(f => f.style.display = 'block');
-      
-      memberColumns.style.display = 'none';
-      loanColumns.style.display = 'flex';
-      
-      memberColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = true);
-      loanColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = false);
+      params += `&gender=${document.getElementById('filter-gender').value}`;
+      params += `&location=${encodeURIComponent(document.getElementById('filter-location').value)}`;
+    } else {
+      params += `&status=${document.getElementById('filter-status').value}`;
+    }
+    return params;
+  }
 
-      document.getElementById('gender').value = 'all';
+  function loadData() {
+    const params = getFilterParamsString();
+    
+    fetch(`{{ url_for('reports.get_report_data') }}?${params}`)
+      .then(res => res.json())
+      .then(data => {
+        currentData = data;
+        
+        // Find which view is active
+        const activeView = document.querySelector('.view-container.active').id.replace('view-', '');
+        renderView(activeView);
+      })
+      .catch(err => console.error("Error fetching report data:", err));
+  }
+
+  function renderView(viewName) {
+    const entity = document.getElementById('filter-entity').value;
+    
+    if (viewName === 'list') {
+      renderList(entity);
+    } else if (viewName === 'kanban') {
+      renderKanban(entity);
+    } else if (viewName === 'graph') {
+      renderGraph(entity);
     }
   }
 
-  // Initialize on page load to set correct disabled states
-  document.addEventListener('DOMContentLoaded', toggleFilters);
+  function renderList(entity) {
+    const thead = document.getElementById('list-thead');
+    const tbody = document.getElementById('list-tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    if (currentData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No data found.</td></tr>';
+      return;
+    }
+
+    // Determine columns
+    let cols = [];
+    if (entity === 'members') {
+      cols = ['full_name', 'phone_number', 'gender', 'location', 'group_name', 'registered_at'];
+    } else {
+      cols = ['applicant_name', 'phone_number', 'amount_requested', 'score', 'status', 'group_name', 'created_at'];
+    }
+
+    // Build header
+    let trHead = document.createElement('tr');
+    cols.forEach(c => {
+      let th = document.createElement('th');
+      th.innerText = c.replace('_', ' ').toUpperCase();
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+
+    // Build rows
+    currentData.forEach(row => {
+      let tr = document.createElement('tr');
+      cols.forEach(c => {
+        let td = document.createElement('td');
+        td.innerText = row[c];
+        if(c === 'status') {
+           td.innerHTML = `<span class="badge badge-${row[c]==='approved'?'success':(row[c]==='rejected'?'danger':'warning')}">${row[c]}</span>`;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderKanban(entity) {
+    const board = document.getElementById('kanban-board');
+    board.innerHTML = '';
+    
+    if (currentData.length === 0) {
+      board.innerHTML = '<p>No data found.</p>';
+      return;
+    }
+
+    // Grouping logic
+    let groupBy = entity === 'members' ? 'group_name' : 'status';
+    let grouped = {};
+    
+    currentData.forEach(item => {
+      let key = item[groupBy] || 'Unassigned';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+
+    // Render columns
+    for (const [key, items] of Object.entries(grouped)) {
+      let colDiv = document.createElement('div');
+      colDiv.className = 'kanban-column';
+      
+      let titleHtml = `<div class="kanban-column-title"><span>${key.toUpperCase()}</span> <span>${items.length}</span></div>`;
+      colDiv.innerHTML = titleHtml;
+      
+      items.forEach(item => {
+        let card = document.createElement('div');
+        card.className = 'kanban-card';
+        if (entity === 'members') {
+          card.innerHTML = `
+            <div class="kanban-card-title">${item.full_name}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);"><i data-lucide="phone" style="width:12px;height:12px;"></i> ${item.phone_number}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top:5px;">${item.location}</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="kanban-card-title">${item.applicant_name}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">Amount: KSh ${item.amount_requested}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">Score: ${item.score}</div>
+          `;
+        }
+        colDiv.appendChild(card);
+      });
+      
+      board.appendChild(colDiv);
+    }
+    lucide.createIcons();
+  }
+
+  function renderGraph(entity) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    
+    if (currentChart) {
+      currentChart.destroy();
+    }
+    
+    let groupBy = entity === 'members' ? 'group_name' : 'status';
+    let grouped = {};
+    currentData.forEach(item => {
+      let key = item[groupBy] || 'Unassigned';
+      if (!grouped[key]) grouped[key] = 0;
+      grouped[key]++;
+    });
+
+    let labels = Object.keys(grouped);
+    let data = Object.values(grouped);
+    
+    Chart.defaults.color = '#9ca3af';
+    currentChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%'
+      }
+    });
+  }
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    updateFilterVisibility();
+    loadData();
+  });
 </script>
 {% endblock %}

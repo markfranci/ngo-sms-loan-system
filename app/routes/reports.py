@@ -151,6 +151,79 @@ def export_groups():
     response.headers['Content-Type'] = 'text/csv'
     return response
 
+from flask import jsonify
+
+@reports_bp.route('/api/data')
+@login_required
+@admin_required
+def get_report_data():
+    """
+    Returns JSON data for the dynamic frontend views (Graph, List, Pivot, Kanban).
+    """
+    entity = request.args.get('entity', 'members')
+    # We will accept similar filters to the CSV export
+    group_id = request.args.get('group_id')
+    gender = request.args.get('gender')
+    location = request.args.get('location')
+    status = request.args.get('status')
+    search = request.args.get('search') # Generic search field
+
+    if entity == 'members':
+        query = Member.query
+        if group_id and group_id != 'all':
+            query = query.filter(Member.group_id == group_id)
+        if gender and gender != 'all':
+            query = query.filter(Member.gender.ilike(gender))
+        if location:
+            query = query.filter(Member.location.ilike(f"%{location}%"))
+        if search:
+            query = query.filter(db.or_(
+                Member.full_name.ilike(f"%{search}%"),
+                Member.phone_number.ilike(f"%{search}%"),
+                Member.id_number.ilike(f"%{search}%")
+            ))
+            
+        data = []
+        for m in query.all():
+            data.append({
+                'id': m.id,
+                'full_name': m.full_name,
+                'phone_number': m.phone_number,
+                'gender': m.gender or 'Unknown',
+                'location': m.location or 'Unknown',
+                'group_name': m.group.name if m.group else 'Unassigned',
+                'registered_at': m.registered_at.strftime('%Y-%m-%d') if m.registered_at else ''
+            })
+        return jsonify(data)
+        
+    elif entity == 'loans':
+        query = Loan.query
+        if group_id and group_id != 'all':
+            query = query.join(Member).filter(Member.group_id == group_id)
+        if status and status != 'all':
+            query = query.filter(Loan.status.ilike(status))
+        if search:
+            query = query.join(Member).filter(db.or_(
+                Member.full_name.ilike(f"%{search}%"),
+                Member.phone_number.ilike(f"%{search}%")
+            ))
+            
+        data = []
+        for l in query.all():
+            data.append({
+                'id': l.id,
+                'applicant_name': l.member.full_name,
+                'phone_number': l.member.phone_number,
+                'group_name': l.member.group.name if l.member.group else 'Unassigned',
+                'amount_requested': l.amount_requested or 0,
+                'score': l.score or 0,
+                'status': l.status,
+                'created_at': l.created_at.strftime('%Y-%m-%d') if l.created_at else ''
+            })
+        return jsonify(data)
+        
+    return jsonify({'error': 'Invalid entity'}), 400
+
 from flask import request
 from datetime import datetime
 
