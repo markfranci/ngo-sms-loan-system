@@ -1793,7 +1793,6 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 0 24px 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
   gap: 16px;
   margin-bottom: 16px;
@@ -1801,20 +1800,44 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .odoo-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: contents; /* Allows h2 and buttons to participate in control-panel flexbox */
 }
-.odoo-breadcrumb h2 { margin: 0; font-size: 1.65rem; font-weight: 700; color: var(--text-heading); letter-spacing: -0.02em; }
+.odoo-breadcrumb h2 { 
+  margin: 0; 
+  font-size: 1.65rem; 
+  font-weight: 700; 
+  color: var(--text-heading); 
+  letter-spacing: -0.02em; 
+  flex-grow: 1; /* Pushes the following elements to the right */
+  min-width: 200px;
+}
+.odoo-breadcrumb .btn {
+  order: 3;
+  margin-left: 0 !important;
+}
 
-.odoo-search-container { position: relative; flex-grow: 1; max-width: 400px; margin: 0; display: flex; align-items: stretch; }
+.odoo-search-container { 
+  position: relative; 
+  flex-grow: 0; 
+  width: 100%;
+  max-width: 320px; 
+  margin: 0; 
+  display: flex; 
+  align-items: stretch; 
+  order: 2;
+}
 .odoo-search-bar { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--text-primary); transition: all 0.2s; box-shadow: var(--shadow-sm); }
 .odoo-search-bar:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
 .odoo-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .odoo-search-dropdown-btn { background: var(--color-surface-2); border: 1px solid var(--color-border); border-left: none; padding: 0 14px; cursor: pointer; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary); transition: all 0.2s; display: flex; align-items: center; box-shadow: var(--shadow-sm); }
 .odoo-search-dropdown-btn:hover { background: var(--color-surface-3); color: var(--text-primary); }
 
-.odoo-view-switchers { display: flex; gap: 8px; margin-left: auto; }
+.odoo-view-switchers { 
+  display: flex; 
+  gap: 8px; 
+  margin-left: 0;
+  order: 4;
+}
 .odoo-view-btn { background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius-sm); transition: all 0.2s; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
 .odoo-view-btn:hover { background: var(--color-surface-2); color: var(--text-primary); }
 .odoo-view-btn.active { background-color: var(--color-primary-glow2); color: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-glow); }
