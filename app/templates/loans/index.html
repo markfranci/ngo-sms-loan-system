@@ -11,7 +11,8 @@
     <h2>Loan Assessments</h2>
   </div>
 
-  <div class="odoo-search-container">
+  <div class="odoo-actions">
+    <div class="odoo-search-container">
     <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
     <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search applicant..." onkeyup="if(event.key === 'Enter') loadData()">
     <button class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
@@ -36,13 +37,14 @@
     </div>
   </div>
 
-  <div class="odoo-view-switchers">
-    <button class="odoo-view-btn active" onclick="switchView('list')" id="btn-view-list" title="List View">
-      <i data-lucide="list" style="width: 18px; height: 18px;"></i>
-    </button>
-    <button class="odoo-view-btn" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
-      <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
-    </button>
+    <div class="odoo-view-switchers">
+      <button class="odoo-view-btn active" onclick="switchView('list')" id="btn-view-list" title="List View">
+        <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+      </button>
+      <button class="odoo-view-btn" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
+        <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
   </div>
 </div>
 

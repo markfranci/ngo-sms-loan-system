@@ -1800,7 +1800,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .odoo-breadcrumb {
-  display: contents; /* Allows h2 and buttons to participate in control-panel flexbox */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-right: auto;
 }
 .odoo-breadcrumb h2 { 
   margin: 0; 
@@ -1808,23 +1811,23 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700; 
   color: var(--text-heading); 
   letter-spacing: -0.02em; 
-  flex-grow: 1; /* Pushes the following elements to the right */
-  min-width: 200px;
 }
-.odoo-breadcrumb .btn {
-  order: 3;
-  margin-left: 0 !important;
+
+.odoo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .odoo-search-container { 
   position: relative; 
-  flex-grow: 0; 
+  flex-grow: 1; 
   width: 100%;
   max-width: 320px; 
   margin: 0; 
   display: flex; 
   align-items: stretch; 
-  order: 2;
 }
 .odoo-search-bar { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--text-primary); transition: all 0.2s; box-shadow: var(--shadow-sm); }
 .odoo-search-bar:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
@@ -1836,7 +1839,6 @@ h1, h2, h3, h4, h5, h6 {
   display: flex; 
   gap: 8px; 
   margin-left: 0;
-  order: 4;
 }
 .odoo-view-btn { background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius-sm); transition: all 0.2s; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
 .odoo-view-btn:hover { background: var(--color-surface-2); color: var(--text-primary); }

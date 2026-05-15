@@ -9,23 +9,25 @@
 <div class="odoo-control-panel">
   <div class="odoo-breadcrumb">
     <h2>SME Groups</h2>
+  </div>
+  <div class="odoo-actions">
+    <div class="odoo-search-container">
+      <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
+      <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search group name..." onkeyup="if(event.key === 'Enter') loadData()">
+    </div>
+
+    <div class="odoo-view-switchers">
+      <button class="odoo-view-btn active" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
+        <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+      </button>
+      <button class="odoo-view-btn" onclick="switchView('list')" id="btn-view-list" title="List View">
+        <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
+    
     {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('groups.create') }}" class="btn btn-sm btn-primary" style="margin-left:15px;">New Group</a>
+    <a href="{{ url_for('groups.create') }}" class="btn btn-primary" style="height: 100%;"><i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;"></i> New Group</a>
     {% endif %}
-  </div>
-
-  <div class="odoo-search-container">
-    <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
-    <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search group name..." onkeyup="if(event.key === 'Enter') loadData()">
-  </div>
-
-  <div class="odoo-view-switchers">
-    <button class="odoo-view-btn active" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
-      <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
-    </button>
-    <button class="odoo-view-btn" onclick="switchView('list')" id="btn-view-list" title="List View">
-      <i data-lucide="list" style="width: 18px; height: 18px;"></i>
-    </button>
   </div>
 </div>
 
