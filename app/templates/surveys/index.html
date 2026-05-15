@@ -2,43 +2,7 @@
 {% block title %}Survey Templates{% endblock %}
 
 {% block extra_css %}
-<style>
-  .odoo-control-panel {
-    background-color: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    border-radius: var(--radius-lg);
-  }
-  .odoo-breadcrumb h2 { margin: 0; font-size: 1.25rem; font-weight: 500; display: inline-block; margin-right: 15px;}
-  .odoo-search-container { position: relative; flex-grow: 1; max-width: 600px; margin: 0 20px; display: flex; }
-  .odoo-search-bar { width: 100%; padding: 8px 15px 8px 35px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--bg-color); color: var(--text-primary); }
-  .odoo-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
-  .odoo-search-dropdown-btn { background: none; border: 1px solid var(--border-color); border-left: none; padding: 0 10px; cursor: pointer; border-radius: 0 4px 4px 0; color: var(--text-secondary); background-color: var(--bg-color); }
-  .odoo-view-switchers { display: flex; gap: 5px; }
-  .odoo-view-btn { background: none; border: 1px solid transparent; padding: 6px; cursor: pointer; color: var(--text-secondary); border-radius: 4px; }
-  .odoo-view-btn.active { background-color: rgba(99, 102, 241, 0.1); color: #6366f1; border-color: rgba(99, 102, 241, 0.2); }
-  .view-container { display: none; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; min-height: 400px; }
-  .view-container.active { display: block; }
-  .odoo-list-table { width: 100%; border-collapse: collapse; }
-  .odoo-list-table th, .odoo-list-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-  .odoo-list-table th { font-weight: 500; color: var(--text-secondary); background-color: rgba(0,0,0,0.02); }
-  .odoo-kanban { display: flex; flex-wrap: wrap; gap: 20px; padding-bottom: 10px; }
-  .kanban-card { width: calc(33.333% - 15px); background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s;}
-  .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-  .kanban-card-title { font-weight: 500; margin-bottom: 10px; color: var(--text-primary); text-decoration: none;}
-  
-  @media (max-width: 900px) {
-      .kanban-card { width: calc(50% - 10px); }
-  }
-  @media (max-width: 600px) {
-      .kanban-card { width: 100%; }
-  }
-</style>
+<!-- Styles centralized in main.css -->
 {% endblock %}
 
 {% block content %}

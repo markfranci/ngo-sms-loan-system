@@ -7,56 +7,58 @@
    ---------------------------------------------------------------- */
 :root {
   /* Core Backgrounds */
-  --color-bg:           #f4f6f9;
-  --color-surface:      #ffffff;
-  --color-surface-2:    #f0f2f5;
-  --color-surface-3:    #e4e7ec;
-  --color-border:       rgba(0,0,0,0.08);
-  --color-border-hover: rgba(0,0,0,0.15);
+  --color-bg:           #FAFAFB; /* Very light cool grey */
+  --color-surface:      #FFFFFF;
+  --color-surface-2:    #F3F4F6;
+  --color-surface-3:    #E5E7EB;
+  --color-border:       #E5E7EB;
+  --color-border-hover: #D1D5DB;
 
-  /* Accents */
-  --color-primary:      #4f46e5;
-  --color-primary-dark: #4338ca;
-  --color-primary-glow: rgba(79,70,229,0.10);
-  --color-primary-glow2:rgba(79,70,229,0.05);
-  --color-accent:       #0d9488;
-  --color-accent-glow:  rgba(13,148,136,0.10);
+  /* Accents - modern crisp indigo/blue */
+  --color-primary:      #4F46E5; 
+  --color-primary-dark: #4338CA;
+  --color-primary-glow: rgba(79,70,229,0.08);
+  --color-primary-glow2:rgba(79,70,229,0.04);
+  
+  --color-accent:       #0EA5E9; 
+  --color-accent-glow:  rgba(14, 165, 233, 0.08);
 
-  /* Status */
-  --color-success:      #16a34a;
-  --color-success-bg:   rgba(22,163,74,0.08);
-  --color-danger:       #dc2626;
-  --color-danger-bg:    rgba(220,38,38,0.07);
-  --color-warning:      #d97706;
-  --color-warning-bg:   rgba(217,119,6,0.08);
-  --color-info:         #0284c7;
-  --color-info-bg:      rgba(2,132,199,0.07);
+  /* Status Colors */
+  --color-success:      #10B981;
+  --color-success-bg:   #D1FAE5;
+  --color-danger:       #EF4444;
+  --color-danger-bg:    #FEE2E2;
+  --color-warning:      #F59E0B;
+  --color-warning-bg:   #FEF3C7;
+  --color-info:         #3B82F6;
+  --color-info-bg:      #DBEAFE;
 
-  /* Text */
-  --text-primary:       #1e293b;
-  --text-secondary:     #64748b;
-  --text-muted:         #94a3b8;
-  --text-heading:       #0f172a;
+  /* Text - Light Mode */
+  --text-primary:       #111827; /* Near black */
+  --text-secondary:     #4B5563; /* Slate */
+  --text-muted:         #9CA3AF;
+  --text-heading:       #030712;
 
   /* Spacing */
   --radius-sm:  8px;
   --radius-md:  12px;
   --radius-lg:  16px;
-  --radius-xl:  20px;
+  --radius-xl:  24px;
   --radius-full:9999px;
 
   /* Layout */
-  --sidebar-width: 260px;
-  --header-height: 64px;
+  --sidebar-width: 270px;
+  --header-height: 70px;
 
   /* Typography */
   --font-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', system-ui, sans-serif;
 
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:  0 4px 12px rgba(0,0,0,0.08);
-  --shadow-lg:  0 8px 24px rgba(0,0,0,0.10);
-  --shadow-glow:0 0 20px rgba(79,70,229,0.10);
+  /* Modern Soft Shadows */
+  --shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --shadow-glow: 0 0 0 4px rgba(79, 70, 229, 0.15);
 }
 
 /* ----------------------------------------------------------------
@@ -94,6 +96,7 @@ a:hover {
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-heading);
+  font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -127,6 +130,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 0.75rem;
   border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-heading);
 }
 
 .sidebar-logo {
@@ -1779,3 +1783,54 @@ h1, h2, h3, h4, h5, h6 {
   text-align: right;
   margin-top: 0.5rem;
 }
+
+}
+
+/* Modern Odoo-like UI Components */
+.odoo-control-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+}
+
+.odoo-breadcrumb h2 { margin: 0; font-size: 1.35rem; font-weight: 600; display: inline-block; margin-right: 15px;}
+
+.odoo-search-container { position: relative; flex-grow: 1; max-width: 600px; margin: 0 20px; display: flex; }
+.odoo-search-bar { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--text-primary); transition: all 0.2s;}
+.odoo-search-bar:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-glow); }
+.odoo-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.odoo-search-dropdown-btn { background: var(--color-surface-2); border: 1px solid var(--color-border); border-left: none; padding: 0 12px; cursor: pointer; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary); transition: all 0.2s; }
+.odoo-search-dropdown-btn:hover { background: var(--color-surface-3); color: var(--text-primary); }
+
+.odoo-view-switchers { display: flex; gap: 6px; }
+.odoo-view-btn { background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius-sm); transition: all 0.2s; }
+.odoo-view-btn:hover { background: var(--color-surface-2); color: var(--text-primary); }
+.odoo-view-btn.active { background-color: var(--color-primary-glow); color: var(--color-primary); border-color: var(--color-primary); }
+
+.odoo-filter-panel { display: none; position: absolute; top: calc(100% + 8px); left: 0; width: 100%; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 20px; z-index: 200; }
+.odoo-filter-panel.open { display: block; animation: slideUp 0.2s ease-out; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+.view-container { display: none; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px; min-height: 400px; box-shadow: var(--shadow-sm); }
+.view-container.active { display: block; animation: fadeIn 0.3s ease; }
+
+.odoo-list-table { width: 100%; border-collapse: collapse; }
+.odoo-list-table th, .odoo-list-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem;}
+.odoo-list-table th { font-weight: 600; color: var(--text-secondary); background-color: var(--color-surface-2); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}
+.odoo-list-table tbody tr:hover { background-color: var(--color-surface-2); }
+
+.odoo-kanban { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; }
+.kanban-column { min-width: 320px; background-color: var(--color-surface-2); border-radius: var(--radius-md); padding: 16px; }
+.kanban-column-title { font-weight: 600; margin-bottom: 16px; color: var(--text-secondary); display: flex; justify-content: space-between; text-transform: uppercase; font-size: 0.85rem;}
+.kanban-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;}
+.kanban-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-primary-glow); }
+.kanban-card-title { font-weight: 600; margin-bottom: 6px; color: var(--text-primary); text-decoration: none; font-size: 1rem;}
+
+.kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;}
+

@@ -2,41 +2,7 @@
 {% block title %}Loan Assessments{% endblock %}
 
 {% block extra_css %}
-<style>
-  .odoo-control-panel {
-    background-color: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    border-radius: var(--radius-lg);
-  }
-  .odoo-breadcrumb h2 { margin: 0; font-size: 1.25rem; font-weight: 500; }
-  .odoo-search-container { position: relative; flex-grow: 1; max-width: 600px; margin: 0 20px; display: flex; }
-  .odoo-search-bar { width: 100%; padding: 8px 15px 8px 35px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--bg-color); color: var(--text-primary); }
-  .odoo-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
-  .odoo-search-dropdown-btn { background: none; border: 1px solid var(--border-color); border-left: none; padding: 0 10px; cursor: pointer; border-radius: 0 4px 4px 0; color: var(--text-secondary); background-color: var(--bg-color); }
-  .odoo-view-switchers { display: flex; gap: 5px; }
-  .odoo-view-btn { background: none; border: 1px solid transparent; padding: 6px; cursor: pointer; color: var(--text-secondary); border-radius: 4px; }
-  .odoo-view-btn.active { background-color: rgba(99, 102, 241, 0.1); color: #6366f1; border-color: rgba(99, 102, 241, 0.2); }
-  .odoo-filter-panel { display: none; position: absolute; top: 100%; left: 0; width: 100%; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 15px; z-index: 100; margin-top: 5px; }
-  .odoo-filter-panel.open { display: block; }
-  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-  .view-container { display: none; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; min-height: 400px; }
-  .view-container.active { display: block; }
-  .odoo-list-table { width: 100%; border-collapse: collapse; }
-  .odoo-list-table th, .odoo-list-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-  .odoo-list-table th { font-weight: 500; color: var(--text-secondary); background-color: rgba(0,0,0,0.02); }
-  .odoo-kanban { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; }
-  .kanban-column { min-width: 300px; background-color: rgba(0,0,0,0.02); border-radius: 6px; padding: 10px; }
-  .kanban-column-title { font-weight: 600; margin-bottom: 15px; color: var(--text-secondary); display: flex; justify-content: space-between; text-transform: uppercase; }
-  .kanban-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s;}
-  .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-  .kanban-card-title { font-weight: 500; margin-bottom: 5px; color: var(--text-primary); text-decoration: none;}
-</style>
+<!-- Styles centralized in main.css -->
 {% endblock %}
 
 {% block content %}
