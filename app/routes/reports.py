@@ -6,6 +6,8 @@ from app.decorators import admin_required
 from app.models.member import Member
 from app.models.group import Group
 from app.models.loan import Loan
+from sqlalchemy import func
+from app import db
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
@@ -14,9 +16,41 @@ reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 @admin_required
 def index():
     """
-    Renders the central reports hub where staff can download CSV files.
+    Renders the central reports hub where staff can download CSV files and view dynamic charts.
     """
-    return render_template('reports/index.html')
+    # 1. Loan Status Distribution
+    loan_status_query = db.session.query(Loan.status, func.count(Loan.id)).group_by(Loan.status).all()
+    loan_status_data = {
+        'labels': [status.capitalize() for status, count in loan_status_query],
+        'counts': [count for status, count in loan_status_query]
+    }
+
+    # 2. Gender Distribution
+    gender_query = db.session.query(Member.gender, func.count(Member.id)).group_by(Member.gender).all()
+    gender_data = {
+        'labels': [gender.capitalize() if gender else 'Unknown' for gender, count in gender_query],
+        'counts': [count for gender, count in gender_query]
+    }
+
+    # 3. Monthly Registrations (Last 6 Months approx, or just simple grouped by month-year)
+    # Using strftime for SQLite/MySQL depending on DB, but for general compatibility we can just fetch all and process in python for a small dataset, or use a simple extract.
+    # Since sqlite and postgres have different date functions, processing in python is safer for a small app.
+    members = Member.query.all()
+    monthly_counts = {}
+    for m in members:
+        if m.registered_at:
+            month_year = m.registered_at.strftime('%b %Y')
+            monthly_counts[month_year] = monthly_counts.get(month_year, 0) + 1
+    
+    registration_data = {
+        'labels': list(monthly_counts.keys()),
+        'counts': list(monthly_counts.values())
+    }
+
+    return render_template('reports/index.html', 
+                           loan_status_data=loan_status_data, 
+                           gender_data=gender_data,
+                           registration_data=registration_data)
 
 @reports_bp.route('/export/members')
 @login_required

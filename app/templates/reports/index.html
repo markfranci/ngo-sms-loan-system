@@ -1,16 +1,71 @@
 {% extends 'base.html' %}
 {% block title %}System Reports & Exports{% endblock %}
 
+{% block extra_css %}
+<style>
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .chart-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+  .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h2>Data Exports</h2>
-    <p>Download CSV extracts of system data. Open them in Excel or Google Sheets for advanced analysis.</p>
+    <h2>Analytics Dashboard & Exports</h2>
+    <p>View dynamic system metrics and download CSV extracts for advanced analysis.</p>
   </div>
 </div>
 
-<div class="report-grid">
+<div class="charts-grid">
+  <!-- Chart 1: Loan Status -->
+  <div class="chart-card">
+    <h3>Loan Application Status</h3>
+    <div class="chart-container">
+      <canvas id="loanStatusChart"></canvas>
+    </div>
+  </div>
 
+  <!-- Chart 2: Gender Distribution -->
+  <div class="chart-card">
+    <h3>Member Gender Distribution</h3>
+    <div class="chart-container">
+      <canvas id="genderChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Registrations Over Time -->
+  <div class="chart-card">
+    <h3>Registrations Over Time</h3>
+    <div class="chart-container">
+      <canvas id="registrationsChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-bottom: 1rem; color: var(--text-primary);">Data Exports</h3>
+<div class="report-grid">
   <!-- SME Members Report -->
   <div class="report-card">
     <div class="report-icon purple">
@@ -46,6 +101,105 @@
       <i data-lucide="cloud-download" style="width:16px;height:16px;"></i> Download CSV
     </a>
   </div>
-
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Setup standard chart options for dark mode compatibility if needed
+  Chart.defaults.color = '#9ca3af';
+  Chart.defaults.font.family = 'Inter, sans-serif';
+  
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 20,
+          boxWidth: 12
+        }
+      }
+    }
+  };
+
+  // 1. Loan Status Chart
+  const loanStatusCtx = document.getElementById('loanStatusChart').getContext('2d');
+  new Chart(loanStatusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: {{ loan_status_data.labels | tojson }},
+      datasets: [{
+        data: {{ loan_status_data.counts | tojson }},
+        backgroundColor: [
+          '#10b981', // Approved (green)
+          '#f59e0b', // Pending (yellow)
+          '#ef4444', // Rejected (red)
+          '#6366f1'  // Other
+        ],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      ...commonOptions,
+      cutout: '70%'
+    }
+  });
+
+  // 2. Gender Distribution Chart
+  const genderCtx = document.getElementById('genderChart').getContext('2d');
+  new Chart(genderCtx, {
+    type: 'pie',
+    data: {
+      labels: {{ gender_data.labels | tojson }},
+      datasets: [{
+        data: {{ gender_data.counts | tojson }},
+        backgroundColor: [
+          '#3b82f6', // Male (blue)
+          '#ec4899', // Female (pink)
+          '#8b5cf6'  // Unknown (purple)
+        ],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: commonOptions
+  });
+
+  // 3. Registrations Over Time Chart
+  const registrationsCtx = document.getElementById('registrationsChart').getContext('2d');
+  new Chart(registrationsCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ registration_data.labels | tojson }},
+      datasets: [{
+        label: 'New Members',
+        data: {{ registration_data.counts | tojson }},
+        backgroundColor: '#6366f1',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...commonOptions,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(156, 163, 175, 0.1)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+</script>
 {% endblock %}
