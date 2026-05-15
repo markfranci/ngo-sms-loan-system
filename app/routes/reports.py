@@ -222,6 +222,41 @@ def get_report_data():
             })
         return jsonify(data)
         
+    elif entity == 'groups':
+        query = Group.query
+        if search:
+            query = query.filter(Group.name.ilike(f"%{search}%"))
+        
+        data = []
+        for g in query.all():
+            data.append({
+                'id': g.id,
+                'name': g.name,
+                'description': g.description or 'No description',
+                'member_count': len(g.members),
+                'manager': g.manager.username if g.manager else 'Unassigned',
+                'created_at': g.created_at.strftime('%Y-%m-%d') if g.created_at else ''
+            })
+        return jsonify(data)
+        
+    elif entity == 'surveys':
+        from app.models.survey import SurveyTemplate
+        query = SurveyTemplate.query
+        if search:
+            query = query.filter(SurveyTemplate.title.ilike(f"%{search}%"))
+            
+        data = []
+        for s in query.all():
+            data.append({
+                'id': s.id,
+                'title': s.title,
+                'description': s.description or 'No description',
+                'question_count': len(s.questions),
+                'creator': s.creator.username if s.creator else 'System',
+                'created_at': s.created_at.strftime('%Y-%m-%d') if s.created_at else ''
+            })
+        return jsonify(data)
+        
     return jsonify({'error': 'Invalid entity'}), 400
 
 from flask import request

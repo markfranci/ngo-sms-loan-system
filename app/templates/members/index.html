@@ -1,61 +1,205 @@
 {% extends 'base.html' %}
 {% block title %}Members Directory{% endblock %}
 
+{% block extra_css %}
+<!-- We reuse the odoo-like styles already present in main.css or reports -->
+<style>
+  .odoo-control-panel {
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border-radius: var(--radius-lg);
+  }
+  .odoo-breadcrumb h2 { margin: 0; font-size: 1.25rem; font-weight: 500; }
+  .odoo-search-container { position: relative; flex-grow: 1; max-width: 600px; margin: 0 20px; display: flex; }
+  .odoo-search-bar { width: 100%; padding: 8px 15px 8px 35px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--bg-color); color: var(--text-primary); }
+  .odoo-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+  .odoo-search-dropdown-btn { background: none; border: 1px solid var(--border-color); border-left: none; padding: 0 10px; cursor: pointer; border-radius: 0 4px 4px 0; color: var(--text-secondary); background-color: var(--bg-color); }
+  .odoo-view-switchers { display: flex; gap: 5px; }
+  .odoo-view-btn { background: none; border: 1px solid transparent; padding: 6px; cursor: pointer; color: var(--text-secondary); border-radius: 4px; }
+  .odoo-view-btn.active { background-color: rgba(99, 102, 241, 0.1); color: #6366f1; border-color: rgba(99, 102, 241, 0.2); }
+  .odoo-filter-panel { display: none; position: absolute; top: 100%; left: 0; width: 100%; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 15px; z-index: 100; margin-top: 5px; }
+  .odoo-filter-panel.open { display: block; }
+  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  .view-container { display: none; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; min-height: 400px; }
+  .view-container.active { display: block; }
+  .odoo-list-table { width: 100%; border-collapse: collapse; }
+  .odoo-list-table th, .odoo-list-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+  .odoo-list-table th { font-weight: 500; color: var(--text-secondary); background-color: rgba(0,0,0,0.02); }
+  .odoo-kanban { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; }
+  .kanban-column { min-width: 300px; background-color: rgba(0,0,0,0.02); border-radius: 6px; padding: 10px; }
+  .kanban-column-title { font-weight: 600; margin-bottom: 15px; color: var(--text-secondary); display: flex; justify-content: space-between; }
+  .kanban-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s;}
+  .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  .kanban-card-title { font-weight: 500; margin-bottom: 5px; color: var(--text-primary); text-decoration: none;}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div class="page-header-text">
-    <h2>Members Directory</h2>
-    <p>View and manage all registered SME members.</p>
+<div class="odoo-control-panel">
+  <div class="odoo-breadcrumb">
+    <h2>Members</h2>
+  </div>
+
+  <div class="odoo-search-container">
+    <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
+    <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search by name, phone, or ID..." onkeyup="if(event.key === 'Enter') loadData()">
+    <button class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
+      <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+    </button>
+
+    <div class="odoo-filter-panel" id="filter-panel">
+      <div class="filter-grid">
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="filter-gender" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="filter-location" class="form-control" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+      </div>
+      <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+        <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="odoo-view-switchers">
+    <button class="odoo-view-btn active" onclick="switchView('list')" id="btn-view-list" title="List View">
+      <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+    </button>
+    <button class="odoo-view-btn" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
+      <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+    </button>
   </div>
 </div>
 
-<div class="glass-card">
-  {% if members %}
-  <div class="table-wrapper">
-    <table class="data-table" id="members-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Location</th>
-          <th>Group</th>
-          <th>Registered</th>
-          <th style="text-align:center;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for member in members %}
-        <tr>
-          <td class="td-primary">
-            {{ member.full_name }}
-            {% if member.id_number %}<br><small class="text-muted" style="font-weight:400;">ID: {{ member.id_number }}</small>{% endif %}
-          </td>
-          <td class="td-mono">{{ member.phone_number }}</td>
-          <td>{{ member.location or 'N/A' }}</td>
-          <td>
-            {% if member.group %}
-            <span class="badge badge-primary">{{ member.group.name }}</span>
-            {% else %}
-            <span class="badge badge-neutral" style="font-style:italic;">Unassigned</span>
-            {% endif %}
-          </td>
-          <td>{{ member.registered_at.strftime('%b %d, %Y') }}</td>
-          <td style="text-align:center;">
-            <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-sm btn-outline-primary" id="view-member-{{ member.id }}">
-              <i data-lucide="eye" style="width:14px;height:14px;"></i> View
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
+<div id="view-list" class="view-container active">
+  <div style="overflow-x: auto;">
+    <table class="odoo-list-table">
+      <thead id="list-thead"></thead>
+      <tbody id="list-tbody"></tbody>
     </table>
   </div>
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-state-icon"><i data-lucide="users"></i></div>
-    <h3>No Members Yet</h3>
-    <p>When members send a registration SMS, they will appear here.</p>
-  </div>
-  {% endif %}
 </div>
+
+<div id="view-kanban" class="view-container">
+  <div class="odoo-kanban" id="kanban-board"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentData = [];
+
+  function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+  }
+
+  function switchView(viewName) {
+    document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.odoo-view-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`view-${viewName}`).classList.add('active');
+    document.getElementById(`btn-view-${viewName}`).classList.add('active');
+    renderView(viewName);
+  }
+
+  function loadData() {
+    const search = document.getElementById('search-input').value;
+    const gender = document.getElementById('filter-gender').value;
+    const location = document.getElementById('filter-location').value;
+    
+    let params = `entity=members&search=${encodeURIComponent(search)}&gender=${gender}&location=${encodeURIComponent(location)}`;
+    
+    fetch(`{{ url_for('reports.get_report_data') }}?${params}`)
+      .then(res => res.json())
+      .then(data => {
+        currentData = data;
+        const activeView = document.querySelector('.view-container.active').id.replace('view-', '');
+        renderView(activeView);
+      })
+      .catch(err => console.error(err));
+  }
+
+  function renderView(viewName) {
+    if (viewName === 'list') renderList();
+    else if (viewName === 'kanban') renderKanban();
+  }
+
+  function renderList() {
+    const thead = document.getElementById('list-thead');
+    const tbody = document.getElementById('list-tbody');
+    thead.innerHTML = '<tr><th>Name</th><th>Phone</th><th>Gender</th><th>Location</th><th>Group</th><th>Registered</th><th>Actions</th></tr>';
+    tbody.innerHTML = '';
+    
+    if (currentData.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No members found.</td></tr>';
+      return;
+    }
+
+    currentData.forEach(row => {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-primary">${row.full_name}</td>
+        <td class="td-mono">${row.phone_number}</td>
+        <td>${row.gender}</td>
+        <td>${row.location}</td>
+        <td><span class="badge badge-primary">${row.group_name}</span></td>
+        <td>${row.registered_at}</td>
+        <td><a href="/members/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    lucide.createIcons();
+  }
+
+  function renderKanban() {
+    const board = document.getElementById('kanban-board');
+    board.innerHTML = '';
+    
+    if (currentData.length === 0) {
+      board.innerHTML = '<p>No members found.</p>';
+      return;
+    }
+
+    let grouped = {};
+    currentData.forEach(item => {
+      let key = item.group_name || 'Unassigned';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+
+    for (const [key, items] of Object.entries(grouped)) {
+      let colDiv = document.createElement('div');
+      colDiv.className = 'kanban-column';
+      colDiv.innerHTML = `<div class="kanban-column-title"><span>${key.toUpperCase()}</span> <span>${items.length}</span></div>`;
+      
+      items.forEach(item => {
+        let card = document.createElement('div');
+        card.className = 'kanban-card';
+        card.onclick = () => window.location.href = `/members/${item.id}`;
+        card.innerHTML = `
+          <div class="kanban-card-title">${item.full_name}</div>
+          <div style="font-size: 0.9rem; color: var(--text-secondary);"><i data-lucide="phone" style="width:12px;height:12px;"></i> ${item.phone_number}</div>
+          <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top:5px;">${item.location}</div>
+        `;
+        colDiv.appendChild(card);
+      });
+      board.appendChild(colDiv);
+    }
+    lucide.createIcons();
+  }
+
+  document.addEventListener('DOMContentLoaded', loadData);
+</script>
 {% endblock %}
