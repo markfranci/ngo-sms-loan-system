@@ -64,7 +64,137 @@
   </div>
 </div>
 
-<h3 style="margin-bottom: 1rem; color: var(--text-primary);">Data Exports</h3>
+<h3 style="margin-bottom: 1rem; color: var(--text-primary);">Custom Report Builder</h3>
+<div class="report-card" style="margin-bottom: 2rem;">
+  <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">Select parameters and variables to generate a highly customized dataset.</p>
+  <form action="{{ url_for('reports.custom_export') }}" method="GET" class="custom-report-form">
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <!-- Entity Selection -->
+      <div class="form-group">
+        <label for="entity">Entity Data</label>
+        <select name="entity" id="entity" class="form-control" onchange="toggleFilters()">
+          <option value="members">SME Members</option>
+          <option value="loans">Loan Assessments</option>
+        </select>
+      </div>
+      
+      <!-- Date Range (Applies to both) -->
+      <div class="form-group">
+        <label for="start_date">Start Date</label>
+        <input type="date" name="start_date" id="start_date" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label for="end_date">End Date</label>
+        <input type="date" name="end_date" id="end_date" class="form-control">
+      </div>
+
+      <!-- Group Filter (Applies to both) -->
+      <div class="form-group">
+        <label for="group_id">Filter by Group</label>
+        <select name="group_id" id="group_id" class="form-control">
+          <option value="all">All Groups</option>
+          {% for group in groups %}
+          <option value="{{ group.id }}">{{ group.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Entity Specific Filters</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      
+      <!-- Member Specific Filters -->
+      <div class="form-group member-filter">
+        <label for="gender">Gender</label>
+        <select name="gender" id="gender" class="form-control">
+          <option value="all">All Genders</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      
+      <div class="form-group member-filter">
+        <label for="location">Location / Town</label>
+        <input type="text" name="location" id="location" class="form-control" placeholder="Search location...">
+      </div>
+
+      <div class="form-group member-filter">
+        <label for="phone_number">Phone Number</label>
+        <input type="text" name="phone_number" id="phone_number" class="form-control" placeholder="Search phone...">
+      </div>
+      
+      <div class="form-group member-filter">
+        <label for="id_number">National ID</label>
+        <input type="text" name="id_number" id="id_number" class="form-control" placeholder="Search ID...">
+      </div>
+
+      <!-- Loan Specific Filters -->
+      <div class="form-group loan-filter" style="display: none;">
+        <label for="status">Loan Status</label>
+        <select name="status" id="status" class="form-control">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+
+      <div class="form-group loan-filter" style="display: none;">
+        <label for="min_amount">Min Amount Requested</label>
+        <input type="number" name="min_amount" id="min_amount" class="form-control" placeholder="0">
+      </div>
+
+      <div class="form-group loan-filter" style="display: none;">
+        <label for="max_amount">Max Amount Requested</label>
+        <input type="number" name="max_amount" id="max_amount" class="form-control" placeholder="Any">
+      </div>
+
+      <div class="form-group loan-filter" style="display: none;">
+        <label for="min_score">Min Automated Score</label>
+        <input type="number" name="min_score" id="min_score" class="form-control" placeholder="0" min="0" max="100">
+      </div>
+    </div>
+
+    <h4 style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Variables (Columns) to Export</h4>
+    <div style="margin-bottom: 1.5rem;">
+      <!-- Member Columns -->
+      <div id="member-columns" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <label><input type="checkbox" name="columns" value="id" checked> ID</label>
+        <label><input type="checkbox" name="columns" value="full_name" checked> Full Name</label>
+        <label><input type="checkbox" name="columns" value="phone_number" checked> Phone Number</label>
+        <label><input type="checkbox" name="columns" value="id_number" checked> ID Number</label>
+        <label><input type="checkbox" name="columns" value="gender" checked> Gender</label>
+        <label><input type="checkbox" name="columns" value="location" checked> Location</label>
+        <label><input type="checkbox" name="columns" value="group_name" checked> Group Name</label>
+        <label><input type="checkbox" name="columns" value="registered_at" checked> Registered Date</label>
+        <label><input type="checkbox" name="columns" value="current_survey_id"> Current Survey</label>
+      </div>
+      
+      <!-- Loan Columns -->
+      <div id="loan-columns" style="display: none; gap: 1rem; flex-wrap: wrap;">
+        <label><input type="checkbox" name="columns" value="id" checked> Loan ID</label>
+        <label><input type="checkbox" name="columns" value="applicant_name" checked> Applicant Name</label>
+        <label><input type="checkbox" name="columns" value="phone_number" checked> Phone Number</label>
+        <label><input type="checkbox" name="columns" value="group_name" checked> Group Name</label>
+        <label><input type="checkbox" name="columns" value="amount_requested" checked> Requested Amount</label>
+        <label><input type="checkbox" name="columns" value="score" checked> Automated Score</label>
+        <label><input type="checkbox" name="columns" value="status" checked> Status</label>
+        <label><input type="checkbox" name="columns" value="notes" checked> Notes</label>
+        <label><input type="checkbox" name="columns" value="assessed_by" checked> Assessed By</label>
+        <label><input type="checkbox" name="columns" value="created_at" checked> Assessment Date</label>
+        <label><input type="checkbox" name="columns" value="updated_at"> Last Updated Date</label>
+      </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">
+      <i data-lucide="filter" style="width:16px;height:16px;"></i> Generate Custom CSV
+    </button>
+  </form>
+</div>
+
+<h3 style="margin-bottom: 1rem; color: var(--text-primary);">General Data Exports</h3>
 <div class="report-grid">
   <!-- SME Members Report -->
   <div class="report-card">
@@ -201,5 +331,46 @@
       }
     }
   });
+
+  // Toggle Filters for Custom Report Builder
+  function toggleFilters() {
+    const entity = document.getElementById('entity').value;
+    
+    // Toggle filter rows
+    const memberFilters = document.querySelectorAll('.member-filter');
+    const loanFilters = document.querySelectorAll('.loan-filter');
+    
+    // Toggle column sections
+    const memberColumns = document.getElementById('member-columns');
+    const loanColumns = document.getElementById('loan-columns');
+
+    if (entity === 'members') {
+      memberFilters.forEach(f => f.style.display = 'block');
+      loanFilters.forEach(f => f.style.display = 'none');
+      
+      memberColumns.style.display = 'flex';
+      loanColumns.style.display = 'none';
+      
+      // Select appropriate checkboxes
+      memberColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = false);
+      loanColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = true);
+      
+      document.getElementById('status').value = 'all';
+    } else if (entity === 'loans') {
+      memberFilters.forEach(f => f.style.display = 'none');
+      loanFilters.forEach(f => f.style.display = 'block');
+      
+      memberColumns.style.display = 'none';
+      loanColumns.style.display = 'flex';
+      
+      memberColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = true);
+      loanColumns.querySelectorAll('input[type="checkbox"]').forEach(c => c.disabled = false);
+
+      document.getElementById('gender').value = 'all';
+    }
+  }
+
+  // Initialize on page load to set correct disabled states
+  document.addEventListener('DOMContentLoaded', toggleFilters);
 </script>
 {% endblock %}

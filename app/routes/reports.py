@@ -47,10 +47,13 @@ def index():
         'counts': list(monthly_counts.values())
     }
 
+    groups = Group.query.all()
+
     return render_template('reports/index.html', 
                            loan_status_data=loan_status_data, 
                            gender_data=gender_data,
-                           registration_data=registration_data)
+                           registration_data=registration_data,
+                           groups=groups)
 
 @reports_bp.route('/export/members')
 @login_required
@@ -145,5 +148,151 @@ def export_groups():
         
     response = make_response(si.getvalue())
     response.headers['Content-Disposition'] = 'attachment; filename=sme_groups_report.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
+
+from flask import request
+from datetime import datetime
+
+@reports_bp.route('/custom/export')
+@login_required
+@admin_required
+def custom_export():
+    """
+    Generates and downloads a customizable CSV report based on filters and selected columns.
+    """
+    entity = request.args.get('entity', 'members')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    group_id = request.args.get('group_id')
+    selected_columns = request.args.getlist('columns')
+
+    si = io.StringIO()
+    cw = csv.writer(si)
+
+    if not selected_columns:
+        cw.writerow(['Error: No columns selected'])
+        return make_response(si.getvalue(), 200, {'Content-Disposition': 'attachment; filename=error.csv', 'Content-Type': 'text/csv'})
+
+    if entity == 'members':
+        # Apply filters
+        gender = request.args.get('gender')
+        location = request.args.get('location')
+        phone_number = request.args.get('phone_number')
+        id_number = request.args.get('id_number')
+        
+        query = Member.query
+        if group_id and group_id != 'all':
+            query = query.filter(Member.group_id == group_id)
+        if gender and gender != 'all':
+            query = query.filter(Member.gender.ilike(gender))
+        if location:
+            query = query.filter(Member.location.ilike(f"%{location}%"))
+        if phone_number:
+            query = query.filter(Member.phone_number.ilike(f"%{phone_number}%"))
+        if id_number:
+            query = query.filter(Member.id_number.ilike(f"%{id_number}%"))
+            
+        if start_date:
+            try:
+                dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(Member.registered_at >= dt)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt = datetime.strptime(end_date, '%Y-%m-%d')
+                query = query.filter(Member.registered_at <= dt.replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
+                
+        members = query.all()
+        
+        # Write Headers
+        headers = [col.replace('_', ' ').title() for col in selected_columns]
+        cw.writerow(headers)
+        
+        # Write Data
+        for m in members:
+            row = []
+            for col in selected_columns:
+                if col == 'id': row.append(m.id)
+                elif col == 'full_name': row.append(m.full_name)
+                elif col == 'phone_number': row.append(m.phone_number)
+                elif col == 'id_number': row.append(m.id_number or '')
+                elif col == 'gender': row.append(m.gender or '')
+                elif col == 'location': row.append(m.location or '')
+                elif col == 'group_name': row.append(m.group.name if m.group else 'Unassigned')
+                elif col == 'registered_at': row.append(m.registered_at.strftime('%Y-%m-%d %H:%M') if m.registered_at else '')
+                elif col == 'current_survey_id': row.append(m.current_survey_id or '')
+                else: row.append('')
+            cw.writerow(row)
+            
+        filename = 'custom_members_report.csv'
+
+    elif entity == 'loans':
+        # Apply filters
+        status = request.args.get('status')
+        min_amount = request.args.get('min_amount')
+        max_amount = request.args.get('max_amount')
+        min_score = request.args.get('min_score')
+        
+        query = Loan.query
+        if group_id and group_id != 'all':
+            query = query.join(Member).filter(Member.group_id == group_id)
+        if status and status != 'all':
+            query = query.filter(Loan.status.ilike(status))
+        if min_amount:
+            query = query.filter(Loan.amount_requested >= float(min_amount))
+        if max_amount:
+            query = query.filter(Loan.amount_requested <= float(max_amount))
+        if min_score:
+            query = query.filter(Loan.score >= float(min_score))
+            
+        if start_date:
+            try:
+                dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(Loan.created_at >= dt)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt = datetime.strptime(end_date, '%Y-%m-%d')
+                query = query.filter(Loan.created_at <= dt.replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
+                
+        loans = query.all()
+        
+        # Write Headers
+        headers = [col.replace('_', ' ').title() for col in selected_columns]
+        cw.writerow(headers)
+        
+        # Write Data
+        for l in loans:
+            row = []
+            for col in selected_columns:
+                if col == 'id': row.append(l.id)
+                elif col == 'applicant_name': row.append(l.member.full_name)
+                elif col == 'phone_number': row.append(l.member.phone_number)
+                elif col == 'group_name': row.append(l.member.group.name if l.member.group else 'Unassigned')
+                elif col == 'amount_requested': row.append(l.amount_requested or 0)
+                elif col == 'score': row.append(l.score or 0)
+                elif col == 'status': row.append(l.status.upper())
+                elif col == 'notes': row.append(l.notes or '')
+                elif col == 'assessed_by': row.append(l.assessor.username if l.assessor else 'System')
+                elif col == 'created_at': row.append(l.created_at.strftime('%Y-%m-%d %H:%M') if l.created_at else '')
+                elif col == 'updated_at': row.append(l.updated_at.strftime('%Y-%m-%d %H:%M') if l.updated_at else '')
+                else: row.append('')
+            cw.writerow(row)
+            
+        filename = 'custom_loans_report.csv'
+
+    else:
+        cw.writerow(['Error: Unknown entity'])
+        filename = 'error_report.csv'
+
+    response = make_response(si.getvalue())
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     response.headers['Content-Type'] = 'text/csv'
     return response
