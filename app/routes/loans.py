@@ -73,6 +73,11 @@ def new(member_id):
 
     if request.method == 'POST':
         amount_requested = request.form.get('amount_requested', type=float) or 0.0
+        
+        if amount_requested <= 0:
+            flash('Amount requested must be greater than zero.', 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+            
         notes = request.form.get('notes', '')
         
         # New Detailed Assessment Fields

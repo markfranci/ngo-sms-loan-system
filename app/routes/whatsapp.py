@@ -47,15 +47,24 @@ def incoming_message():
                 reply_text = "Welcome! Your phone number is not registered. Please send 'START' to begin registration."
         else:
             if session.step == 1:
-                session.full_name = message_body
-                session.step = 2
-                db.session.commit()
-                reply_text = f"Thanks, {message_body}. Now, please reply with your National ID Number."
+                # Validation: Name must be at least 2 characters and not just numbers
+                if len(message_body) < 2 or message_body.replace(' ', '').isdigit():
+                    reply_text = "Please reply with a valid Full Name (letters only)."
+                else:
+                    session.full_name = message_body
+                    session.step = 2
+                    db.session.commit()
+                    reply_text = f"Thanks, {message_body}. Now, please reply with your National ID Number (Numbers only)."
             elif session.step == 2:
-                session.id_number = message_body
-                session.step = 3
-                db.session.commit()
-                reply_text = "Great! Now, please reply with your Gender.\n\nType *Male* or *Female*."
+                # Validation: ID must be digits and reasonable length
+                clean_id = message_body.replace(' ', '').strip()
+                if not clean_id.isdigit() or len(clean_id) < 5:
+                    reply_text = "Please reply with a valid National ID Number (Numbers only, minimum 5 digits)."
+                else:
+                    session.id_number = clean_id
+                    session.step = 3
+                    db.session.commit()
+                    reply_text = "Great! Now, please reply with your Gender.\n\nType *Male* or *Female*."
             elif session.step == 3:
                 gender_input = message_body.strip().lower()
                 if gender_input not in ('male', 'female'):
@@ -92,67 +101,120 @@ def incoming_message():
             ).first()
             
             if current_question:
-                # Save their message as the answer to the current question
-                new_response = SurveyResponse(
-                    member_id=member.id,
-                    question_id=current_question.id,
-                    answer=message_body
-                )
-                db.session.add(new_response)
+                # ---------------------------------------------------------
+                # INPUT VALIDATION ENGINE
+                # ---------------------------------------------------------
+                is_valid = True
+                error_msg = ""
                 
-                # ----- SKIP LOGIC ENGINE -----
-                # Decide which question comes next based on skip rules
-                next_question = None
-                matched_rule = False
+                if current_question.question_type == 'number':
+                    # Allow integers and floats, optionally negative
+                    clean_val = message_body.strip().replace(',', '')
+                    if clean_val.startswith('-'):
+                        clean_val = clean_val[1:]
+                    if not clean_val.replace('.', '', 1).isdigit():
+                        is_valid = False
+                        error_msg = "Please reply with a valid number (e.g., 5000)."
                 
-                # Check new multiple skip rules first
-                if current_question.skip_rules:
-                    for rule in current_question.skip_rules:
-                        if message_body.strip().lower() == rule.condition.strip().lower():
+                elif current_question.question_type == 'multiple_choice' and current_question.options:
+                    # Parse valid options
+                    parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(current_question.options))
+                    valid_options = [p.strip() for p in parts if p.strip()]
+                    
+                    # Accept exact match (case insensitive) or the numerical index (1, 2, 3...)
+                    # or the prefix letter (A, B, C...)
+                    user_input_clean = message_body.strip().lower()
+                    
+                    matched = False
+                    for idx, opt in enumerate(valid_options):
+                        opt_lower = opt.lower()
+                        # If user types "1" and the option is "1. Yes", or just "yes"
+                        if user_input_clean == opt_lower or user_input_clean == str(idx + 1):
+                            matched = True
+                            # Optionally normalize the saved answer to the full text
+                            message_body = opt
+                            break
+                        # Also check if option is like "A. Option" and user typed "A"
+                        elif '.' in opt_lower:
+                            prefix = opt_lower.split('.')[0].strip()
+                            if user_input_clean == prefix:
+                                matched = True
+                                message_body = opt
+                                break
+                    
+                    if not matched:
+                        is_valid = False
+                        error_msg = "Please reply with one of the valid options."
+
+                if not is_valid:
+                    # Validation failed. Repeat the question.
+                    reply_text = f"❌ {error_msg}\n\nPlease try again:\n{current_question.order_number}. {current_question.question_text}"
+                    if current_question.question_type == 'multiple_choice' and current_question.options:
+                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(current_question.options))
+                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
+                         reply_text += f"\n\n{formatted_options}"
+                else:
+                    # Input is valid! Save their message as the answer
+                    new_response = SurveyResponse(
+                        member_id=member.id,
+                        question_id=current_question.id,
+                        answer=message_body
+                    )
+                    db.session.add(new_response)
+                    
+                    # ----- SKIP LOGIC ENGINE -----
+                    # Decide which question comes next based on skip rules
+                    next_question = None
+                    matched_rule = False
+                    
+                    # Check new multiple skip rules first
+                    if current_question.skip_rules:
+                        for rule in current_question.skip_rules:
+                            if message_body.strip().lower() == rule.condition.strip().lower():
+                                matched_rule = True
+                                if rule.skip_to_order == 0:
+                                    next_question = None
+                                else:
+                                    next_question = SurveyQuestion.query.filter_by(
+                                        template_id=survey.id,
+                                        order_number=rule.skip_to_order
+                                    ).first()
+                                break
+                                
+                    # Fallback to legacy single skip condition if no new rules matched
+                    if not matched_rule and current_question.skip_condition and current_question.skip_to_order is not None:
+                        if message_body.strip().lower() == current_question.skip_condition.strip().lower():
                             matched_rule = True
-                            if rule.skip_to_order == 0:
+                            if current_question.skip_to_order == 0:
                                 next_question = None
                             else:
                                 next_question = SurveyQuestion.query.filter_by(
                                     template_id=survey.id,
-                                    order_number=rule.skip_to_order
+                                    order_number=current_question.skip_to_order
                                 ).first()
-                            break
-                            
-                # Fallback to legacy single skip condition if no new rules matched
-                if not matched_rule and current_question.skip_condition and current_question.skip_to_order is not None:
-                    if message_body.strip().lower() == current_question.skip_condition.strip().lower():
-                        matched_rule = True
-                        if current_question.skip_to_order == 0:
-                            next_question = None
-                        else:
-                            next_question = SurveyQuestion.query.filter_by(
-                                template_id=survey.id,
-                                order_number=current_question.skip_to_order
-                            ).first()
 
-                if not matched_rule:
-                    # No rules matched, or no rules exist — go to next question linearly
-                    next_question = SurveyQuestion.query.filter_by(
-                        template_id=survey.id,
-                        order_number=current_question.order_number + 1
-                    ).first()
-                
-                if next_question:
-                    # Move to the next question
-                    member.current_question_order = next_question.order_number
-                    db.session.commit()
-                    reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
-                    if next_question.question_type == 'multiple_choice' and next_question.options:
-                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(next_question.options))
-                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
-                         reply_text += f"\n\n{formatted_options}"
-                else:
-                    # No more questions — survey complete! Clear their memory.
-                    member.current_survey_id = None
-                    member.current_question_order = None
-                    db.session.commit()
-                    reply_text = "Thank you! You have completed the survey."
+                    if not matched_rule:
+                        # No rules matched, or no rules exist — go to next question linearly
+                        next_question = SurveyQuestion.query.filter_by(
+                            template_id=survey.id,
+                            order_number=current_question.order_number + 1
+                        ).first()
+                    
+                    if next_question:
+                        # Move to the next question
+                        member.current_question_order = next_question.order_number
+                        db.session.commit()
+                        reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
+                        if next_question.question_type == 'multiple_choice' and next_question.options:
+                             parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(next_question.options))
+                             formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
+                             reply_text += f"\n\n{formatted_options}"
+                    else:
+                        # No more questions — survey complete! Clear their memory.
+                        member.current_survey_id = None
+                        member.current_question_order = None
+                        db.session.commit()
+                        reply_text = "Thank you! You have completed the survey."
             else:
                 # Safety: question not found, reset state
                 member.current_survey_id = None
