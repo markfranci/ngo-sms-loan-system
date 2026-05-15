@@ -15,8 +15,8 @@
   <!-- Lucide Icons (lightweight SVG icon set) -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Our main stylesheet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <!-- Our main stylesheet (cache-busted to ensure layout loads) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v={{ range(1, 10000) | random }}" />
 
   {% block extra_css %}{% endblock %}
 </head>

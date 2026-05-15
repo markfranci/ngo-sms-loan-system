@@ -1786,32 +1786,38 @@ h1, h2, h3, h4, h5, h6 {
 
 }
 
-/* Modern Odoo-like UI Components */
+/* Modern Odoo-like UI Components - Reimagined as Premium Page Header */
 .odoo-control-panel {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 12px 24px;
+  background-color: transparent;
+  border: none;
+  padding: 0 0 24px 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-sm);
-  border-radius: var(--radius-md);
+  gap: 16px;
+  margin-bottom: 16px;
+  box-shadow: none;
 }
 
-.odoo-breadcrumb h2 { margin: 0; font-size: 1.35rem; font-weight: 600; display: inline-block; margin-right: 15px;}
+.odoo-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.odoo-breadcrumb h2 { margin: 0; font-size: 1.65rem; font-weight: 700; color: var(--text-heading); letter-spacing: -0.02em; }
 
-.odoo-search-container { position: relative; flex-grow: 1; max-width: 600px; margin: 0 20px; display: flex; }
-.odoo-search-bar { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--text-primary); transition: all 0.2s;}
-.odoo-search-bar:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-glow); }
+.odoo-search-container { position: relative; flex-grow: 1; max-width: 400px; margin: 0; display: flex; align-items: stretch; }
+.odoo-search-bar { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--text-primary); transition: all 0.2s; box-shadow: var(--shadow-sm); }
+.odoo-search-bar:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
 .odoo-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-.odoo-search-dropdown-btn { background: var(--color-surface-2); border: 1px solid var(--color-border); border-left: none; padding: 0 12px; cursor: pointer; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary); transition: all 0.2s; }
+.odoo-search-dropdown-btn { background: var(--color-surface-2); border: 1px solid var(--color-border); border-left: none; padding: 0 14px; cursor: pointer; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary); transition: all 0.2s; display: flex; align-items: center; box-shadow: var(--shadow-sm); }
 .odoo-search-dropdown-btn:hover { background: var(--color-surface-3); color: var(--text-primary); }
 
-.odoo-view-switchers { display: flex; gap: 6px; }
-.odoo-view-btn { background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius-sm); transition: all 0.2s; }
+.odoo-view-switchers { display: flex; gap: 8px; margin-left: auto; }
+.odoo-view-btn { background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius-sm); transition: all 0.2s; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
 .odoo-view-btn:hover { background: var(--color-surface-2); color: var(--text-primary); }
-.odoo-view-btn.active { background-color: var(--color-primary-glow); color: var(--color-primary); border-color: var(--color-primary); }
+.odoo-view-btn.active { background-color: var(--color-primary-glow2); color: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-glow); }
 
 .odoo-filter-panel { display: none; position: absolute; top: calc(100% + 8px); left: 0; width: 100%; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 20px; z-index: 200; }
 .odoo-filter-panel.open { display: block; animation: slideUp 0.2s ease-out; }
@@ -1834,3 +1840,28 @@ h1, h2, h3, h4, h5, h6 {
 
 .kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;}
 
+/* MASSIVE PREMIUM OVERHAUL - DARK SIDEBAR ON LIGHT THEME */
+.sidebar {
+  background: #0B1120;
+  border-right: none;
+}
+.sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
+.sidebar-brand-text { color: #FFFFFF; }
+.sidebar-brand-sub { color: #94A3B8; }
+.sidebar-section-title { color: #64748B; }
+.sidebar-link { color: #94A3B8; }
+.sidebar-link:hover { background: rgba(255,255,255,0.05); color: #FFFFFF; }
+.sidebar-link.active { background: rgba(79, 70, 229, 0.15); color: #818CF8; border-right: 3px solid #818CF8; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.sidebar-link.active i { color: #818CF8; }
+.sidebar-footer { border-top-color: rgba(255,255,255,0.05); }
+.sidebar-user-name { color: #FFFFFF; }
+.btn-sidebar-logout:hover { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+
+.top-header { background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
+
+/* Fix any overlapping page header layout issues */
+.odoo-control-panel {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 32px;
+}
