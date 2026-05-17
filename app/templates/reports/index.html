@@ -318,76 +318,10 @@
     });
   }
 
-  // Initialize custom styled selects
-  function initCustomSelects() {
-    document.querySelectorAll('.odoo-filter-panel select').forEach(select => {
-      // Don't initialize twice
-      if(select.parentElement.classList.contains('custom-select-wrapper')) return;
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'custom-select-wrapper';
-      select.parentNode.insertBefore(wrapper, select);
-      wrapper.appendChild(select);
-
-      const trigger = document.createElement('div');
-      trigger.className = 'custom-select-trigger';
-      trigger.tabIndex = 0;
-      
-      const triggerText = document.createElement('span');
-      triggerText.textContent = select.options[select.selectedIndex]?.text || '';
-      trigger.appendChild(triggerText);
-      
-      const arrow = document.createElement('div');
-      arrow.innerHTML = `<svg class="arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-      trigger.appendChild(arrow);
-      wrapper.appendChild(trigger);
-
-      const optionsContainer = document.createElement('div');
-      optionsContainer.className = 'custom-select-options';
-      
-      Array.from(select.options).forEach(option => {
-        const customOption = document.createElement('div');
-        customOption.className = 'custom-select-option' + (option.selected ? ' selected' : '');
-        customOption.textContent = option.text;
-        customOption.dataset.value = option.value;
-        
-        customOption.addEventListener('click', (e) => {
-          e.stopPropagation();
-          select.value = option.value;
-          triggerText.textContent = option.text;
-          
-          optionsContainer.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected'));
-          customOption.classList.add('selected');
-          
-          wrapper.classList.remove('open');
-          
-          // Trigger the native change event so loadData() fires
-          select.dispatchEvent(new Event('change'));
-        });
-        
-        optionsContainer.appendChild(customOption);
-      });
-      
-      wrapper.appendChild(optionsContainer);
-      
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.custom-select-wrapper').forEach(w => {
-          if(w !== wrapper) w.classList.remove('open');
-        });
-        wrapper.classList.toggle('open');
-      });
-    });
-    
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
-    });
-  }
-
   // Initialize
   document.addEventListener('DOMContentLoaded', () => {
     updateFilterVisibility();
-    initCustomSelects();
+    if (window.initCustomSelects) window.initCustomSelects();
     loadData();
   });
 </script>

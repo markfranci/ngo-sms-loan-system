@@ -167,6 +167,9 @@
     lucide.createIcons();
   }
 
-  document.addEventListener('DOMContentLoaded', loadData);
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.initCustomSelects) window.initCustomSelects();
+    loadData();
+  });
 </script>
 {% endblock %}
