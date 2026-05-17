@@ -1872,8 +1872,10 @@ h1, h2, h3, h4, h5, h6 {
 .odoo-filter-panel.open { display: block; animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
 .odoo-filter-panel label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px; }
-.odoo-filter-panel select, .odoo-filter-panel input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-primary); background: var(--color-surface); transition: border-color 0.2s, box-shadow 0.2s; }
-.odoo-filter-panel select:focus, .odoo-filter-panel input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
+.odoo-filter-panel select, .odoo-filter-panel input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; color: var(--text-primary); background-color: var(--color-surface); transition: all 0.2s ease; }
+.odoo-filter-panel select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 36px; cursor: pointer; }
+.odoo-filter-panel select:hover, .odoo-filter-panel input:hover { border-color: #a1a1aa; background-color: var(--color-surface-2); }
+.odoo-filter-panel select:focus, .odoo-filter-panel input:focus { outline: none; background-color: var(--color-surface); border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
 .view-container { display: none; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px; min-height: 400px; box-shadow: var(--shadow-sm); }
