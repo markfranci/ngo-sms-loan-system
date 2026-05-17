@@ -1881,6 +1881,22 @@ h1, h2, h3, h4, h5, h6 {
 .view-container { display: none; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px; min-height: 400px; box-shadow: var(--shadow-sm); }
 .view-container.active { display: block; animation: fadeIn 0.3s ease; }
 
+/* ----------------------------------------------------------------
+   CUSTOM SELECT DROPDOWN UI
+   ---------------------------------------------------------------- */
+.custom-select-wrapper { position: relative; user-select: none; width: 100%; }
+.custom-select-wrapper select { display: none; }
+.custom-select-trigger { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; color: var(--text-primary); background-color: var(--color-surface); cursor: pointer; transition: all 0.2s ease; }
+.custom-select-trigger:hover { border-color: #a1a1aa; background-color: var(--color-surface-2); }
+.custom-select-trigger:focus, .custom-select-wrapper.open .custom-select-trigger { outline: none; background-color: var(--color-surface); border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
+.custom-select-trigger .arrow { width: 16px; height: 16px; stroke: #71717a; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; transition: transform 0.2s ease; }
+.custom-select-wrapper.open .custom-select-trigger .arrow { transform: rotate(180deg); }
+.custom-select-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; z-index: 250; display: none; padding: 4px; }
+.custom-select-wrapper.open .custom-select-options { display: block; animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+.custom-select-option { padding: 8px 12px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; border-radius: var(--radius-sm); transition: background-color 0.15s; }
+.custom-select-option:hover { background-color: var(--color-surface-2); color: var(--text-primary); }
+.custom-select-option.selected { background-color: var(--color-primary-glow2); color: var(--color-primary); font-weight: 600; }
+
 .odoo-list-table { width: 100%; border-collapse: collapse; }
 .odoo-list-table th, .odoo-list-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem;}
 .odoo-list-table th { font-weight: 600; color: var(--text-secondary); background-color: var(--color-surface-2); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}
