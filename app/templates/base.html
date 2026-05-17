@@ -111,6 +111,9 @@
           <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
             <i data-lucide="menu"></i>
           </button>
+          <button class="desktop-toggle" id="desktop-toggle" aria-label="Collapse sidebar">
+            <i data-lucide="panel-left-close"></i>
+          </button>
           <div class="header-breadcrumb">
             {% block breadcrumb %}
             <a href="{{ url_for('main.dashboard') }}">Home</a>
@@ -168,13 +171,22 @@
 
     // Mobile sidebar toggle
     const toggle = document.getElementById('mobile-toggle');
+    const desktopToggle = document.getElementById('desktop-toggle');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
+    const mainContent = document.querySelector('.main-content');
 
     if (toggle && sidebar) {
       toggle.addEventListener('click', function() {
         sidebar.classList.toggle('open');
         if (overlay) overlay.classList.toggle('active');
+      });
+    }
+
+    if (desktopToggle && sidebar && mainContent) {
+      desktopToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('collapsed');
       });
     }
 
