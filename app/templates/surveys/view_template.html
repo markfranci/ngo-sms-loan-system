@@ -32,6 +32,9 @@
           <div class="question-actions">
             <span class="badge badge-neutral">{{ question.question_type|capitalize }}</span>
             {% if current_user.role == 'admin' %}
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleQuestionEdit({{ question.id }})">
+              <i data-lucide="pencil" style="width:14px;height:14px;"></i> Edit
+            </button>
             <form method="POST" action="{{ url_for('surveys.delete_question', survey_id=survey.id, question_id=question.id) }}" data-confirm-title="Remove Question" data-confirm="Remove this question from the survey? Existing responses to this question will also be deleted." data-confirm-action="Remove Question">
               <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove question">
                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Remove
@@ -71,6 +74,64 @@
             {% endfor %}
             </ul>
           </div>
+        {% endif %}
+
+        {% if current_user.role == 'admin' %}
+        <div class="question-edit-panel" id="question-edit-{{ question.id }}">
+          <form method="POST" action="{{ url_for('surveys.edit_question', survey_id=survey.id, question_id=question.id) }}">
+            <div class="form-group">
+              <label class="form-label" for="question_text_{{ question.id }}">Question Text *</label>
+              <input type="text" id="question_text_{{ question.id }}" name="question_text" required class="form-input" value="{{ question.question_text }}">
+            </div>
+
+            <div class="question-edit-grid">
+              <div class="form-group">
+                <label class="form-label" for="question_type_{{ question.id }}">Answer Format</label>
+                <select id="question_type_{{ question.id }}" name="question_type" class="form-select">
+                  <option value="text" {% if question.question_type == 'text' %}selected{% endif %}>Free Text</option>
+                  <option value="number" {% if question.question_type == 'number' %}selected{% endif %}>Number</option>
+                  <option value="multiple_choice" {% if question.question_type == 'multiple_choice' %}selected{% endif %}>Multiple Choice</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="options_{{ question.id }}">Options</label>
+                <input type="text" id="options_{{ question.id }}" name="options" class="form-input" value="{{ question.options or '' }}" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+              </div>
+            </div>
+
+            <div class="question-edit-grid">
+              {% set first_rule = question.skip_rules[0] if question.skip_rules else none %}
+              <div class="form-group">
+                <label class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
+                <input type="text" name="skip_condition[]" class="form-input" value="{{ first_rule.condition if first_rule else '' }}" placeholder="e.g. No">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
+                <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ first_rule.skip_to_order if first_rule else '' }}" placeholder="e.g. 6">
+              </div>
+            </div>
+
+            {% if question.skip_rules|length > 1 %}
+              {% for rule in question.skip_rules[1:] %}
+              <div class="question-edit-grid">
+                <div class="form-group">
+                  <input type="text" name="skip_condition[]" class="form-input" value="{{ rule.condition }}" placeholder="e.g. Yes">
+                </div>
+                <div class="form-group">
+                  <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ rule.skip_to_order }}" placeholder="e.g. 2">
+                </div>
+              </div>
+              {% endfor %}
+            {% endif %}
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save" style="width:16px;height:16px;"></i> Save Changes
+              </button>
+              <button type="button" class="btn btn-ghost" onclick="toggleQuestionEdit({{ question.id }})">Cancel</button>
+            </div>
+          </form>
+        </div>
         {% endif %}
       </div>
       {% endfor %}
@@ -187,4 +248,12 @@
     • If the answer does <em>not</em> match the condition, the survey proceeds to the next question normally.
   </p>
 </div>
+
+<script>
+  function toggleQuestionEdit(questionId) {
+    const panel = document.getElementById(`question-edit-${questionId}`);
+    if (!panel) return;
+    panel.classList.toggle('open');
+  }
+</script>
 {% endblock %}

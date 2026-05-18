@@ -208,6 +208,49 @@ def view_responses(survey_id):
     return render_template('surveys/responses.html', survey=survey, questions=questions, member_data=member_data)
 
 
+@surveys.route('/<int:survey_id>/questions/<int:question_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_question(survey_id, question_id):
+    survey = SurveyTemplate.query.get_or_404(survey_id)
+    question = SurveyQuestion.query.filter_by(id=question_id, template_id=survey.id).first_or_404()
+
+    question_text = request.form.get('question_text', '').strip()
+    question_type = request.form.get('question_type', 'text')
+    options = request.form.get('options', '').strip()
+    skip_conditions = request.form.getlist('skip_condition[]')
+    skip_to_orders = request.form.getlist('skip_to_order[]')
+
+    if not question_text:
+        flash('Question text cannot be empty.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+    if question_type not in ['text', 'number', 'multiple_choice']:
+        flash('Invalid answer format selected.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+    question.question_text = question_text
+    question.question_type = question_type
+    question.options = options if question_type == 'multiple_choice' else None
+    question.skip_condition = None
+    question.skip_to_order = None
+
+    SurveySkipRule.query.filter_by(question_id=question.id).delete()
+    for index, condition in enumerate(skip_conditions):
+        condition = condition.strip()
+        order_raw = skip_to_orders[index].strip() if index < len(skip_to_orders) else ''
+        if condition and order_raw.isdigit():
+            db.session.add(SurveySkipRule(
+                question_id=question.id,
+                condition=condition,
+                skip_to_order=int(order_raw),
+            ))
+
+    db.session.commit()
+    flash('Question updated successfully.', 'success')
+    return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+
 @surveys.route('/<int:survey_id>/questions/<int:question_id>/delete', methods=['POST'])
 @login_required
 @admin_required

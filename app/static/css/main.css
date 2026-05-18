@@ -1492,6 +1492,25 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
 }
 
+.question-edit-panel {
+  display: none;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.question-edit-panel.open {
+  display: block;
+}
+
+.question-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .question-options {
   margin-top: 0.65rem;
   padding: 0.65rem 0.85rem;
@@ -1610,6 +1629,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .question-edit-grid {
     grid-template-columns: 1fr;
   }
 }
