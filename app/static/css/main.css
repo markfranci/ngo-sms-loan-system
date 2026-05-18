@@ -1475,6 +1475,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 0.25rem;
 }
 
@@ -1482,6 +1483,13 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   color: var(--text-primary);
   font-size: 0.9rem;
+}
+
+.question-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .question-options {

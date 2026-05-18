@@ -11,13 +11,6 @@
     <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-success" id="btn-view-responses">
       <i data-lucide="message-circle" style="width:16px;height:16px;"></i> View Responses
     </a>
-    {% if current_user.role == 'admin' %}
-    <form method="POST" action="{{ url_for('surveys.delete', survey_id=survey.id) }}" data-confirm-title="Delete Survey" data-confirm="Delete this survey template, questions, skip rules, and responses?" data-confirm-action="Delete Survey">
-      <button type="submit" class="btn btn-outline-danger">
-        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
-      </button>
-    </form>
-    {% endif %}
     <a href="{{ url_for('surveys.index') }}" class="btn btn-ghost">
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
     </a>
@@ -36,12 +29,12 @@
       <div class="question-item">
         <div class="question-header">
           <span class="question-text">{{ question.order_number }}. {{ question.question_text }}</span>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="question-actions">
             <span class="badge badge-neutral">{{ question.question_type|capitalize }}</span>
             {% if current_user.role == 'admin' %}
             <form method="POST" action="{{ url_for('surveys.delete_question', survey_id=survey.id, question_id=question.id) }}" data-confirm-title="Remove Question" data-confirm="Remove this question from the survey? Existing responses to this question will also be deleted." data-confirm-action="Remove Question">
               <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove question">
-                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Remove
               </button>
             </form>
             {% endif %}
