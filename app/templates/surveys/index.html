@@ -97,6 +97,11 @@
         <td>${row.created_at}</td>
         <td>
           <a href="/surveys/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a>
+          {% if current_user.role == 'admin' %}
+          <form method="POST" action="/surveys/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Survey Template" data-confirm="Delete this survey template, its questions, and its responses? This cannot be undone." data-confirm-action="Delete Survey">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
+          </form>
+          {% endif %}
         </td>
       `;
       tbody.appendChild(tr);
@@ -124,6 +129,15 @@
             <span><i data-lucide="help-circle" style="width:12px;height:12px; vertical-align:middle;"></i> ${item.question_count} Qs</span>
             <span>By: ${item.creator}</span>
         </div>
+        {% if current_user.role == 'admin' %}
+        <div style="display:flex;justify-content:flex-end;margin-top:0.85rem;">
+          <form method="POST" action="/surveys/${item.id}/delete" onclick="event.stopPropagation();" data-confirm-title="Delete Survey Template" data-confirm="Delete this survey template, its questions, and its responses? This cannot be undone." data-confirm-action="Delete Survey">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+            </button>
+          </form>
+        </div>
+        {% endif %}
       `;
       board.appendChild(card);
     });

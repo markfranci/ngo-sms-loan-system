@@ -255,6 +255,32 @@ def view_responses(survey_id):
     return render_template('surveys/responses.html', survey=survey, questions=questions, member_data=member_data)
 
 
+@surveys.route('/<int:survey_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_template(survey_id):
+    survey = SurveyTemplate.query.get_or_404(survey_id)
+    question_ids = [question.id for question in survey.questions]
+
+    if question_ids:
+        SurveyResponse.query.filter(SurveyResponse.question_id.in_(question_ids)).delete(synchronize_session=False)
+        SurveySkipRule.query.filter(SurveySkipRule.question_id.in_(question_ids)).delete(synchronize_session=False)
+        SurveyQuestion.query.filter(SurveyQuestion.id.in_(question_ids)).delete(synchronize_session=False)
+
+    Member.query.filter_by(current_survey_id=survey.id).update(
+        {
+            'current_survey_id': None,
+            'current_question_order': None,
+        },
+        synchronize_session=False,
+    )
+    db.session.delete(survey)
+    db.session.commit()
+
+    flash('Survey template deleted successfully.', 'success')
+    return redirect(url_for('surveys.index'))
+
+
 @surveys.route('/<int:survey_id>/questions/<int:question_id>/edit', methods=['POST'])
 @login_required
 @admin_required
