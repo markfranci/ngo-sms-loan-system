@@ -1457,18 +1457,34 @@ h1, h2, h3, h4, h5, h6 {
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .question-item {
-  padding: 1rem 1.25rem;
+  position: relative;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  transition: border-color 0.2s;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.question-item::before,
+.question-builder-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary);
 }
 
 .question-item:hover {
   border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .question-header {
@@ -1480,9 +1496,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .question-text {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .question-actions {
@@ -1490,6 +1507,15 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.question-answer-preview {
+  margin-top: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  border-bottom: 1px dotted var(--color-border-hover);
+  padding-bottom: 0.5rem;
+  max-width: 420px;
 }
 
 .question-edit-panel {
@@ -1509,6 +1535,50 @@ h1, h2, h3, h4, h5, h6 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.question-builder-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.question-builder-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.question-title-input {
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--color-surface);
+}
+
+.question-options-field {
+  margin-top: 1rem;
+}
+
+.question-options-field.is-hidden {
+  display: none;
+}
+
+.question-skip-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.question-skip-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
 }
 
 .question-options {
@@ -1633,6 +1703,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .question-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .question-builder-row {
     grid-template-columns: 1fr;
   }
 }

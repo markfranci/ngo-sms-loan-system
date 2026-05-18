@@ -47,6 +47,10 @@
           <div class="question-options">
             <strong>Options:</strong> {{ question.options }}
           </div>
+        {% elif question.question_type == 'number' %}
+          <div class="question-answer-preview">Number response</div>
+        {% else %}
+          <div class="question-answer-preview">Short answer text</div>
         {% endif %}
         {% if question.skip_condition %}
           <div class="question-options" style="margin-top:0.4rem;">
@@ -79,50 +83,53 @@
         {% if current_user.role == 'admin' %}
         <div class="question-edit-panel" id="question-edit-{{ question.id }}">
           <form method="POST" action="{{ url_for('surveys.edit_question', survey_id=survey.id, question_id=question.id) }}">
-            <div class="form-group">
-              <label class="form-label" for="question_text_{{ question.id }}">Question Text *</label>
-              <input type="text" id="question_text_{{ question.id }}" name="question_text" required class="form-input" value="{{ question.question_text }}">
-            </div>
-
-            <div class="question-edit-grid">
+            <div class="question-builder-row">
+              <div class="form-group">
+                <label class="form-label" for="question_text_{{ question.id }}">Question</label>
+                <input type="text" id="question_text_{{ question.id }}" name="question_text" required class="form-input question-title-input" value="{{ question.question_text }}">
+              </div>
               <div class="form-group">
                 <label class="form-label" for="question_type_{{ question.id }}">Answer Format</label>
-                <select id="question_type_{{ question.id }}" name="question_type" class="form-select">
+                <select id="question_type_{{ question.id }}" name="question_type" class="form-select question-type-select js-custom-select" data-options-target="options_group_{{ question.id }}">
                   <option value="text" {% if question.question_type == 'text' %}selected{% endif %}>Free Text</option>
                   <option value="number" {% if question.question_type == 'number' %}selected{% endif %}>Number</option>
                   <option value="multiple_choice" {% if question.question_type == 'multiple_choice' %}selected{% endif %}>Multiple Choice</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="options_{{ question.id }}">Options</label>
-                <input type="text" id="options_{{ question.id }}" name="options" class="form-input" value="{{ question.options or '' }}" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
-              </div>
             </div>
 
-            <div class="question-edit-grid">
+            <div class="form-group question-options-field" id="options_group_{{ question.id }}">
+              <label class="form-label" for="options_{{ question.id }}">Multiple Choice Options</label>
+              <input type="text" id="options_{{ question.id }}" name="options" class="form-input" value="{{ question.options or '' }}" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+            </div>
+
+            <div class="question-skip-box">
+              <div class="question-skip-title">Skip Logic</div>
               {% set first_rule = question.skip_rules[0] if question.skip_rules else none %}
-              <div class="form-group">
-                <label class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
-                <input type="text" name="skip_condition[]" class="form-input" value="{{ first_rule.condition if first_rule else '' }}" placeholder="e.g. No">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
-                <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ first_rule.skip_to_order if first_rule else '' }}" placeholder="e.g. 6">
-              </div>
-            </div>
-
-            {% if question.skip_rules|length > 1 %}
-              {% for rule in question.skip_rules[1:] %}
               <div class="question-edit-grid">
                 <div class="form-group">
-                  <input type="text" name="skip_condition[]" class="form-input" value="{{ rule.condition }}" placeholder="e.g. Yes">
+                  <label class="form-label">If Answer Is</label>
+                  <input type="text" name="skip_condition[]" class="form-input" value="{{ first_rule.condition if first_rule else '' }}" placeholder="e.g. No">
                 </div>
                 <div class="form-group">
-                  <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ rule.skip_to_order }}" placeholder="e.g. 2">
+                  <label class="form-label">Go To Question # <small class="text-muted">(0 = end)</small></label>
+                  <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ first_rule.skip_to_order if first_rule else '' }}" placeholder="e.g. 6">
                 </div>
               </div>
-              {% endfor %}
-            {% endif %}
+
+              {% if question.skip_rules|length > 1 %}
+                {% for rule in question.skip_rules[1:] %}
+                <div class="question-edit-grid">
+                  <div class="form-group">
+                    <input type="text" name="skip_condition[]" class="form-input" value="{{ rule.condition }}" placeholder="e.g. Yes">
+                  </div>
+                  <div class="form-group">
+                    <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ rule.skip_to_order }}" placeholder="e.g. 2">
+                  </div>
+                </div>
+                {% endfor %}
+              {% endif %}
+            </div>
 
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">
@@ -165,48 +172,53 @@
 </div>
 
 <!-- Add New Question Form -->
-<div class="glass-card">
+<div class="glass-card question-builder-card">
   <div class="glass-card-header">
     <h3 class="glass-card-title">Add New Question</h3>
   </div>
 
   <form method="POST" action="{{ url_for('surveys.view_survey', survey_id=survey.id) }}">
-    <div class="form-group">
-      <label for="question_text" class="form-label">Question Text *</label>
-      <input type="text" id="question_text" name="question_text" required class="form-input" placeholder="e.g. What is your primary source of income?">
-    </div>
+    <div class="question-builder-row">
+      <div class="form-group">
+        <label for="question_text" class="form-label">Question</label>
+        <input type="text" id="question_text" name="question_text" required class="form-input question-title-input" placeholder="Untitled question">
+      </div>
 
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-      <div class="form-group" style="flex:1;min-width:180px;">
+      <div class="form-group">
         <label for="question_type" class="form-label">Answer Format</label>
-        <select id="question_type" name="question_type" class="form-select">
+        <select id="question_type" name="question_type" class="form-select question-type-select js-custom-select" data-options-target="new-question-options">
           <option value="text">Free Text</option>
           <option value="number">Number</option>
           <option value="multiple_choice">Multiple Choice</option>
         </select>
       </div>
-
-      <div class="form-group" style="flex:2;min-width:260px;">
-        <label for="options" class="form-label">Options (Multiple Choice Only)</label>
-        <input type="text" id="options" name="options" class="form-input" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
-      </div>
     </div>
 
-    <div id="skip-rules-container">
+    <div class="form-group question-options-field" id="new-question-options">
+      <label for="options" class="form-label">Multiple Choice Options</label>
+      <input type="text" id="options" name="options" class="form-input" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+    </div>
+
+    <div class="question-skip-box">
+      <div class="question-skip-title">Skip Logic</div>
+      <div id="skip-rules-container">
       <div class="skip-rule-row" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;align-items:flex-end;">
         <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
-          <label class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
+          <label class="form-label">If Answer Is <small class="text-muted">(optional)</small></label>
           <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. No">
         </div>
 
         <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
-          <label class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
+          <label class="form-label">Go To Question # <small class="text-muted">(0 = end)</small></label>
           <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 6">
         </div>
       </div>
-    </div>
-    <div style="margin-top:0.5rem; margin-bottom: 1.5rem;">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="addSkipRule()">+ Add Another Condition</button>
+      </div>
+      <div style="margin-top:0.5rem;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addSkipRule()">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i> Add Condition
+        </button>
+      </div>
     </div>
     
     <script>
@@ -227,12 +239,15 @@
         </div>
       `;
       container.appendChild(row);
+      lucide.createIcons();
     }
     </script>
 
-    <button type="submit" class="btn btn-primary" id="btn-add-question">
-      <i data-lucide="plus" style="width:16px;height:16px;"></i> Append Question
-    </button>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="btn-add-question">
+        <i data-lucide="plus" style="width:16px;height:16px;"></i> Add Question
+      </button>
+    </div>
   </form>
 </div>
 
@@ -250,10 +265,25 @@
 </div>
 
 <script>
+  function updateQuestionOptionsVisibility(select) {
+    const target = document.getElementById(select.dataset.optionsTarget);
+    if (!target) return;
+    target.classList.toggle('is-hidden', select.value !== 'multiple_choice');
+  }
+
   function toggleQuestionEdit(questionId) {
     const panel = document.getElementById(`question-edit-${questionId}`);
     if (!panel) return;
     panel.classList.toggle('open');
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.question-type-select').forEach(function(select) {
+      updateQuestionOptionsVisibility(select);
+      select.addEventListener('change', function() {
+        updateQuestionOptionsVisibility(select);
+      });
+    });
+  });
 </script>
 {% endblock %}
