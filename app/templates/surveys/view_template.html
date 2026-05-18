@@ -45,7 +45,17 @@
         </div>
         {% if question.question_type == 'multiple_choice' %}
           <div class="question-options">
-            <strong>Options:</strong> {{ question.options }}
+            <strong>Options:</strong>
+            {% set display_options = question_options.get(question.id, []) %}
+            {% if display_options %}
+              <ol class="question-options-list">
+                {% for option in display_options %}
+                  <li>{{ option }}</li>
+                {% endfor %}
+              </ol>
+            {% else %}
+              <span class="text-muted">No options added</span>
+            {% endif %}
           </div>
         {% elif question.question_type == 'number' %}
           <div class="question-answer-preview">Number response</div>
@@ -99,8 +109,39 @@
             </div>
 
             <div class="form-group question-options-field" id="options_group_{{ question.id }}">
-              <label class="form-label" for="options_{{ question.id }}">Multiple Choice Options</label>
-              <input type="text" id="options_{{ question.id }}" name="options" class="form-input" value="{{ question.options or '' }}" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+              <label class="form-label">Multiple Choice Options</label>
+              <div class="choice-option-list" id="options_list_{{ question.id }}">
+                {% set edit_options = question_options.get(question.id, []) %}
+                {% if edit_options %}
+                  {% for option in edit_options %}
+                  <div class="choice-option-row">
+                    <span class="choice-option-index">{{ loop.index }}</span>
+                    <input type="text" name="option_text[]" class="form-input" value="{{ option }}" placeholder="Option {{ loop.index }}">
+                    <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="choice-option-row">
+                    <span class="choice-option-index">1</span>
+                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 1">
+                    <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                  <div class="choice-option-row">
+                    <span class="choice-option-index">2</span>
+                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 2">
+                    <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                {% endif %}
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm choice-add-btn" onclick="addChoiceOption('options_list_{{ question.id }}')">
+                <i data-lucide="plus" style="width:14px;height:14px;"></i> Add Option
+              </button>
             </div>
 
             <div class="question-skip-box">
@@ -195,8 +236,26 @@
     </div>
 
     <div class="form-group question-options-field" id="new-question-options">
-      <label for="options" class="form-label">Multiple Choice Options</label>
-      <input type="text" id="options" name="options" class="form-input" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
+      <label class="form-label">Multiple Choice Options</label>
+      <div class="choice-option-list" id="new-options-list">
+        <div class="choice-option-row">
+          <span class="choice-option-index">1</span>
+          <input type="text" name="option_text[]" class="form-input" placeholder="Option 1">
+          <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="choice-option-row">
+          <span class="choice-option-index">2</span>
+          <input type="text" name="option_text[]" class="form-input" placeholder="Option 2">
+          <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm choice-add-btn" onclick="addChoiceOption('new-options-list')">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i> Add Option
+      </button>
     </div>
 
     <div class="question-skip-box">
@@ -275,6 +334,55 @@
     const panel = document.getElementById(`question-edit-${questionId}`);
     if (!panel) return;
     panel.classList.toggle('open');
+  }
+
+  function renumberChoiceOptions(list) {
+    list.querySelectorAll('.choice-option-row').forEach(function(row, index) {
+      const number = index + 1;
+      const label = row.querySelector('.choice-option-index');
+      const input = row.querySelector('input[name="option_text[]"]');
+      if (label) label.textContent = number;
+      if (input) input.placeholder = `Option ${number}`;
+    });
+  }
+
+  function addChoiceOption(listId) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+
+    const row = document.createElement('div');
+    row.className = 'choice-option-row';
+    row.innerHTML = `
+      <span class="choice-option-index"></span>
+      <input type="text" name="option_text[]" class="form-input">
+      <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
+        <i data-lucide="x"></i>
+      </button>
+    `;
+    list.appendChild(row);
+    renumberChoiceOptions(list);
+
+    const input = row.querySelector('input');
+    if (input) input.focus();
+    lucide.createIcons();
+  }
+
+  function removeChoiceOption(button) {
+    const list = button.closest('.choice-option-list');
+    const row = button.closest('.choice-option-row');
+    if (!list || !row) return;
+
+    if (list.querySelectorAll('.choice-option-row').length === 1) {
+      const input = row.querySelector('input[name="option_text[]"]');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      return;
+    }
+
+    row.remove();
+    renumberChoiceOptions(list);
   }
 
   document.addEventListener('DOMContentLoaded', function() {

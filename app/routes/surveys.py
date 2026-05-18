@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
@@ -9,6 +11,28 @@ from app.models.sms_log import SMSLog
 
 # Create a new Blueprint for surveys
 surveys = Blueprint('surveys', __name__, url_prefix='/surveys')
+
+
+def _split_options_text(options):
+    if not options:
+        return []
+
+    parts = re.split(r'\n+|,\s*|\t+|\s+(?=\d+[\.\)])', str(options))
+    cleaned_options = []
+    for part in parts:
+        option = re.sub(r'^\s*\d+[\.\)]\s*', '', part.strip())
+        if option:
+            cleaned_options.append(option)
+    return cleaned_options
+
+
+def _build_options_text(option_values):
+    options = [value.strip() for value in option_values if value and value.strip()]
+    return '\n'.join(
+        f'{index}. {option}'
+        for index, option in enumerate(options, start=1)
+    )
+
 
 @surveys.route('/')
 @login_required
@@ -60,13 +84,22 @@ def view_survey(survey_id):
         # 2. Grab what you typed into the "Add Question" form
         question_text = request.form.get('question_text')
         question_type = request.form.get('question_type')
-        options = request.form.get('options') # Only used if they picked Multiple Choice
+        option_values = request.form.getlist('option_text[]')
+        options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
         
         skip_conditions = request.form.getlist('skip_condition[]')
         skip_to_orders = request.form.getlist('skip_to_order[]')
         
         if not question_text:
             flash('Question text cannot be empty.', 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+        if question_type not in ['text', 'number', 'multiple_choice']:
+            flash('Invalid answer format selected.', 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+        if question_type == 'multiple_choice' and not options:
+            flash('Add at least one multiple choice option.', 'danger')
             return redirect(url_for('surveys.view_survey', survey_id=survey.id))
             
         # 3. Automatically set the order (if there are 3 questions, this new one is #4)
@@ -103,7 +136,16 @@ def view_survey(survey_id):
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
         
     # 5. Display the dashboard for this specific survey
-    return render_template('surveys/view_template.html', survey=survey, groups=groups)
+    question_options = {
+        question.id: _split_options_text(question.options)
+        for question in survey.questions
+    }
+    return render_template(
+        'surveys/view_template.html',
+        survey=survey,
+        groups=groups,
+        question_options=question_options,
+    )
 
 @surveys.route('/<int:survey_id>/dispatch', methods=['POST'])
 @login_required
@@ -125,9 +167,10 @@ def dispatch_survey(survey_id):
     first_question = survey.questions[0]
     message_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
     if first_question.question_type == 'multiple_choice' and first_question.options:
-        import re
-        parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(first_question.options))
-        formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
+        formatted_options = '\n'.join(
+            f'{index}. {option}'
+            for index, option in enumerate(_split_options_text(first_question.options), start=1)
+        )
         message_text += f"\n\n{formatted_options}"
 
     # Initialize the Twilio client for sending WhatsApp messages
@@ -217,7 +260,8 @@ def edit_question(survey_id, question_id):
 
     question_text = request.form.get('question_text', '').strip()
     question_type = request.form.get('question_type', 'text')
-    options = request.form.get('options', '').strip()
+    option_values = request.form.getlist('option_text[]')
+    options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
     skip_conditions = request.form.getlist('skip_condition[]')
     skip_to_orders = request.form.getlist('skip_to_order[]')
 
@@ -229,9 +273,13 @@ def edit_question(survey_id, question_id):
         flash('Invalid answer format selected.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
+    if question_type == 'multiple_choice' and not options:
+        flash('Add at least one multiple choice option.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
     question.question_text = question_text
     question.question_type = question_type
-    question.options = options if question_type == 'multiple_choice' else None
+    question.options = options
     question.skip_condition = None
     question.skip_to_order = None
 
