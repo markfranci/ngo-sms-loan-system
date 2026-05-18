@@ -16,12 +16,12 @@
       <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search group name..." onkeyup="if(event.key === 'Enter') loadData()">
     </div>
 
-    <div class="button-row">
+    <div style="display: flex; gap: 8px; align-items: center;">
       <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
-        <i data-lucide="file-spreadsheet"></i> Export CSV
+        <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
       </button>
       <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
-        <i data-lucide="file-text"></i> Export PDF
+        <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
       </button>
     </div>
 
@@ -45,7 +45,7 @@
 </div>
 
 <div id="view-list" class="view-container">
-  <div class="table-wrapper">
+  <div style="overflow-x: auto;">
     <table class="odoo-list-table">
       <thead id="list-thead"></thead>
       <tbody id="list-tbody"></tbody>

@@ -98,7 +98,7 @@
               {% endif %}
             </td>
             <td class="td-primary" style="white-space:nowrap;">{{ log.sender if log.direction == 'incoming' else log.recipient }}</td>
-            <td class="table-cell-truncate" title="{{ log.message }}">
+            <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ log.message }}">
               {{ log.message }}
             </td>
             <td style="white-space:nowrap;">{{ log.created_at.strftime('%H:%M %b %d') }}</td>

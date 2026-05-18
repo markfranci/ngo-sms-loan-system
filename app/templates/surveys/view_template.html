@@ -37,7 +37,7 @@
           </div>
         {% endif %}
         {% if question.skip_condition %}
-          <div class="question-options">
+          <div class="question-options" style="margin-top:0.4rem;">
             <span class="badge badge-warning" style="font-size:0.7rem;">Skip Logic</span>
             If answer = <strong>"{{ question.skip_condition }}"</strong> → 
             {% if question.skip_to_order == 0 %}
@@ -48,9 +48,9 @@
           </div>
         {% endif %}
         {% if question.skip_rules %}
-          <div class="question-options">
+          <div class="question-options" style="margin-top:0.4rem;">
             <span class="badge badge-warning" style="font-size:0.7rem;">Skip Logic</span>
-            <ul class="skip-rule-list">
+            <ul style="margin-top:0.25rem; margin-left: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
             {% for rule in question.skip_rules %}
               <li>If answer = <strong>"{{ rule.condition }}"</strong> → 
               {% if rule.skip_to_order == 0 %}
@@ -76,8 +76,8 @@
   <div class="glass-card-header">
     <h3 class="glass-card-title">Dispatch Survey to Group</h3>
   </div>
-  <form method="POST" action="{{ url_for('surveys.dispatch_survey', survey_id=survey.id) }}" class="panel-actions">
-    <div class="skip-rule-condition">
+  <form method="POST" action="{{ url_for('surveys.dispatch_survey', survey_id=survey.id) }}" style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
       <label for="group_id" class="form-label">Select Group</label>
       <select id="group_id" name="group_id" required class="form-select">
         <option value="">-- Choose a Group --</option>
@@ -106,8 +106,8 @@
       <input type="text" id="question_text" name="question_text" required class="form-input" placeholder="e.g. What is your primary source of income?">
     </div>
 
-    <div class="form-grid form-grid-2">
-      <div class="form-group">
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:180px;">
         <label for="question_type" class="form-label">Answer Format</label>
         <select id="question_type" name="question_type" class="form-select">
           <option value="text">Free Text</option>
@@ -116,26 +116,26 @@
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" style="flex:2;min-width:260px;">
         <label for="options" class="form-label">Options (Multiple Choice Only)</label>
         <input type="text" id="options" name="options" class="form-input" placeholder="e.g. 1. Farming, 2. Trading, 3. Other">
       </div>
     </div>
 
     <div id="skip-rules-container">
-      <div class="skip-rule-row">
-        <div class="form-group skip-rule-condition">
+      <div class="skip-rule-row" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;align-items:flex-end;">
+        <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
           <label class="form-label">Skip Condition <small class="text-muted">(optional)</small></label>
           <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. No">
         </div>
 
-        <div class="form-group skip-rule-target">
+        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
           <label class="form-label">Skip To Question # <small class="text-muted">(0 = end)</small></label>
           <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 6">
         </div>
       </div>
     </div>
-    <div class="mb-3">
+    <div style="margin-top:0.5rem; margin-bottom: 1.5rem;">
       <button type="button" class="btn btn-ghost btn-sm" onclick="addSkipRule()">+ Add Another Condition</button>
     </div>
     
@@ -144,21 +144,19 @@
       const container = document.getElementById('skip-rules-container');
       const row = document.createElement('div');
       row.className = 'skip-rule-row';
+      row.style.cssText = 'display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;align-items:flex-end;';
       row.innerHTML = `
-        <div class="form-group skip-rule-condition">
+        <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
           <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. Yes">
         </div>
-        <div class="form-group skip-rule-target">
+        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
           <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 2">
         </div>
         <div>
-          <button type="button" class="btn btn-ghost btn-sm icon-danger" onclick="this.parentElement.parentElement.remove()" title="Remove condition">
-            <i data-lucide="x"></i>
-          </button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="this.parentElement.parentElement.remove()" style="color:var(--color-danger);padding:0.6rem;">&times;</button>
         </div>
       `;
       container.appendChild(row);
-      lucide.createIcons();
     }
     </script>
 

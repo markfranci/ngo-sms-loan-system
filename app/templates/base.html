@@ -198,15 +198,17 @@
     }
 
     // ── Global Custom Select Dropdowns ──
-    // Replaces native <select> inside .odoo-filter-panel with
-    // fully-styled custom dropdown menus (no OS blue highlight).
+    // Replaces selected native <select> elements with fully-styled menus.
     window.initCustomSelects = function() {
-      document.querySelectorAll('.odoo-filter-panel select').forEach(function(select) {
+      document.querySelectorAll('.odoo-filter-panel select, select.js-custom-select').forEach(function(select) {
         // Don't initialize twice
         if (select.parentElement.classList.contains('custom-select-wrapper')) return;
 
         var wrapper = document.createElement('div');
         wrapper.className = 'custom-select-wrapper';
+        if (select.dataset.customWrapperClass) {
+          wrapper.classList.add(select.dataset.customWrapperClass);
+        }
         select.parentNode.insertBefore(wrapper, select);
         wrapper.appendChild(select);
 
@@ -261,10 +263,17 @@
       });
 
       // Close all custom selects when clicking outside
-      document.addEventListener('click', function() {
-        document.querySelectorAll('.custom-select-wrapper').forEach(function(w) { w.classList.remove('open'); });
-      });
+      if (!window.customSelectDocumentListenerBound) {
+        document.addEventListener('click', function() {
+          document.querySelectorAll('.custom-select-wrapper').forEach(function(w) { w.classList.remove('open'); });
+        });
+        window.customSelectDocumentListenerBound = true;
+      }
     };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.initCustomSelects) window.initCustomSelects();
+    });
   </script>
 
   {% block extra_js %}{% endblock %}

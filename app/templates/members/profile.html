@@ -52,8 +52,8 @@
           <span class="badge badge-neutral" style="font-style:italic;">Unassigned</span>
           {% endif %}
 
-          <form method="POST" action="{{ url_for('members.assign_group', member_id=member.id) }}" class="inline-form">
-            <select name="group_id" class="form-select compact-select">
+          <form method="POST" action="{{ url_for('members.assign_group', member_id=member.id) }}" style="margin-top:0.75rem;display:flex;gap:0.5rem;align-items:center;">
+            <select name="group_id" class="form-select js-custom-select" data-custom-wrapper-class="member-group-select-wrapper" style="flex:1;padding:0.4rem 2rem 0.4rem 0.6rem;font-size:0.8rem;">
               <option value="">-- Assign Group --</option>
               {% for group in groups %}
               <option value="{{ group.id }}" {% if member.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>

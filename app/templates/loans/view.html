@@ -17,7 +17,7 @@
 <div class="detail-grid detail-grid-half">
 
   <!-- Automated Score Card -->
-  <div class="glass-card text-center score-card">
+  <div class="glass-card text-center" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
     <h4 class="text-muted mb-3" style="font-size:0.9rem;">Automated Score</h4>
 
     <div class="score-ring-wrap" style="margin-bottom:1.5rem;">
@@ -47,7 +47,7 @@
     <div style="width:100%;padding-top:1.5rem;border-top:1px solid var(--color-border);">
       <h4 style="font-size:0.9rem;margin-bottom:1rem;">Final Decision</h4>
       <form action="{{ url_for('loans.update_status', loan_id=loan.id) }}" method="POST">
-        <div class="button-row flex-center">
+        <div style="display:flex;justify-content:center;gap:0.75rem;">
           <button type="submit" name="status" value="approved"
                   class="btn {% if loan.status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}"
                   {% if loan.status == 'approved' %}disabled{% endif %}>
@@ -76,10 +76,10 @@
       {% endif %}
     </div>
 
-    <div class="two-col-detail">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
       <div class="detail-item">
         <span class="detail-label">Applicant</span>
-        <a href="{{ url_for('members.profile', member_id=loan.member.id) }}" class="detail-value link-inline">
+        <a href="{{ url_for('members.profile', member_id=loan.member.id) }}" class="detail-value" style="display:flex;align-items:center;gap:0.3rem;">
           {{ loan.member.full_name }}
           <i data-lucide="external-link" style="width:14px;height:14px;"></i>
         </a>
@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <div class="two-col-detail">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
       <div class="detail-item">
         <span class="detail-label">Group Segment</span>
         {% if loan.member.group %}
@@ -117,9 +117,9 @@
       {% endif %}
     </div>
 
-    <div class="detail-item mt-3">
+    <div class="detail-item" style="margin-top:1.5rem;">
       <span class="detail-label">Assessed By</span>
-      <div class="button-row mt-1">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.35rem;">
         <div class="avatar avatar-sm avatar-purple">{{ loan.assessor.username[0]|upper }}</div>
         <span class="td-primary">{{ loan.assessor.username }}</span>
         <span class="badge badge-neutral">{{ loan.assessor.role }}</span>
