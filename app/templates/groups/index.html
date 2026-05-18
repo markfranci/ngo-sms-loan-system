@@ -16,6 +16,15 @@
       <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search group name..." onkeyup="if(event.key === 'Enter') loadData()">
     </div>
 
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+        <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+      </button>
+      <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+        <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+      </button>
+    </div>
+
     <div class="odoo-view-switchers">
       <button class="odoo-view-btn active" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
         <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
@@ -58,10 +67,8 @@
   }
 
   function loadData() {
-    const search = document.getElementById('search-input').value;
-    
-    let params = `entity=groups&search=${encodeURIComponent(search)}`;
-    
+    const params = getFilterParamsString();
+
     fetch(`{{ url_for('reports.get_report_data') }}?${params}`)
       .then(res => res.json())
       .then(data => {
@@ -70,6 +77,16 @@
         renderView(activeView);
       })
       .catch(err => console.error(err));
+  }
+
+  function getFilterParamsString() {
+    const search = document.getElementById('search-input').value;
+    return `entity=groups&search=${encodeURIComponent(search)}`;
+  }
+
+  function getExportUrl(format) {
+    const params = getFilterParamsString();
+    return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
   }
 
   function renderView(viewName) {

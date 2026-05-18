@@ -35,6 +35,14 @@
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+            <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+            <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+          </button>
+        </div>
         <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
       </div>
     </div>
@@ -82,12 +90,8 @@
   }
 
   function loadData() {
-    const search = document.getElementById('search-input').value;
-    const gender = document.getElementById('filter-gender').value;
-    const location = document.getElementById('filter-location').value;
-    
-    let params = `entity=members&search=${encodeURIComponent(search)}&gender=${gender}&location=${encodeURIComponent(location)}`;
-    
+    const params = getFilterParamsString();
+
     fetch(`{{ url_for('reports.get_report_data') }}?${params}`)
       .then(res => res.json())
       .then(data => {
@@ -96,6 +100,19 @@
         renderView(activeView);
       })
       .catch(err => console.error(err));
+  }
+
+  function getFilterParamsString() {
+    const search = document.getElementById('search-input').value;
+    const gender = document.getElementById('filter-gender').value;
+    const location = document.getElementById('filter-location').value;
+
+    return `entity=members&search=${encodeURIComponent(search)}&gender=${gender}&location=${encodeURIComponent(location)}`;
+  }
+
+  function getExportUrl(format) {
+    const params = getFilterParamsString();
+    return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
   }
 
   function renderView(viewName) {

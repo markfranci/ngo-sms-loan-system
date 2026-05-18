@@ -65,8 +65,11 @@
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('reports.custom_export') }}?' + getFilterParamsString()">
-          <i data-lucide="download" style="width:14px;height:14px;"></i> Export Data
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+          <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+        </button>
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+          <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
         </button>
         <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
       </div>
@@ -158,6 +161,11 @@
       params += `&status=${document.getElementById('filter-status').value}`;
     }
     return params;
+  }
+
+  function getExportUrl(format) {
+    const params = getFilterParamsString();
+    return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
   }
 
   function loadData() {
