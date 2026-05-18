@@ -26,7 +26,7 @@
           <th>Member Name</th>
           <th>Phone Number</th>
           {% for question in questions %}
-          <th style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ question.question_text }}">
+          <th class="table-cell-truncate" title="{{ question.question_text }}">
             Q{{ question.order_number }}: {{ question.question_text }}
           </th>
           {% endfor %}
@@ -38,7 +38,7 @@
           <td class="td-primary">{{ data.member.full_name }}</td>
           <td class="td-mono">{{ data.member.phone_number }}</td>
           {% for question in questions %}
-          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ data.answers.get(question.id, 'N/A') }}">
+          <td class="table-cell-truncate" title="{{ data.answers.get(question.id, 'N/A') }}">
             {% if data.answers.get(question.id) %}
               {{ data.answers[question.id] }}
             {% else %}

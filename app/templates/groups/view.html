@@ -55,7 +55,7 @@
             <th>Name</th>
             <th>Phone</th>
             <th>Location</th>
-            <th style="text-align:right;">Actions</th>
+            <th class="table-cell-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -64,7 +64,7 @@
             <td class="td-primary">{{ member.full_name }}</td>
             <td class="td-mono">{{ member.phone_number }}</td>
             <td>{{ member.location or 'N/A' }}</td>
-            <td style="text-align:right;">
+            <td class="table-cell-actions">
               <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-sm btn-outline-primary">
                 View Profile <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
               </a>

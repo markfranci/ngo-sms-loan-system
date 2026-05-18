@@ -23,7 +23,7 @@
       <div class="filter-grid">
         <div class="form-group">
           <label>Status</label>
-          <select id="filter-status" class="form-control" onchange="loadData()">
+          <select id="filter-status" class="form-select" onchange="loadData()">
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -31,13 +31,13 @@
           </select>
         </div>
       </div>
-      <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-        <div style="display: flex; gap: 8px;">
+      <div class="panel-actions">
+        <div class="button-row">
           <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
-            <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+            <i data-lucide="file-spreadsheet"></i> Export CSV
           </button>
           <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
-            <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+            <i data-lucide="file-text"></i> Export PDF
           </button>
         </div>
         <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
@@ -57,7 +57,7 @@
 </div>
 
 <div id="view-list" class="view-container active">
-  <div style="overflow-x: auto;">
+  <div class="table-wrapper">
     <table class="odoo-list-table">
       <thead id="list-thead"></thead>
       <tbody id="list-tbody"></tbody>

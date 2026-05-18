@@ -2,41 +2,6 @@
 {% block title %}New Assessment - {{ member.full_name }}{% endblock %}
 
 {% block content %}
-<style>
-/* Tab Styles */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-}
-.tab-btn {
-  padding: 0.75rem 1.25rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: var(--font-base);
-}
-.tab-btn:hover {
-  color: var(--text-primary);
-  background: var(--color-surface-2);
-}
-.tab-btn.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-.tab-content {
-  display: none;
-  animation: fadeIn 0.3s ease;
-}
-.tab-content.active {
-  display: block;
-}
-</style>
 
 <div class="page-header">
   <div class="page-header-text">
@@ -50,7 +15,7 @@
   </div>
 </div>
 
-<div class="detail-grid detail-grid-half" style="grid-template-columns: 1fr;">
+<div class="detail-grid">
 
   <div class="glass-card">
     <div class="tabs">
@@ -72,7 +37,7 @@
           <label class="form-label">Applicant Name</label>
           <input type="text" class="form-input" value="{{ member.full_name }}" disabled>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-grid form-grid-2">
           <div class="form-group">
             <label class="form-label">County</label>
             <input type="text" name="county" class="form-input" value="{{ survey_data.get('county', '') }}">
@@ -82,7 +47,7 @@
             <input type="text" name="sub_county" class="form-input" value="{{ survey_data.get('sub_county', '') }}">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-grid form-grid-2">
           <div class="form-group">
             <label class="form-label">Ward</label>
             <input type="text" name="ward" class="form-input" value="{{ survey_data.get('ward', '') }}">
@@ -92,7 +57,7 @@
             <input type="text" name="group_name" class="form-input" value="{{ member.group.name if member.group else '' }}">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-grid form-grid-2">
           <div class="form-group">
             <label class="form-label">Male Participants</label>
             <input type="number" name="male_participants" class="form-input" value="0">
@@ -103,7 +68,7 @@
           </div>
         </div>
         
-        <div style="margin-top:2rem;text-align:right;">
+        <div class="button-row button-row-end button-row-stack">
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-business')">Next: Business Details <i data-lucide="arrow-right"></i></button>
         </div>
       </div>
@@ -125,13 +90,13 @@
         </div>
         <div class="form-group">
           <label class="form-label">Completed Required Training?</label>
-          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
-            <input type="checkbox" name="training_completion" id="training_completion" style="width:18px;height:18px;">
-            <label for="training_completion" style="font-weight:500;">Yes, member has completed training</label>
+          <div class="checkbox-field">
+            <input type="checkbox" name="training_completion" id="training_completion">
+            <label for="training_completion">Yes, member has completed training</label>
           </div>
         </div>
         
-        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-applicant')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-balance')">Next: Balance Sheet <i data-lucide="arrow-right"></i></button>
         </div>
@@ -153,7 +118,7 @@
           <input type="number" step="0.01" name="liabilities" class="form-input" value="0">
         </div>
         
-        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-business')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-income')">Next: Income Statement <i data-lucide="arrow-right"></i></button>
         </div>
@@ -180,7 +145,7 @@
           <span class="form-hint">Automatically calculated from surveys, but can be overridden.</span>
         </div>
         
-        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-balance')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-inventory')">Next: Inventory <i data-lucide="arrow-right"></i></button>
         </div>
@@ -190,12 +155,12 @@
       <div id="tab-inventory" class="tab-content">
         <h3 class="glass-card-title mb-3">Inventory Listing</h3>
         <div id="inventory-list">
-          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div class="inventory-row">
             <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
             <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
             <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
           </div>
-          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div class="inventory-row">
             <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
             <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
             <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
@@ -203,7 +168,7 @@
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="addInventoryRow()">+ Add Item</button>
         
-        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-income')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-cashflow')">Next: Cash Flow <i data-lucide="arrow-right"></i></button>
         </div>
@@ -212,8 +177,8 @@
       <!-- TAB: CASH FLOW -->
       <div id="tab-cashflow" class="tab-content">
         <h3 class="glass-card-title mb-3">Six-Month Cash Flow Analysis</h3>
-        <div style="overflow-x:auto;">
-          <table class="data-table" style="width:100%;">
+        <div class="table-wrapper">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Month</th>
@@ -233,7 +198,7 @@
           </table>
         </div>
         
-        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-inventory')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-approval')">Next: Recommendation <i data-lucide="arrow-right"></i></button>
         </div>
@@ -246,7 +211,7 @@
           <label class="form-label">Loan Amount Requested (KSh)</label>
           <input type="number" step="0.01" name="amount_requested" class="form-input" required placeholder="e.g. 50000">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-grid form-grid-2">
           <div class="form-group">
             <label class="form-label">Loan Term (Months)</label>
             <input type="number" name="loan_term_months" class="form-input" value="6">
@@ -273,10 +238,10 @@
           </div>
         </div>
 
-        <div class="form-actions" style="margin-top:2rem;display:flex;justify-content:space-between;">
+        <div class="button-row button-row-between button-row-stack">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-cashflow')"><i data-lucide="arrow-left"></i> Previous</button>
-          <div>
-            <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost" style="margin-right:10px;">Cancel</a>
+          <div class="button-row">
+            <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost">Cancel</a>
             <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
               <i data-lucide="calculator" style="width:16px;height:16px;"></i> Save Assessment & Calculate Score
             </button>
@@ -326,10 +291,6 @@ function addInventoryRow() {
   const container = document.getElementById('inventory-list');
   const row = document.createElement('div');
   row.className = 'inventory-row';
-  row.style.display = 'grid';
-  row.style.gridTemplateColumns = '2fr 1fr 1fr';
-  row.style.gap = '1rem';
-  row.style.marginBottom = '1rem';
   row.innerHTML = `
     <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
     <input type="number" name="quantity[]" class="form-input" placeholder="Qty">

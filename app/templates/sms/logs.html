@@ -25,7 +25,7 @@
       </thead>
       <tbody>
         {% for log in logs %}
-        <tr {% if log.status == 'failed' %}style="background:var(--color-danger-bg);"{% endif %}>
+        <tr class="{% if log.status == 'failed' %}status-row-danger{% endif %}">
 
           <td>
             {% if log.direction == 'incoming' %}
@@ -58,7 +58,7 @@
           </td>
 
           <td>
-            <div style="max-height:4.5em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;max-width:300px;" title="{{ log.message }}">
+            <div class="message-clamp" title="{{ log.message }}">
               {{ log.message }}
             </div>
           </td>
@@ -75,7 +75,7 @@
             {% endif %}
           </td>
 
-          <td style="white-space:nowrap;">
+          <td class="nowrap">
             {{ log.created_at.strftime('%Y-%m-%d') }}<br>
             <small class="text-muted">{{ log.created_at.strftime('%H:%M:%S') }}</small>
           </td>
