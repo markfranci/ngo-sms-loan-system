@@ -131,7 +131,7 @@
     currentData.forEach(row => {
       let tr = document.createElement('tr');
       const deleteAction = canDeleteRecords ? `
-        <form method="POST" action="/loans/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this loan assessment?');">
+        <form method="POST" action="/loans/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Loan Assessment" data-confirm="Delete this loan assessment?" data-confirm-action="Delete Loan">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
         </form>
       ` : '';

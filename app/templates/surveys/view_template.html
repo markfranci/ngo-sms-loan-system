@@ -12,7 +12,7 @@
       <i data-lucide="message-circle" style="width:16px;height:16px;"></i> View Responses
     </a>
     {% if current_user.role == 'admin' %}
-    <form method="POST" action="{{ url_for('surveys.delete', survey_id=survey.id) }}" onsubmit="return confirm('Delete this survey template, questions, and responses?');">
+    <form method="POST" action="{{ url_for('surveys.delete', survey_id=survey.id) }}" data-confirm-title="Delete Survey" data-confirm="Delete this survey template, questions, skip rules, and responses?" data-confirm-action="Delete Survey">
       <button type="submit" class="btn btn-outline-danger">
         <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
       </button>

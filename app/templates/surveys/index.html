@@ -91,7 +91,7 @@
     currentData.forEach(row => {
       let tr = document.createElement('tr');
       const deleteAction = canDeleteRecords ? `
-        <form method="POST" action="/surveys/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this survey template, questions, and responses?');">
+        <form method="POST" action="/surveys/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Survey" data-confirm="Delete this survey template, questions, and responses?" data-confirm-action="Delete Survey">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
         </form>
       ` : '';

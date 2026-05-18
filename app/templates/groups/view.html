@@ -9,7 +9,7 @@
   </div>
   <div class="page-header-actions">
     {% if current_user.role == 'admin' %}
-    <form method="POST" action="{{ url_for('groups.delete', group_id=group.id) }}" onsubmit="return confirm('Delete this group? Members will remain in the system as unassigned.');">
+    <form method="POST" action="{{ url_for('groups.delete', group_id=group.id) }}" data-confirm-title="Delete Group" data-confirm="Delete this group? Members will remain in the system as unassigned." data-confirm-action="Delete Group">
       <button type="submit" class="btn btn-outline-danger">
         <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
       </button>

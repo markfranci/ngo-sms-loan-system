@@ -109,7 +109,7 @@
     currentData.forEach(row => {
       let tr = document.createElement('tr');
       const deleteAction = canDeleteRecords ? `
-        <form method="POST" action="/groups/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this group? Members will remain as unassigned.');">
+        <form method="POST" action="/groups/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Group" data-confirm="Delete this group? Members will remain as unassigned." data-confirm-action="Delete Group">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
         </form>
       ` : '';

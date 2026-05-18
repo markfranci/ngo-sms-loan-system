@@ -85,7 +85,7 @@
 
           {% if current_user.role == 'admin' %}
           <td>
-            <form method="POST" action="{{ url_for('sms.delete_log', log_id=log.id) }}" onsubmit="return confirm('Delete this SMS log?');">
+            <form method="POST" action="{{ url_for('sms.delete_log', log_id=log.id) }}" data-confirm-title="Delete SMS Log" data-confirm="Delete this SMS log?" data-confirm-action="Delete Log">
               <button type="submit" class="btn btn-sm btn-outline-danger">
                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
               </button>

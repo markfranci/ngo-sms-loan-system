@@ -135,7 +135,7 @@
     currentData.forEach(row => {
       let tr = document.createElement('tr');
       const deleteAction = canDeleteRecords ? `
-        <form method="POST" action="/members/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this member and all related records?');">
+        <form method="POST" action="/members/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Member" data-confirm="Delete this member and all related records?" data-confirm-action="Delete Member">
           <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
         </form>
       ` : '';

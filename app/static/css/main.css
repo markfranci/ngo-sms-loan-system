@@ -1900,6 +1900,72 @@ h1, h2, h3, h4, h5, h6 {
 .member-group-select-wrapper .custom-select-trigger { padding: 0.4rem 0.6rem; font-size: 0.8rem; min-height: 34px; }
 .member-group-select-wrapper .custom-select-options { min-width: 220px; }
 
+/* ----------------------------------------------------------------
+   INTERNAL CONFIRMATION MODAL
+   ---------------------------------------------------------------- */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(9, 9, 11, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.confirm-modal-backdrop.open {
+  display: flex;
+  animation: fadeIn 0.16s ease;
+}
+
+.confirm-modal {
+  width: min(100%, 420px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.25rem;
+  animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.confirm-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.confirm-modal-icon i {
+  width: 22px;
+  height: 22px;
+}
+
+.confirm-modal-body h3 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.confirm-modal-body p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
 .odoo-list-table { width: 100%; border-collapse: collapse; }
 .odoo-list-table th, .odoo-list-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem;}
 .odoo-list-table th { font-weight: 600; color: var(--text-secondary); background-color: var(--color-surface-2); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}

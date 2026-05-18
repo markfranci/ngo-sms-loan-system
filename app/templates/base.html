@@ -165,6 +165,22 @@
   </main>
   {% endif %}
 
+  <div class="confirm-modal-backdrop" id="confirm-modal" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div class="confirm-modal-icon">
+        <i data-lucide="triangle-alert"></i>
+      </div>
+      <div class="confirm-modal-body">
+        <h3 id="confirm-modal-title">Confirm Action</h3>
+        <p id="confirm-modal-message">Are you sure you want to continue?</p>
+      </div>
+      <div class="confirm-modal-actions">
+        <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-modal-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Initialize Lucide icons -->
   <script>
     lucide.createIcons();
@@ -273,6 +289,61 @@
 
     document.addEventListener('DOMContentLoaded', function() {
       if (window.initCustomSelects) window.initCustomSelects();
+
+      const confirmModal = document.getElementById('confirm-modal');
+      const confirmTitle = document.getElementById('confirm-modal-title');
+      const confirmMessage = document.getElementById('confirm-modal-message');
+      const confirmCancel = document.getElementById('confirm-modal-cancel');
+      const confirmButton = document.getElementById('confirm-modal-confirm');
+      let pendingConfirmForm = null;
+
+      function closeConfirmModal() {
+        if (!confirmModal) return;
+        confirmModal.classList.remove('open');
+        confirmModal.setAttribute('aria-hidden', 'true');
+        pendingConfirmForm = null;
+      }
+
+      function openConfirmModal(form) {
+        if (!confirmModal) return;
+        pendingConfirmForm = form;
+        confirmTitle.textContent = form.dataset.confirmTitle || 'Confirm Action';
+        confirmMessage.textContent = form.dataset.confirm || 'Are you sure you want to continue?';
+        confirmButton.textContent = form.dataset.confirmAction || 'Delete';
+        confirmModal.classList.add('open');
+        confirmModal.setAttribute('aria-hidden', 'false');
+        confirmCancel.focus();
+      }
+
+      document.addEventListener('submit', function(event) {
+        const form = event.target;
+        if (!form.matches('form[data-confirm]') || form.dataset.confirmed === 'true') return;
+        event.preventDefault();
+        openConfirmModal(form);
+      });
+
+      if (confirmCancel) {
+        confirmCancel.addEventListener('click', closeConfirmModal);
+      }
+
+      if (confirmModal) {
+        confirmModal.addEventListener('click', function(event) {
+          if (event.target === confirmModal) closeConfirmModal();
+        });
+      }
+
+      if (confirmButton) {
+        confirmButton.addEventListener('click', function() {
+          if (!pendingConfirmForm) return;
+          pendingConfirmForm.dataset.confirmed = 'true';
+          pendingConfirmForm.requestSubmit();
+          closeConfirmModal();
+        });
+      }
+
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') closeConfirmModal();
+      });
     });
   </script>
 

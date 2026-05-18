@@ -12,7 +12,7 @@
       <i data-lucide="plus" style="width:16px;height:16px;"></i> New Loan Assessment
     </a>
     {% if current_user.role == 'admin' %}
-    <form method="POST" action="{{ url_for('members.delete', member_id=member.id) }}" onsubmit="return confirm('Delete this member and all related loans, survey responses, and SMS logs?');">
+    <form method="POST" action="{{ url_for('members.delete', member_id=member.id) }}" data-confirm-title="Delete Member" data-confirm="Delete this member and all related loans, survey responses, SMS logs, and registration session?" data-confirm-action="Delete Member">
       <button type="submit" class="btn btn-outline-danger">
         <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
       </button>
