@@ -37,6 +37,10 @@ def _build_options_text(option_values):
 @surveys.route('/')
 @login_required
 def index():
+    from app.loan_assessment_surveys import ensure_default_loan_assessment_templates
+
+    ensure_default_loan_assessment_templates()
+
     # Fetch all survey templates from the database, newest first
     all_templates = SurveyTemplate.query.order_by(SurveyTemplate.created_at.desc()).all()
     # Send them to the index page to be displayed in a table

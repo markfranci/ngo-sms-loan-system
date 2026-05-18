@@ -95,11 +95,11 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label class="form-label">Male Participants</label>
-            <input type="number" name="male_participants" class="form-input" value="0">
+            <input type="number" name="male_participants" class="form-input" value="{{ survey_data.get('male_participants', 0) }}">
           </div>
           <div class="form-group">
             <label class="form-label">Female Participants</label>
-            <input type="number" name="female_participants" class="form-input" value="0">
+            <input type="number" name="female_participants" class="form-input" value="{{ survey_data.get('female_participants', 0) }}">
           </div>
         </div>
         
@@ -121,12 +121,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Registration Number</label>
-          <input type="text" name="registration_number" class="form-input">
+          <input type="text" name="registration_number" class="form-input" value="{{ survey_data.get('registration_number', '') }}">
         </div>
         <div class="form-group">
           <label class="form-label">Completed Required Training?</label>
           <div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
-            <input type="checkbox" name="training_completion" id="training_completion" style="width:18px;height:18px;">
+            <input type="checkbox" name="training_completion" id="training_completion" style="width:18px;height:18px;" {% if survey_data.get('training_completion') %}checked{% endif %}>
             <label for="training_completion" style="font-weight:500;">Yes, member has completed training</label>
           </div>
         </div>
@@ -142,15 +142,15 @@
         <h3 class="glass-card-title mb-3">Balance Sheet</h3>
         <div class="form-group">
           <label class="form-label">Fixed Assets (KSh)</label>
-          <input type="number" step="0.01" name="fixed_assets" class="form-input" value="0">
+          <input type="number" step="0.01" name="fixed_assets" class="form-input" value="{{ survey_data.get('fixed_assets', 0) }}">
         </div>
         <div class="form-group">
           <label class="form-label">Current Assets / Business Assets (KSh)</label>
-          <input type="number" step="0.01" name="current_assets" class="form-input" value="0">
+          <input type="number" step="0.01" name="current_assets" class="form-input" value="{{ survey_data.get('current_assets', 0) }}">
         </div>
         <div class="form-group">
           <label class="form-label">Existing Debts / Liabilities (KSh)</label>
-          <input type="number" step="0.01" name="liabilities" class="form-input" value="0">
+          <input type="number" step="0.01" name="liabilities" class="form-input" value="{{ survey_data.get('liabilities', 0) }}">
         </div>
         
         <div style="margin-top:2rem;display:flex;justify-content:space-between;">
@@ -164,19 +164,19 @@
         <h3 class="glass-card-title mb-3">Income Statement (Monthly)</h3>
         <div class="form-group">
           <label class="form-label">Est. Revenue / Sales (KSh)</label>
-          <input type="number" step="0.01" name="revenue" class="form-input" value="{{ total_income }}">
+          <input type="number" step="0.01" name="revenue" class="form-input" value="{{ survey_data.get('revenue', 0) }}">
         </div>
         <div class="form-group">
           <label class="form-label">Business Expenses (KSh)</label>
-          <input type="number" step="0.01" name="business_expenses" class="form-input" value="{{ total_expenses }}">
+          <input type="number" step="0.01" name="business_expenses" class="form-input" value="{{ survey_data.get('business_expenses', 0) }}">
         </div>
         <div class="form-group">
           <label class="form-label">Family / Household Expenses (KSh)</label>
-          <input type="number" step="0.01" name="family_expenses" class="form-input" value="0">
+          <input type="number" step="0.01" name="family_expenses" class="form-input" value="{{ survey_data.get('family_expenses', 0) }}">
         </div>
         <div class="form-group">
           <label class="form-label">Net Profit / Disposable Income (KSh)</label>
-          <input type="number" step="0.01" name="disposable_income" class="form-input" value="{{ total_income - total_expenses }}">
+          <input type="number" step="0.01" name="disposable_income" class="form-input" value="{{ survey_data.get('disposable_income', 0) }}">
           <span class="form-hint">Automatically calculated from surveys, but can be overridden.</span>
         </div>
         
@@ -190,16 +190,13 @@
       <div id="tab-inventory" class="tab-content">
         <h3 class="glass-card-title mb-3">Inventory Listing</h3>
         <div id="inventory-list">
-          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
-            <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
-            <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
-            <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
-          </div>
-          <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
-            <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
-            <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
-            <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
-          </div>
+          {% for item in survey_inventory %}
+            <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+              <input type="text" name="item_name[]" class="form-input" placeholder="Item Name" value="{{ item.item_name }}">
+              <input type="number" name="quantity[]" class="form-input" placeholder="Qty" value="{{ item.quantity }}">
+              <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price" value="{{ item.unit_price }}">
+            </div>
+          {% endfor %}
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="addInventoryRow()">+ Add Item</button>
         
@@ -222,11 +219,11 @@
               </tr>
             </thead>
             <tbody>
-              {% for i in range(1, 7) %}
+              {% for month in survey_cash_flow %}
               <tr>
-                <td><input type="text" name="month_name_{{ i }}" class="form-input" value="Month {{ i }}"></td>
-                <td><input type="number" step="0.01" name="cash_inflow_{{ i }}" class="form-input" value="0"></td>
-                <td><input type="number" step="0.01" name="cash_outflow_{{ i }}" class="form-input" value="0"></td>
+                <td><input type="text" name="month_name_{{ month.month_index }}" class="form-input" value="{{ month.month_name }}"></td>
+                <td><input type="number" step="0.01" name="cash_inflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_inflow }}"></td>
+                <td><input type="number" step="0.01" name="cash_outflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_outflow }}"></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -244,16 +241,16 @@
         <h3 class="glass-card-title mb-3">Loan Details & Recommendation</h3>
         <div class="form-group">
           <label class="form-label">Loan Amount Requested (KSh)</label>
-          <input type="number" step="0.01" name="amount_requested" class="form-input" required placeholder="e.g. 50000">
+          <input type="number" step="0.01" name="amount_requested" class="form-input" required placeholder="e.g. 50000" value="{{ survey_data.get('amount_requested', '') }}">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label class="form-label">Loan Term (Months)</label>
-            <input type="number" name="loan_term_months" class="form-input" value="6">
+            <input type="number" name="loan_term_months" class="form-input" value="{{ survey_data.get('loan_term_months', 6) }}">
           </div>
           <div class="form-group">
             <label class="form-label">Proposed Monthly Instalment (KSh)</label>
-            <input type="number" step="0.01" name="monthly_instalment" class="form-input" value="0">
+            <input type="number" step="0.01" name="monthly_instalment" class="form-input" value="{{ survey_data.get('monthly_instalment', 0) }}">
           </div>
         </div>
         <div class="form-group">
@@ -262,7 +259,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Assessment Notes</label>
-          <textarea class="form-textarea" name="notes" rows="3" placeholder="Staff recommendations..."></textarea>
+          <textarea class="form-textarea" name="notes" rows="3" placeholder="Staff recommendations...">{{ survey_data.get('notes', '') }}</textarea>
         </div>
 
         <div class="info-alert mb-3 mt-4">

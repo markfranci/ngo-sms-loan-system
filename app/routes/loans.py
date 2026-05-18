@@ -4,12 +4,166 @@ from app.models.loan import (
     LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff
 )
 from app.models.member import Member
-from app.models.survey import SurveyResponse
+from app.loan_assessment_surveys import (
+    CASH_FLOW_MONTH_COUNT,
+    CHECKBOX_LOAN_ASSESSMENT_FIELDS,
+    INVENTORY_ITEM_COUNT,
+    LOAN_ASSESSMENT_FIELD_MAP,
+    NUMERIC_LOAN_ASSESSMENT_FIELDS,
+)
 from app.decorators import admin_required
 from app import db
 from flask_login import current_user, login_required
 
 loans_bp = Blueprint('loans', __name__, url_prefix='/loans')
+
+
+def _to_float(value, default=0.0):
+    try:
+        return float(str(value).replace(',', '').strip())
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_yes_no(value):
+    cleaned = str(value).strip().lower()
+    if cleaned.startswith(('1.', 'yes')):
+        return True
+    if cleaned in {'1', 'y', 'true', 'completed', 'complete'}:
+        return True
+    return False
+
+
+def _blank_inventory_data():
+    return [
+        {'item_name': '', 'quantity': '', 'unit_price': ''}
+        for _ in range(INVENTORY_ITEM_COUNT)
+    ]
+
+
+def _blank_cash_flow_data():
+    return [
+        {
+            'month_index': month_index,
+            'month_name': f'Month {month_index}',
+            'cash_inflow': 0,
+            'cash_outflow': 0,
+        }
+        for month_index in range(1, CASH_FLOW_MONTH_COUNT + 1)
+    ]
+
+
+def _collect_assessment_survey_data(member):
+    survey_data = {
+        'county': '',
+        'sub_county': '',
+        'ward': '',
+        'male_participants': 0,
+        'female_participants': 0,
+        'business_location': '',
+        'nature_of_business': '',
+        'registration_number': '',
+        'training_completion': False,
+        'fixed_assets': 0,
+        'current_assets': 0,
+        'liabilities': 0,
+        'revenue': 0,
+        'business_expenses': 0,
+        'family_expenses': 0,
+        'disposable_income': 0,
+        'amount_requested': '',
+        'loan_term_months': 6,
+        'monthly_instalment': 0,
+        'loan_purpose': '',
+        'notes': '',
+    }
+    survey_inventory = _blank_inventory_data()
+    survey_cash_flow = _blank_cash_flow_data()
+
+    total_income = 0
+    total_expenses = 0
+    exact_revenue_found = False
+    exact_expenses_found = False
+
+    responses = sorted(
+        member.survey_responses,
+        key=lambda response: response.submitted_at,
+    )
+
+    for response in responses:
+        question_text = response.question.question_text.strip()
+        question_key = question_text.casefold()
+        answer = response.answer.strip()
+        mapped_field = LOAN_ASSESSMENT_FIELD_MAP.get(question_key)
+
+        if mapped_field:
+            if mapped_field.startswith('inventory_'):
+                _, item_index_raw, field_name = mapped_field.split('_', 2)
+                item_index = int(item_index_raw) - 1
+                if 0 <= item_index < len(survey_inventory):
+                    survey_inventory[item_index][field_name] = (
+                        _to_float(answer) if mapped_field in NUMERIC_LOAN_ASSESSMENT_FIELDS else answer
+                    )
+                continue
+
+            if mapped_field.startswith('cash_flow_'):
+                _, _, month_index_raw, field_name = mapped_field.split('_', 3)
+                month_index = int(month_index_raw) - 1
+                if 0 <= month_index < len(survey_cash_flow):
+                    survey_cash_flow[month_index][field_name] = (
+                        _to_float(answer) if mapped_field in NUMERIC_LOAN_ASSESSMENT_FIELDS else answer
+                    )
+                continue
+
+            if mapped_field in CHECKBOX_LOAN_ASSESSMENT_FIELDS:
+                survey_data[mapped_field] = _to_yes_no(answer)
+            elif mapped_field in NUMERIC_LOAN_ASSESSMENT_FIELDS:
+                survey_data[mapped_field] = _to_float(answer)
+            else:
+                survey_data[mapped_field] = answer
+
+            exact_revenue_found = exact_revenue_found or mapped_field == 'revenue'
+            exact_expenses_found = exact_expenses_found or mapped_field == 'business_expenses'
+            continue
+
+        # Backward compatibility for older surveys created before default templates.
+        q_text = question_key
+        if response.question.question_type == 'number':
+            value = _to_float(answer)
+            if any(keyword in q_text for keyword in ['income', 'sales', 'profit', 'earn', 'revenue']):
+                total_income += value
+            elif any(keyword in q_text for keyword in ['expense', 'debt', 'cost', 'spend', 'liability']):
+                total_expenses += value
+
+        if 'county' in q_text and 'sub' not in q_text and not survey_data['county']:
+            survey_data['county'] = answer
+        elif 'sub' in q_text and 'county' in q_text and not survey_data['sub_county']:
+            survey_data['sub_county'] = answer
+        elif 'ward' in q_text and not survey_data['ward']:
+            survey_data['ward'] = answer
+        elif ('location' in q_text or 'where' in q_text) and not survey_data['business_location']:
+            survey_data['business_location'] = answer
+        elif (
+            'nature' in q_text
+            or 'type of business' in q_text
+            or 'what business' in q_text
+        ) and not survey_data['nature_of_business']:
+            survey_data['nature_of_business'] = answer
+        elif ('purpose' in q_text or 'why' in q_text) and not survey_data['loan_purpose']:
+            survey_data['loan_purpose'] = answer
+
+    if not exact_revenue_found:
+        survey_data['revenue'] = total_income
+    if not exact_expenses_found:
+        survey_data['business_expenses'] = total_expenses
+    if not survey_data['disposable_income']:
+        survey_data['disposable_income'] = (
+            survey_data['revenue']
+            - survey_data['business_expenses']
+            - survey_data['family_expenses']
+        )
+
+    return survey_data, survey_inventory, survey_cash_flow
 
 @loans_bp.route('/')
 @login_required
@@ -30,46 +184,7 @@ def view(loan_id):
 def new(member_id):
     # Page to start a new loan assessment for a specific member
     member = Member.query.get_or_404(member_id)
-    
-    # Financial data variables to show on assess page
-    total_income = 0
-    total_expenses = 0
-    survey_data = {
-        'county': '',
-        'sub_county': '',
-        'ward': '',
-        'business_location': '',
-        'nature_of_business': '',
-        'loan_purpose': ''
-    }
-    
-    # Pre-calculate financial data for the GET view too
-    for r in member.survey_responses:
-        q_text = r.question.question_text.lower()
-        val_str = r.answer
-
-        if r.question.question_type == 'number':
-            try:
-                val = float(val_str)
-                if any(k in q_text for k in ['income', 'sales', 'profit', 'earn', 'revenue']):
-                    total_income += val
-                elif any(k in q_text for k in ['expense', 'debt', 'cost', 'spend', 'liability']):
-                    total_expenses += val
-            except ValueError:
-                pass
-
-        if 'county' in q_text and 'sub' not in q_text:
-            survey_data['county'] = val_str
-        elif 'sub' in q_text and 'county' in q_text:
-            survey_data['sub_county'] = val_str
-        elif 'ward' in q_text:
-            survey_data['ward'] = val_str
-        elif 'location' in q_text or 'where' in q_text:
-            survey_data['business_location'] = val_str
-        elif 'nature' in q_text or 'type of business' in q_text or 'what business' in q_text:
-            survey_data['nature_of_business'] = val_str
-        elif 'purpose' in q_text or 'why' in q_text:
-            survey_data['loan_purpose'] = val_str
+    survey_data, survey_inventory, survey_cash_flow = _collect_assessment_survey_data(member)
 
     if request.method == 'POST':
         amount_requested = request.form.get('amount_requested', type=float) or 0.0
@@ -199,9 +314,9 @@ def new(member_id):
     return render_template(
         'loans/assess.html', 
         member=member,
-        total_income=total_income, 
-        total_expenses=total_expenses,
-        survey_data=survey_data
+        survey_data=survey_data,
+        survey_inventory=survey_inventory,
+        survey_cash_flow=survey_cash_flow,
     )
 
 

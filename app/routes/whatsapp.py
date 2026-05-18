@@ -7,6 +7,19 @@ import re
 
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
 
+
+def _split_multiple_choice_options(options):
+    parts = re.split(r'\n+|,\s*|\t+|\s+(?=\d+[\.\)])', str(options))
+    return [part.strip() for part in parts if part.strip()]
+
+
+def _option_label(option):
+    return re.sub(r'^\s*\d+[\.\)]\s*', '', option.strip())
+
+
+def _format_multiple_choice_options(options):
+    return '\n'.join(_split_multiple_choice_options(options))
+
 @whatsapp.route('/incoming', methods=['POST'])
 def incoming_message():
     sender_id = request.form.get('From', '')
@@ -118,8 +131,7 @@ def incoming_message():
                 
                 elif current_question.question_type == 'multiple_choice' and current_question.options:
                     # Parse valid options
-                    parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(current_question.options))
-                    valid_options = [p.strip() for p in parts if p.strip()]
+                    valid_options = _split_multiple_choice_options(current_question.options)
                     
                     # Accept exact match (case insensitive) or the numerical index (1, 2, 3...)
                     # or the prefix letter (A, B, C...)
@@ -128,8 +140,9 @@ def incoming_message():
                     matched = False
                     for idx, opt in enumerate(valid_options):
                         opt_lower = opt.lower()
+                        option_label = _option_label(opt).lower()
                         # If user types "1" and the option is "1. Yes", or just "yes"
-                        if user_input_clean == opt_lower or user_input_clean == str(idx + 1):
+                        if user_input_clean in {opt_lower, option_label, str(idx + 1)}:
                             matched = True
                             # Optionally normalize the saved answer to the full text
                             message_body = opt
@@ -150,9 +163,7 @@ def incoming_message():
                     # Validation failed. Repeat the question.
                     reply_text = f"❌ {error_msg}\n\nPlease try again:\n{current_question.order_number}. {current_question.question_text}"
                     if current_question.question_type == 'multiple_choice' and current_question.options:
-                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(current_question.options))
-                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
-                         reply_text += f"\n\n{formatted_options}"
+                         reply_text += f"\n\n{_format_multiple_choice_options(current_question.options)}"
                 else:
                     # Input is valid! Save their message as the answer
                     new_response = SurveyResponse(
@@ -206,9 +217,7 @@ def incoming_message():
                         db.session.commit()
                         reply_text = f"Got it. Next question:\n\n{next_question.order_number}. {next_question.question_text}"
                         if next_question.question_type == 'multiple_choice' and next_question.options:
-                             parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(next_question.options))
-                             formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
-                             reply_text += f"\n\n{formatted_options}"
+                             reply_text += f"\n\n{_format_multiple_choice_options(next_question.options)}"
                     else:
                         # No more questions — survey complete! Clear their memory.
                         member.current_survey_id = None
@@ -237,9 +246,7 @@ def incoming_message():
                     first_question = survey.questions[0]
                     reply_text = f"Starting {survey.title}:\n\n1. {first_question.question_text}"
                     if first_question.question_type == 'multiple_choice' and first_question.options:
-                         parts = re.split(r',\s*|\t+|\s+(?=\d+\.)', str(first_question.options))
-                         formatted_options = '\n'.join([p.strip() for p in parts if p.strip()])
-                         reply_text += f"\n\n{formatted_options}"
+                         reply_text += f"\n\n{_format_multiple_choice_options(first_question.options)}"
                 else:
                     reply_text = "That survey does not exist or has no questions."
             except:
