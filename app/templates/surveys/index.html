@@ -47,7 +47,6 @@
 {% block extra_js %}
 <script>
   let currentData = [];
-  const canDeleteRecords = {{ 'true' if current_user.role == 'admin' else 'false' }};
 
   function switchView(viewName) {
     document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
@@ -90,11 +89,6 @@
 
     currentData.forEach(row => {
       let tr = document.createElement('tr');
-      const deleteAction = canDeleteRecords ? `
-        <form method="POST" action="/surveys/${row.id}/delete" style="display:inline;" data-confirm-title="Delete Survey" data-confirm="Delete this survey template, questions, and responses?" data-confirm-action="Delete Survey">
-          <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
-        </form>
-      ` : '';
       tr.innerHTML = `
         <td class="td-primary">${row.title}</td>
         <td>${row.description}</td>
@@ -103,7 +97,6 @@
         <td>${row.created_at}</td>
         <td>
           <a href="/surveys/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a>
-          ${deleteAction}
         </td>
       `;
       tbody.appendChild(tr);

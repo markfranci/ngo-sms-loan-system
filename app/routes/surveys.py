@@ -231,25 +231,3 @@ def delete_question(survey_id, question_id):
 
     flash('Question removed from survey successfully.', 'success')
     return redirect(url_for('surveys.view_survey', survey_id=survey.id))
-
-
-@surveys.route('/<int:survey_id>/delete', methods=['POST'])
-@login_required
-@admin_required
-def delete(survey_id):
-    survey = SurveyTemplate.query.get_or_404(survey_id)
-    survey_title = survey.title
-
-    for question in list(survey.questions):
-        SurveyResponse.query.filter_by(question_id=question.id).delete()
-        SurveySkipRule.query.filter_by(question_id=question.id).delete()
-        db.session.delete(question)
-
-    Member.query.filter_by(current_survey_id=survey.id).update(
-        {'current_survey_id': None, 'current_question_order': None}
-    )
-    db.session.delete(survey)
-    db.session.commit()
-
-    flash(f'Survey "{survey_title}" deleted successfully.', 'success')
-    return redirect(url_for('surveys.index'))
