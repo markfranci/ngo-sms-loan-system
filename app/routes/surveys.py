@@ -260,12 +260,6 @@ def view_responses(survey_id):
 @admin_required
 def delete_template(survey_id):
     survey = SurveyTemplate.query.get_or_404(survey_id)
-    question_ids = [question.id for question in survey.questions]
-
-    if question_ids:
-        SurveyResponse.query.filter(SurveyResponse.question_id.in_(question_ids)).delete(synchronize_session=False)
-        SurveySkipRule.query.filter(SurveySkipRule.question_id.in_(question_ids)).delete(synchronize_session=False)
-        SurveyQuestion.query.filter(SurveyQuestion.id.in_(question_ids)).delete(synchronize_session=False)
 
     Member.query.filter_by(current_survey_id=survey.id).update(
         {
@@ -274,6 +268,13 @@ def delete_template(survey_id):
         },
         synchronize_session=False,
     )
+
+    for question in list(survey.questions):
+        SurveyResponse.query.filter_by(question_id=question.id).delete(synchronize_session=False)
+        SurveySkipRule.query.filter_by(question_id=question.id).delete(synchronize_session=False)
+        db.session.delete(question)
+
+    db.session.flush()
     db.session.delete(survey)
     db.session.commit()
 
