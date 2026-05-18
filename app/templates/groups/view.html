@@ -8,6 +8,13 @@
     <p>{{ group.description }}</p>
   </div>
   <div class="page-header-actions">
+    {% if current_user.role == 'admin' %}
+    <form method="POST" action="{{ url_for('groups.delete', group_id=group.id) }}" onsubmit="return confirm('Delete this group? Members will remain in the system as unassigned.');">
+      <button type="submit" class="btn btn-outline-danger">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
+      </button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('groups.index') }}" class="btn btn-ghost">
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to Groups
     </a>

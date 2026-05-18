@@ -73,6 +73,7 @@
 {% block extra_js %}
 <script>
   let currentData = [];
+  const canDeleteRecords = {{ 'true' if current_user.role == 'admin' else 'false' }};
 
   function toggleFilterPanel() {
     document.getElementById('filter-panel').classList.toggle('open');
@@ -129,6 +130,11 @@
 
     currentData.forEach(row => {
       let tr = document.createElement('tr');
+      const deleteAction = canDeleteRecords ? `
+        <form method="POST" action="/loans/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this loan assessment?');">
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
+        </form>
+      ` : '';
       let statusBadge = '';
       if(row.status === 'approved') statusBadge = `<span class="badge badge-success">Approved</span>`;
       else if(row.status === 'rejected') statusBadge = `<span class="badge badge-danger">Rejected</span>`;
@@ -142,7 +148,10 @@
         <td>${statusBadge}</td>
         <td><span class="badge badge-primary">${row.group_name}</span></td>
         <td>${row.created_at}</td>
-        <td><a href="/loans/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a></td>
+        <td>
+          <a href="/loans/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a>
+          ${deleteAction}
+        </td>
       `;
       tbody.appendChild(tr);
     });

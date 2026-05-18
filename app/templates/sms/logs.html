@@ -21,6 +21,9 @@
           <th>Message</th>
           <th>Status</th>
           <th>Time</th>
+          {% if current_user.role == 'admin' %}
+          <th>Actions</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -79,6 +82,16 @@
             {{ log.created_at.strftime('%Y-%m-%d') }}<br>
             <small class="text-muted">{{ log.created_at.strftime('%H:%M:%S') }}</small>
           </td>
+
+          {% if current_user.role == 'admin' %}
+          <td>
+            <form method="POST" action="{{ url_for('sms.delete_log', log_id=log.id) }}" onsubmit="return confirm('Delete this SMS log?');">
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+              </button>
+            </form>
+          </td>
+          {% endif %}
 
         </tr>
         {% endfor %}

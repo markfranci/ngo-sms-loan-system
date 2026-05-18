@@ -76,6 +76,7 @@
 {% block extra_js %}
 <script>
   let currentData = [];
+  const canDeleteRecords = {{ 'true' if current_user.role == 'admin' else 'false' }};
 
   function toggleFilterPanel() {
     document.getElementById('filter-panel').classList.toggle('open');
@@ -133,6 +134,11 @@
 
     currentData.forEach(row => {
       let tr = document.createElement('tr');
+      const deleteAction = canDeleteRecords ? `
+        <form method="POST" action="/members/${row.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this member and all related records?');">
+          <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
+        </form>
+      ` : '';
       tr.innerHTML = `
         <td class="td-primary">${row.full_name}</td>
         <td class="td-mono">${row.phone_number}</td>
@@ -140,7 +146,10 @@
         <td>${row.location}</td>
         <td><span class="badge badge-primary">${row.group_name}</span></td>
         <td>${row.registered_at}</td>
-        <td><a href="/members/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a></td>
+        <td>
+          <a href="/members/${row.id}" class="btn btn-sm btn-outline-primary"><i data-lucide="eye" style="width:14px;height:14px;"></i> View</a>
+          ${deleteAction}
+        </td>
       `;
       tbody.appendChild(tr);
     });

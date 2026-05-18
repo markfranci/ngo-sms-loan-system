@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
 from app.models.group import Group
+from app.models.member import Member
 from app.models.user import User
 from app.decorators import admin_required
 
@@ -65,3 +66,18 @@ def view_group(group_id):
         return redirect(url_for('groups.index'))
         
     return render_template('groups/view.html', group=group)
+
+
+@groups.route('/<int:group_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete(group_id):
+    group = Group.query.get_or_404(group_id)
+    group_name = group.name
+
+    Member.query.filter_by(group_id=group.id).update({'group_id': None})
+    db.session.delete(group)
+    db.session.commit()
+
+    flash(f'Group "{group_name}" deleted successfully. Members were left in the system as unassigned.', 'success')
+    return redirect(url_for('groups.index'))

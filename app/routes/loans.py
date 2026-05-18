@@ -204,6 +204,16 @@ def new(member_id):
         survey_data=survey_data
     )
 
+
+def delete_loan_record(loan):
+    LoanApprovalSignoff.query.filter_by(loan_id=loan.id).delete()
+    LoanCashFlowMonth.query.filter_by(loan_id=loan.id).delete()
+    LoanInventoryItem.query.filter_by(loan_id=loan.id).delete()
+    LoanFinancialSnapshot.query.filter_by(loan_id=loan.id).delete()
+    LoanAssessmentDetails.query.filter_by(loan_id=loan.id).delete()
+    db.session.delete(loan)
+
+
 @loans_bp.route('/<int:loan_id>/status', methods=['POST'])
 @login_required
 @admin_required
@@ -231,3 +241,14 @@ def update_status(loan_id):
         flash('Invalid status provided.', 'danger')
         
     return redirect(url_for('loans.view', loan_id=loan.id))
+
+
+@loans_bp.route('/<int:loan_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    delete_loan_record(loan)
+    db.session.commit()
+    flash('Loan assessment deleted successfully.', 'success')
+    return redirect(url_for('loans.index'))

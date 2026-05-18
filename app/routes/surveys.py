@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
+from app.decorators import admin_required
+from app.models.survey import SurveySkipRule, SurveyTemplate, SurveyQuestion, SurveyResponse
 from app.models.member import Member
 from app.models.group import Group
 from app.models.sms_log import SMSLog
@@ -205,3 +206,25 @@ def view_responses(survey_id):
         member_data[response.member_id]['answers'][response.question.id] = response.answer
         
     return render_template('surveys/responses.html', survey=survey, questions=questions, member_data=member_data)
+
+
+@surveys.route('/<int:survey_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete(survey_id):
+    survey = SurveyTemplate.query.get_or_404(survey_id)
+    survey_title = survey.title
+
+    for question in list(survey.questions):
+        SurveyResponse.query.filter_by(question_id=question.id).delete()
+        SurveySkipRule.query.filter_by(question_id=question.id).delete()
+        db.session.delete(question)
+
+    Member.query.filter_by(current_survey_id=survey.id).update(
+        {'current_survey_id': None, 'current_question_order': None}
+    )
+    db.session.delete(survey)
+    db.session.commit()
+
+    flash(f'Survey "{survey_title}" deleted successfully.', 'success')
+    return redirect(url_for('surveys.index'))

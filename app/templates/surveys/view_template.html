@@ -11,6 +11,13 @@
     <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-success" id="btn-view-responses">
       <i data-lucide="message-circle" style="width:16px;height:16px;"></i> View Responses
     </a>
+    {% if current_user.role == 'admin' %}
+    <form method="POST" action="{{ url_for('surveys.delete', survey_id=survey.id) }}" onsubmit="return confirm('Delete this survey template, questions, and responses?');">
+      <button type="submit" class="btn btn-outline-danger">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
+      </button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('surveys.index') }}" class="btn btn-ghost">
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
     </a>

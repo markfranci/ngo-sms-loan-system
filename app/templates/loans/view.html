@@ -8,6 +8,13 @@
     <p>Detailed view of the loan assessment.</p>
   </div>
   <div class="page-header-actions">
+    {% if current_user.role == 'admin' %}
+    <form method="POST" action="{{ url_for('loans.delete', loan_id=loan.id) }}" onsubmit="return confirm('Delete this loan assessment and its assessment details?');">
+      <button type="submit" class="btn btn-outline-danger">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
+      </button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('loans.index') }}" class="btn btn-ghost">
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to List
     </a>

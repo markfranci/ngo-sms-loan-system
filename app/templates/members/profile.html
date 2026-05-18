@@ -11,6 +11,13 @@
     <a href="{{ url_for('loans.new', member_id=member.id) }}" class="btn btn-primary" id="btn-new-loan">
       <i data-lucide="plus" style="width:16px;height:16px;"></i> New Loan Assessment
     </a>
+    {% if current_user.role == 'admin' %}
+    <form method="POST" action="{{ url_for('members.delete', member_id=member.id) }}" onsubmit="return confirm('Delete this member and all related loans, survey responses, and SMS logs?');">
+      <button type="submit" class="btn btn-outline-danger">
+        <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete
+      </button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('members.index') }}" class="btn btn-ghost" id="btn-back-members">
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
     </a>
