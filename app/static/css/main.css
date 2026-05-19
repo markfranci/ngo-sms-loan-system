@@ -2132,12 +2132,27 @@ h1, h2, h3, h4, h5, h6 {
 .odoo-list-table th { font-weight: 600; color: var(--text-secondary); background-color: var(--color-surface-2); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;}
 .odoo-list-table tbody tr:hover { background-color: var(--color-surface-2); }
 
-.odoo-kanban { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; }
-.kanban-column { min-width: 320px; background-color: var(--color-surface-2); border-radius: var(--radius-md); padding: 16px; }
+.odoo-kanban {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  overflow-x: visible;
+  padding-bottom: 10px;
+}
+.kanban-column,
+.odoo-kanban > .kanban-card {
+  flex: 0 0 320px;
+  width: 320px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.kanban-column { background-color: var(--color-surface-2); border-radius: var(--radius-md); padding: 16px; }
 .kanban-column-title { font-weight: 600; margin-bottom: 16px; color: var(--text-secondary); display: flex; justify-content: space-between; text-transform: uppercase; font-size: 0.85rem;}
-.kanban-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;}
+.kanban-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; }
+.odoo-kanban > .kanban-card { min-height: 136px; }
 .kanban-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-primary-glow); }
-.kanban-card-title { font-weight: 600; margin-bottom: 6px; color: var(--text-primary); text-decoration: none; font-size: 1rem;}
+.kanban-card-title { font-weight: 600; margin-bottom: 6px; color: var(--text-primary); text-decoration: none; font-size: 1rem; overflow-wrap: anywhere; }
 
 .kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;}
 
