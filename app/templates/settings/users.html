@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h2>Settings</h2>
+    <p>Manage system users and invite staff to access the platform.</p>
+  </div>
+</div>
+
+{% if invitation_url %}
+<div class="glass-card mb-3">
+  <div class="glass-card-header">
+    <h3 class="glass-card-title">Invitation Link</h3>
+    <span class="badge badge-success">Ready to Share</span>
+  </div>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    Share this setup link with {{ invited_user.username }}. They will use it to set their password.
+  </p>
+  <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+    <input type="text" class="form-input td-mono" id="invitation-link" value="{{ invitation_url }}" readonly style="flex:1;min-width:260px;">
+    <button type="button" class="btn btn-outline-primary" onclick="copyInvitationLink()">
+      <i data-lucide="copy" style="width:16px;height:16px;"></i> Copy
+    </button>
+    <a class="btn btn-ghost" href="mailto:{{ invited_user.email }}?subject=ENAF Platform Invitation&body=Hello {{ invited_user.username }},%0D%0A%0D%0APlease use this link to set up your ENAF platform account:%0D%0A{{ invitation_url|urlencode }}">
+      <i data-lucide="mail" style="width:16px;height:16px;"></i> Email
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="detail-grid detail-grid-2">
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <h3 class="glass-card-title">Invite New User</h3>
+    </div>
+
+    <form method="POST" action="{{ url_for('settings.users') }}">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input type="text" name="username" id="username" class="form-input" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input type="email" name="email" id="email" class="form-input" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="role">Role</label>
+        <select name="role" id="role" class="form-select js-custom-select" required>
+          <option value="staff">Normal User</option>
+          <option value="admin">Admin</option>
+        </select>
+        <span class="form-hint">Admins can manage settings, reports, deletions, and user invitations.</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="send" style="width:16px;height:16px;"></i> Create Invitation
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <h3 class="glass-card-title">System Users</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>
+              <div class="td-primary">{{ user.username }}</div>
+              <div class="text-muted" style="font-size:0.8rem;">{{ user.email }}</div>
+            </td>
+            <td>
+              {% if user.role == 'admin' %}
+                <span class="badge badge-primary">Admin</span>
+              {% else %}
+                <span class="badge badge-neutral">Normal User</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user.invitation_token %}
+                <span class="badge badge-warning">Invited</span>
+              {% else %}
+                <span class="badge badge-success">Active</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST" action="{{ url_for('settings.resend_invite', user_id=user.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Invite
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyInvitationLink() {
+  const input = document.getElementById('invitation-link');
+  if (!input) return;
+  input.select();
+  document.execCommand('copy');
+}
+</script>
+{% endblock %}

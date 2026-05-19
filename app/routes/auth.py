@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
+from app import db
 
 # ----------------------------------------------------------------
 # Create the auth blueprint
@@ -55,6 +56,36 @@ def login():
 
     # Show the login page (GET request, or after a failed POST)
     return render_template('auth/login.html')
+
+
+@auth.route('/invite/<token>', methods=['GET', 'POST'])
+def accept_invitation(token):
+    """
+    Let an invited system user set their password and activate their account.
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    user = User.query.filter_by(invitation_token=token).first_or_404()
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return redirect(url_for('auth.accept_invitation', token=token))
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('auth.accept_invitation', token=token))
+
+        user.accept_invitation(password)
+        db.session.commit()
+        flash('Your account is ready. Please sign in with your new password.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/accept_invitation.html', user=user)
 
 
 # ----------------------------------------------------------------

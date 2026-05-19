@@ -86,6 +86,16 @@
             <span>Reports</span>
           </a>
         </div>
+
+        {% if current_user.role == 'admin' %}
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">System</div>
+          <a href="{{ url_for('settings.users') }}" class="sidebar-link {% if request.endpoint and 'settings' in request.endpoint %}active{% endif %}" id="nav-settings">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+          </a>
+        </div>
+        {% endif %}
       </nav>
 
       <div class="sidebar-footer">

@@ -71,4 +71,8 @@ def create_app():
     from app.routes.reports import reports_bp
     app.register_blueprint(reports_bp)
 
+    # Settings blueprint — handles admin-only system settings
+    from app.routes.settings import settings
+    app.register_blueprint(settings)
+
     return app
