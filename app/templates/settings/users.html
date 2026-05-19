@@ -5,7 +5,7 @@
 <div class="page-header">
   <div class="page-header-text">
     <h2>Settings</h2>
-    <p>Manage system users and invite staff to access the platform.</p>
+    <p>Manage system users and send invitations to access the platform.</p>
   </div>
 </div>
 
@@ -16,7 +16,7 @@
     <span class="badge badge-success">Ready to Share</span>
   </div>
   <p class="text-muted" style="margin-bottom:0.75rem;">
-    Share this setup link with {{ invited_user.username }}. They will use it to set their password.
+    This setup link was generated for {{ invited_user.username }}. If SMTP is configured, it has been emailed automatically; otherwise copy and share it manually.
   </p>
   <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
     <input type="text" class="form-input td-mono" id="invitation-link" value="{{ invitation_url }}" readonly style="flex:1;min-width:260px;">
@@ -58,7 +58,7 @@
 
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">
-          <i data-lucide="send" style="width:16px;height:16px;"></i> Create Invitation
+          <i data-lucide="send" style="width:16px;height:16px;"></i> Create & Send Invitation
         </button>
       </div>
     </form>
