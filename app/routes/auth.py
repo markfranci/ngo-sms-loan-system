@@ -88,8 +88,9 @@ def accept_invitation(token):
 
         user.accept_invitation(password)
         db.session.commit()
-        flash('Your account is ready. Please sign in with your new password.', 'success')
-        return redirect(url_for('auth.login'))
+        login_user(user, remember=True)
+        flash('Your account is active. You are now signed in.', 'success')
+        return redirect(url_for('main.dashboard'))
 
     return render_template('auth/accept_invitation.html', user=user)
 
