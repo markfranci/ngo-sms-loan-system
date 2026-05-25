@@ -41,6 +41,48 @@ def assign_group(member_id):
     return redirect(url_for('members.profile', member_id=member_id))
 
 
+@members.route('/<int:member_id>/update', methods=['POST'])
+@login_required
+def update(member_id):
+    member = Member.query.get_or_404(member_id)
+    full_name = request.form.get('full_name', '').strip()
+    phone_number = request.form.get('phone_number', '').strip()
+    id_number = request.form.get('id_number', '').strip() or None
+    gender = request.form.get('gender', '').strip() or None
+    group_id = request.form.get('group_id')
+
+    if not full_name or not phone_number:
+        flash('Full name and phone number are required.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    existing_phone = Member.query.filter(
+        Member.phone_number == phone_number,
+        Member.id != member.id,
+    ).first()
+    if existing_phone:
+        flash('Another member already uses that phone number.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if id_number:
+        existing_id = Member.query.filter(
+            Member.id_number == id_number,
+            Member.id != member.id,
+        ).first()
+        if existing_id:
+            flash('Another member already uses that ID number.', 'danger')
+            return redirect(url_for('members.profile', member_id=member.id))
+
+    member.full_name = full_name
+    member.phone_number = phone_number
+    member.id_number = id_number
+    member.gender = gender
+    member.group_id = int(group_id) if group_id else None
+
+    db.session.commit()
+    flash('Member details updated successfully.', 'success')
+    return redirect(url_for('members.profile', member_id=member.id))
+
+
 @members.route('/<int:member_id>/delete', methods=['POST'])
 @login_required
 @admin_required

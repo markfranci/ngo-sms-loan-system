@@ -34,42 +34,42 @@
       <div class="glass-card-header">
         <h3 class="glass-card-title">Personal Details</h3>
       </div>
-      <div class="detail-item">
-        <span class="detail-label">Full Name</span>
-        <span class="detail-value">{{ member.full_name }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">ID Number</span>
-        <span class="detail-value">{{ member.id_number or 'N/A' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Gender</span>
-        <span class="detail-value">{{ member.gender|capitalize if member.gender else 'N/A' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Location</span>
-        <span class="detail-value">{{ member.location or 'N/A' }}</span>
-      </div>
-      <div class="detail-item">
-        <span class="detail-label">Group</span>
-        <div>
-          {% if member.group %}
-          <span class="badge badge-primary">{{ member.group.name }}</span>
-          {% else %}
-          <span class="badge badge-neutral" style="font-style:italic;">Unassigned</span>
-          {% endif %}
-
-          <form method="POST" action="{{ url_for('members.assign_group', member_id=member.id) }}" style="margin-top:0.75rem;display:flex;gap:0.5rem;align-items:center;">
-            <select name="group_id" class="form-select js-custom-select" data-custom-wrapper-class="member-group-select-wrapper" style="flex:1;padding:0.4rem 2rem 0.4rem 0.6rem;font-size:0.8rem;">
-              <option value="">-- Assign Group --</option>
-              {% for group in groups %}
-              <option value="{{ group.id }}" {% if member.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-sm btn-primary">Save</button>
-          </form>
+      <form method="POST" action="{{ url_for('members.update', member_id=member.id) }}">
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          <input type="text" name="full_name" id="full_name" class="form-input" value="{{ member.full_name }}" required>
         </div>
-      </div>
+        <div class="form-group">
+          <label class="form-label" for="phone_number">Phone Number</label>
+          <input type="text" name="phone_number" id="phone_number" class="form-input td-mono" value="{{ member.phone_number }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="id_number">ID Number</label>
+          <input type="text" name="id_number" id="id_number" class="form-input" value="{{ member.id_number or '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="gender">Gender</label>
+          <select name="gender" id="gender" class="form-select js-custom-select">
+            <option value="">Unspecified</option>
+            <option value="male" {% if member.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if member.gender == 'female' %}selected{% endif %}>Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="group_id">Group</label>
+          <select name="group_id" id="group_id" class="form-select js-custom-select" data-custom-wrapper-class="member-group-select-wrapper">
+            <option value="">Unassigned</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" {% if member.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save" style="width:16px;height:16px;"></i> Save Changes
+          </button>
+        </div>
+      </form>
       <div class="detail-item">
         <span class="detail-label">Registered</span>
         <span class="detail-value">{{ member.registered_at.strftime('%Y-%m-%d %H:%M') }}</span>
