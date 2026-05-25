@@ -290,8 +290,8 @@ def _get_column_filters():
 
 def _record_matches_column_filters(record):
     for column, filter_value in _get_column_filters().items():
-        record_value = str(record.get(column, '')).casefold()
-        if filter_value.casefold() not in record_value:
+        record_value = str(record.get(column, '')).strip().casefold()
+        if record_value != filter_value.casefold():
             return False
     return True
 
