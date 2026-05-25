@@ -120,11 +120,11 @@
   function renderList() {
     const thead = document.getElementById('list-thead');
     const tbody = document.getElementById('list-tbody');
-    thead.innerHTML = '<tr><th>Applicant</th><th>Phone</th><th>Amount (KSh)</th><th>Score</th><th>Status</th><th>Group</th><th>Date</th><th>Actions</th></tr>';
+    thead.innerHTML = '<tr><th>Applicant</th><th>Phone</th><th>Amount (KSh)</th><th>Status</th><th>Group</th><th>Date</th><th>Actions</th></tr>';
     tbody.innerHTML = '';
     
     if (currentData.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No loans found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No loans found.</td></tr>';
       return;
     }
 
@@ -144,7 +144,6 @@
         <td class="td-primary">${row.applicant_name}</td>
         <td class="td-mono">${row.phone_number}</td>
         <td>${row.amount_requested}</td>
-        <td>${row.score}</td>
         <td>${statusBadge}</td>
         <td><span class="badge badge-primary">${row.group_name}</span></td>
         <td>${row.created_at}</td>
@@ -191,7 +190,6 @@
           <div class="kanban-card-title">${item.applicant_name}</div>
           <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">Group: ${item.group_name}</div>
           <div style="font-size: 0.9rem; color: var(--text-secondary);">Amount: KSh ${item.amount_requested}</div>
-          <div style="font-size: 0.9rem; color: var(--text-secondary);">Score: ${item.score}/100</div>
         `;
         colDiv.appendChild(card);
       });

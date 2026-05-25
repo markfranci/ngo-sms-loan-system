@@ -136,47 +136,14 @@ def new(member_id):
             
         notes = request.form.get('notes', '')
         
-        # New Detailed Assessment Fields
         disposable_income = request.form.get('disposable_income', type=float) or 0.0
         existing_debts = request.form.get('liabilities', type=float) or 0.0
         business_assets = request.form.get('current_assets', type=float) or 0.0
-        training_completion = request.form.get('training_completion') == 'on'
-        
-        # Base Score logic based on actual assessment fields
-        score = 30
-        
-        # Group reliability bonus
-        if member.group_id:
-            score += 15
-            
-        # Training completion bonus
-        if training_completion:
-            score += 10
-            
-        # Financial logic check
-        if disposable_income > monthly_instalment * 1.5:
-            score += 20 # Comfortable affordability
-        elif disposable_income > monthly_instalment:
-            score += 10 # Basic affordability
-        else:
-            score -= 10 # High risk
-
-        if business_assets > amount_requested:
-            score += 15 # Good collateral/assets
-            
-        if existing_debts < disposable_income:
-            score += 10
-        else:
-            score -= 10
-        
-        # Normalize score between 0 and 100
-        score = max(0, min(100, score))
         
         loan = Loan(
             member_id=member.id,
             assessed_by=current_user.id,
             amount_requested=amount_requested,
-            score=score,
             status='pending',
             notes=notes
         )
@@ -248,7 +215,7 @@ def new(member_id):
 
         db.session.commit()
         
-        flash('Loan assessment created successfully!', 'success')
+        flash('Loan assessment created successfully. Review it and make the final decision manually.', 'success')
         return redirect(url_for('loans.view', loan_id=loan.id))
         
     return render_template(

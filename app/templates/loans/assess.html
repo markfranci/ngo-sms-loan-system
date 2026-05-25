@@ -262,20 +262,12 @@
           <textarea class="form-textarea" name="notes" rows="3" placeholder="Staff recommendations..." required>{{ assessment_data.get('notes', '') }}</textarea>
         </div>
 
-        <div class="info-alert mb-3 mt-4">
-          <i data-lucide="info"></i>
-          <div>
-            <strong>Automated Scoring</strong>
-            Submitting this form will calculate a support score from the manually verified assessment values.
-          </div>
-        </div>
-
         <div class="form-actions" style="margin-top:2rem;display:flex;justify-content:space-between;">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-cashflow')"><i data-lucide="arrow-left"></i> Previous</button>
           <div>
             <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost" style="margin-right:10px;">Cancel</a>
             <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
-              <i data-lucide="calculator" style="width:16px;height:16px;"></i> Save Assessment & Calculate Score
+              <i data-lucide="save" style="width:16px;height:16px;"></i> Save Assessment
             </button>
           </div>
         </div>

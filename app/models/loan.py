@@ -26,8 +26,8 @@ class Loan(db.Model):
     # How much money (in KSh) the member is requesting
     amount_requested = db.Column(db.Float, nullable=True)
 
-    # A score out of 100 based on the member's data and survey responses
-    # Higher score = stronger loan application
+    # Legacy nullable field kept for existing databases.
+    # Loan decisions are currently made manually by admins.
     score = db.Column(db.Float, nullable=True)
 
     # The final loan decision:
@@ -75,7 +75,7 @@ class Loan(db.Model):
         return self.status == 'pending'
 
     def __repr__(self):
-        return f'<Loan member={self.member_id} status={self.status} score={self.score}>'
+        return f'<Loan member={self.member_id} status={self.status}>'
 
 class LoanAssessmentDetails(db.Model):
     __tablename__ = 'loan_assessment_details'

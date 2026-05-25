@@ -211,7 +211,7 @@
     if (entity === 'members') {
       cols = ['full_name', 'phone_number', 'gender', 'location', 'group_name', 'registered_at'];
     } else {
-      cols = ['applicant_name', 'phone_number', 'amount_requested', 'score', 'status', 'group_name', 'created_at'];
+      cols = ['applicant_name', 'phone_number', 'amount_requested', 'status', 'group_name', 'created_at'];
     }
 
     // Build header
@@ -278,7 +278,6 @@
           card.innerHTML = `
             <div class="kanban-card-title">${item.applicant_name}</div>
             <div style="font-size: 0.9rem; color: var(--text-secondary);">Amount: KSh ${item.amount_requested}</div>
-            <div style="font-size: 0.9rem; color: var(--text-secondary);">Score: ${item.score}</div>
           `;
         }
         colDiv.appendChild(card);

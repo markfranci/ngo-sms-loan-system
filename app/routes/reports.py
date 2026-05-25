@@ -108,7 +108,7 @@ def export_loans():
     """
     si = io.StringIO()
     cw = csv.writer(si)
-    cw.writerow(['Loan ID', 'Applicant Name', 'Phone Number', 'Group', 'Requested Amount', 'Automated Score', 'Decision Status', 'Staff Notes', 'Assessed By', 'Date'])
+    cw.writerow(['Loan ID', 'Applicant Name', 'Phone Number', 'Group', 'Requested Amount', 'Decision Status', 'Staff Notes', 'Assessed By', 'Date'])
     
     loans = Loan.query.all()
     for loan in loans:
@@ -120,7 +120,6 @@ def export_loans():
             loan.member.phone_number,
             group_name,
             loan.amount_requested or 0,
-            loan.score or 0,
             loan.status.upper(),
             loan.notes or '',
             assessor,
@@ -223,7 +222,6 @@ def get_report_data():
                 'phone_number': l.member.phone_number,
                 'group_name': l.member.group.name if l.member.group else 'Unassigned',
                 'amount_requested': l.amount_requested or 0,
-                'score': l.score or 0,
                 'status': l.status,
                 'created_at': l.created_at.strftime('%Y-%m-%d') if l.created_at else ''
             })
@@ -304,7 +302,6 @@ def _build_report_filters():
         ('End Date', 'end_date'),
         ('Min Amount', 'min_amount'),
         ('Max Amount', 'max_amount'),
-        ('Min Score', 'min_score'),
     ]:
         value = request.args.get(key)
         if value and value != 'all':
@@ -433,7 +430,7 @@ def _build_custom_report_payload():
 
     default_columns = {
         'members': ['full_name', 'phone_number', 'gender', 'location', 'group_name', 'registered_at'],
-        'loans': ['applicant_name', 'phone_number', 'amount_requested', 'score', 'status', 'group_name', 'created_at'],
+        'loans': ['applicant_name', 'phone_number', 'amount_requested', 'status', 'group_name', 'created_at'],
         'groups': ['name', 'description', 'member_count', 'manager', 'created_at'],
         'surveys': ['title', 'description', 'question_count', 'creator', 'created_at'],
     }
@@ -520,7 +517,6 @@ def _build_custom_report_payload():
         status = request.args.get('status')
         min_amount = _safe_float(request.args.get('min_amount'))
         max_amount = _safe_float(request.args.get('max_amount'))
-        min_score = _safe_float(request.args.get('min_score'))
 
         query = Loan.query
         needs_member_join = (group_id and group_id != 'all') or bool(search)
@@ -534,8 +530,6 @@ def _build_custom_report_payload():
             query = query.filter(Loan.amount_requested >= min_amount)
         if max_amount is not None:
             query = query.filter(Loan.amount_requested <= max_amount)
-        if min_score is not None:
-            query = query.filter(Loan.score >= min_score)
         if search:
             query = query.filter(db.or_(
                 Member.full_name.ilike(f"%{search}%"),
@@ -570,8 +564,6 @@ def _build_custom_report_payload():
                     row.append(loan.member.group.name if loan.member.group else 'Unassigned')
                 elif col == 'amount_requested':
                     row.append(loan.amount_requested or 0)
-                elif col == 'score':
-                    row.append(loan.score or 0)
                 elif col == 'status':
                     row.append(loan.status.upper())
                 elif col == 'notes':

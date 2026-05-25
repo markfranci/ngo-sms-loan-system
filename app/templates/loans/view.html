@@ -23,32 +23,21 @@
 
 <div class="detail-grid detail-grid-half">
 
-  <!-- Automated Score Card -->
+  <!-- Final Decision Card -->
   <div class="glass-card text-center" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
-    <h4 class="text-muted mb-3" style="font-size:0.9rem;">Automated Score</h4>
-
-    <div class="score-ring-wrap" style="margin-bottom:1.5rem;">
-      <svg viewBox="0 0 36 36">
-        <path class="score-ring-bg"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-        <path class="score-ring-fill {% if loan.score >= 70 %}high{% elif loan.score >= 40 %}medium{% else %}low{% endif %}"
-              stroke-dasharray="{{ loan.score }}, 100"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-      </svg>
-      <div class="score-ring-value">
-        <div class="score-ring-number {% if loan.score >= 70 %}high{% elif loan.score >= 40 %}medium{% else %}low{% endif %}">{{ loan.score|int }}</div>
-      </div>
-    </div>
-
+    <h4 class="text-muted mb-3" style="font-size:0.9rem;">Manual Review</h4>
     <div style="margin-bottom:2rem;">
-      {% if loan.score >= 70 %}
-        <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">High Confidence</span>
-      {% elif loan.score >= 40 %}
-        <span class="badge badge-warning" style="padding:0.4rem 1rem;font-size:0.85rem;">Moderate Risk</span>
+      {% if loan.status == 'approved' %}
+        <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">Approved</span>
+      {% elif loan.status == 'rejected' %}
+        <span class="badge badge-danger" style="padding:0.4rem 1rem;font-size:0.85rem;">Rejected</span>
       {% else %}
-        <span class="badge badge-danger" style="padding:0.4rem 1rem;font-size:0.85rem;">High Risk</span>
+        <span class="badge badge-warning" style="padding:0.4rem 1rem;font-size:0.85rem;">Pending Decision</span>
       {% endif %}
     </div>
+    <p class="text-muted" style="max-width:22rem;margin-bottom:2rem;">
+      Review the submitted assessment details and choose the final loan decision.
+    </p>
 
     <!-- Final Decision Form -->
     <div style="width:100%;padding-top:1.5rem;border-top:1px solid var(--color-border);">

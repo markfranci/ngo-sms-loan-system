@@ -1175,64 +1175,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ----------------------------------------------------------------
-   14. SCORE RING (Loan View)
-   ---------------------------------------------------------------- */
-.score-ring-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.score-ring-wrap {
-  position: relative;
-  width: 150px;
-  height: 150px;
-}
-
-.score-ring-wrap svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.score-ring-bg {
-  fill: none;
-  stroke: var(--color-surface-3);
-  stroke-width: 3;
-}
-
-.score-ring-fill {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  transition: stroke-dasharray 1s ease;
-}
-
-.score-ring-fill.high   { stroke: var(--color-success); }
-.score-ring-fill.medium { stroke: var(--color-warning); }
-.score-ring-fill.low    { stroke: var(--color-danger); }
-
-.score-ring-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.score-ring-number {
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.score-ring-number.high   { color: var(--color-success); }
-.score-ring-number.medium { color: var(--color-warning); }
-.score-ring-number.low    { color: var(--color-danger); }
-
-/* ----------------------------------------------------------------
-   15. PROGRESS BAR
+   14. PROGRESS BAR
    ---------------------------------------------------------------- */
 .progress-bar-track {
   height: 6px;
