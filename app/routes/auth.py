@@ -86,8 +86,11 @@ def accept_invitation(token):
             flash('Passwords do not match.', 'danger')
             return redirect(url_for('auth.accept_invitation', token=token))
 
-        user.accept_invitation(password)
+        user.set_password(password)
+        user.invitation_token = None
+        user.invitation_accepted_at = datetime.utcnow()
         db.session.commit()
+        db.session.refresh(user)
         login_user(user, remember=True)
         flash('Your account is active. You are now signed in.', 'success')
         return redirect(url_for('main.dashboard'))
