@@ -4,21 +4,10 @@ import secrets
 
 from app import db
 from app.decorators import admin_required
-from app.email import EmailNotConfiguredError, send_user_invitation_email
 from app.models.user import User
 
 
 settings = Blueprint('settings', __name__, url_prefix='/settings')
-
-
-def _send_invitation_or_flash(user, invitation_url):
-    try:
-        send_user_invitation_email(user, invitation_url)
-        flash(f'Invitation email sent to {user.email}.', 'success')
-    except EmailNotConfiguredError:
-        flash('Invitation created, but SMTP is not configured. Copy and share the setup link manually.', 'warning')
-    except Exception as error:
-        flash(f'Invitation created, but the email could not be sent: {error}', 'warning')
 
 
 @settings.route('/users', methods=['GET', 'POST'])
@@ -60,7 +49,7 @@ def users():
             token=invited_user.invitation_token,
             _external=True,
         )
-        _send_invitation_or_flash(invited_user, invitation_url)
+        flash(f'Invitation link created for {invited_user.email}. Copy and share it manually.', 'success')
 
     users_list = User.query.order_by(User.created_at.desc()).all()
     return render_template(
@@ -85,7 +74,7 @@ def resend_invite(user_id):
         _external=True,
     )
     users_list = User.query.order_by(User.created_at.desc()).all()
-    _send_invitation_or_flash(user, invitation_url)
+    flash(f'Invitation link refreshed for {user.email}. Copy and share it manually.', 'success')
     return render_template(
         'settings/users.html',
         users=users_list,
