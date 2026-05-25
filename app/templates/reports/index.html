@@ -24,7 +24,7 @@
       <div class="filter-grid">
         <div class="form-group">
           <label>Entity</label>
-          <select id="filter-entity" class="form-control" onchange="updateFilterVisibility(); loadData();">
+          <select id="filter-entity" class="form-control" onchange="updateFilterVisibility(); loadFilterOptions(); loadData();">
             <option value="members">Members</option>
             <option value="loans">Loans</option>
           </select>
@@ -42,11 +42,11 @@
         <!-- Member Specific -->
         <div class="form-group member-filter">
           <label>Name</label>
-          <input type="text" id="filter-full-name" class="form-control" placeholder="Member name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-full-name" class="form-control" list="report-member-name-options" placeholder="Member name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group member-filter">
           <label>Phone</label>
-          <input type="text" id="filter-member-phone" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-member-phone" class="form-control" list="report-member-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group member-filter">
           <label>Gender</label>
@@ -58,25 +58,25 @@
         </div>
         <div class="form-group member-filter">
           <label>Location</label>
-          <input type="text" id="filter-location" class="form-control" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-location" class="form-control" list="report-member-location-options" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group member-filter">
           <label>Registered</label>
-          <input type="text" id="filter-member-registered" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-member-registered" class="form-control" list="report-member-registered-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
 
         <!-- Loan Specific -->
         <div class="form-group loan-filter" style="display:none;">
           <label>Applicant</label>
-          <input type="text" id="filter-applicant-name" class="form-control" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-applicant-name" class="form-control" list="report-loan-applicant-options" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group loan-filter" style="display:none;">
           <label>Phone</label>
-          <input type="text" id="filter-loan-phone" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-loan-phone" class="form-control" list="report-loan-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group loan-filter" style="display:none;">
           <label>Amount</label>
-          <input type="text" id="filter-amount-requested" class="form-control" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-amount-requested" class="form-control" list="report-loan-amount-options" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group loan-filter" style="display:none;">
           <label>Status</label>
@@ -89,7 +89,7 @@
         </div>
         <div class="form-group loan-filter" style="display:none;">
           <label>Date</label>
-          <input type="text" id="filter-loan-created" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-loan-created" class="form-control" list="report-loan-date-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -146,6 +146,15 @@
     </div>
   </div>
 </div>
+
+<datalist id="report-member-name-options"></datalist>
+<datalist id="report-member-phone-options"></datalist>
+<datalist id="report-member-location-options"></datalist>
+<datalist id="report-member-registered-options"></datalist>
+<datalist id="report-loan-applicant-options"></datalist>
+<datalist id="report-loan-phone-options"></datalist>
+<datalist id="report-loan-amount-options"></datalist>
+<datalist id="report-loan-date-options"></datalist>
 
 {% endblock %}
 
@@ -206,6 +215,37 @@
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    datalist.innerHTML = '';
+    (values || []).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+  }
+
+  function loadFilterOptions() {
+    const entity = document.getElementById('filter-entity').value;
+
+    fetch(`{{ url_for('reports.get_filter_options') }}?entity=${encodeURIComponent(entity)}`)
+      .then(res => res.json())
+      .then(options => {
+        if (entity === 'members') {
+          populateDatalist('report-member-name-options', options.full_name);
+          populateDatalist('report-member-phone-options', options.phone_number);
+          populateDatalist('report-member-location-options', options.location);
+          populateDatalist('report-member-registered-options', options.registered_at);
+        } else {
+          populateDatalist('report-loan-applicant-options', options.applicant_name);
+          populateDatalist('report-loan-phone-options', options.phone_number);
+          populateDatalist('report-loan-amount-options', options.amount_requested);
+          populateDatalist('report-loan-date-options', options.created_at);
+        }
+      })
+      .catch(err => console.error(err));
   }
 
   function loadData() {
@@ -369,6 +409,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     updateFilterVisibility();
     if (window.initCustomSelects) window.initCustomSelects();
+    loadFilterOptions();
     loadData();
   });
 </script>

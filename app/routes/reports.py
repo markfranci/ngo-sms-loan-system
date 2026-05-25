@@ -291,6 +291,8 @@ def _get_column_filters():
 def _record_matches_column_filters(record):
     for column, filter_value in _get_column_filters().items():
         record_value = str(record.get(column, '')).strip().casefold()
+        if column.endswith('_at') and len(filter_value.strip()) == 10:
+            record_value = record_value[:10]
         if record_value != filter_value.casefold():
             return False
     return True
@@ -305,6 +307,70 @@ def _rows_from_records(records, selected_columns):
         [record.get(column, '') for column in selected_columns]
         for record in records
     ]
+
+
+def _unique_filter_options(records):
+    options = {}
+    for record in records:
+        for column, value in record.items():
+            if value in (None, ''):
+                continue
+            options.setdefault(column, set()).add(str(value))
+
+    return {
+        column: sorted(values, key=lambda item: item.casefold())
+        for column, values in options.items()
+    }
+
+
+@reports_bp.route('/api/filter-options')
+@login_required
+@admin_required
+def get_filter_options():
+    entity = request.args.get('entity', 'members')
+
+    if entity == 'members':
+        records = [
+            {
+                'full_name': member.full_name,
+                'phone_number': member.phone_number,
+                'gender': member.gender or 'Unknown',
+                'location': member.location or 'Unknown',
+                'group_name': member.group.name if member.group else 'Unassigned',
+                'registered_at': member.registered_at.strftime('%Y-%m-%d') if member.registered_at else '',
+            }
+            for member in Member.query.all()
+        ]
+        return jsonify(_unique_filter_options(records))
+
+    if entity == 'loans':
+        records = [
+            {
+                'applicant_name': loan.member.full_name,
+                'phone_number': loan.member.phone_number,
+                'amount_requested': loan.amount_requested or 0,
+                'status': loan.status,
+                'group_name': loan.member.group.name if loan.member.group else 'Unassigned',
+                'created_at': loan.created_at.strftime('%Y-%m-%d') if loan.created_at else '',
+            }
+            for loan in Loan.query.all()
+        ]
+        return jsonify(_unique_filter_options(records))
+
+    if entity == 'groups':
+        records = [
+            {
+                'name': group.name,
+                'description': group.description or 'No description',
+                'member_count': len(group.members),
+                'manager': group.manager.username if group.manager else 'Unassigned',
+                'created_at': group.created_at.strftime('%Y-%m-%d') if group.created_at else '',
+            }
+            for group in Group.query.all()
+        ]
+        return jsonify(_unique_filter_options(records))
+
+    return jsonify({})
 
 
 def _build_report_filters():

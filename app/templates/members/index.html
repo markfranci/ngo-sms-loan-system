@@ -23,11 +23,11 @@
       <div class="filter-grid">
         <div class="form-group">
           <label>Name</label>
-          <input type="text" id="filter-full-name" class="form-control" placeholder="Member name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-full-name" class="form-control" list="member-name-options" placeholder="Member name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Phone</label>
-          <input type="text" id="filter-phone-number" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-phone-number" class="form-control" list="member-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Gender</label>
@@ -39,15 +39,15 @@
         </div>
         <div class="form-group">
           <label>Location</label>
-          <input type="text" id="filter-location" class="form-control" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-location" class="form-control" list="member-location-options" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Group</label>
-          <input type="text" id="filter-group-name" class="form-control" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-group-name" class="form-control" list="member-group-options" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Registered</label>
-          <input type="text" id="filter-registered-at" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-registered-at" class="form-control" list="member-registered-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -87,6 +87,12 @@
 <div id="view-kanban" class="view-container">
   <div class="odoo-kanban" id="kanban-board"></div>
 </div>
+
+<datalist id="member-name-options"></datalist>
+<datalist id="member-phone-options"></datalist>
+<datalist id="member-location-options"></datalist>
+<datalist id="member-group-options"></datalist>
+<datalist id="member-registered-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
@@ -145,6 +151,29 @@
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    datalist.innerHTML = '';
+    (values || []).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+  }
+
+  function loadFilterOptions() {
+    fetch(`{{ url_for('reports.get_filter_options') }}?entity=members`)
+      .then(res => res.json())
+      .then(options => {
+        populateDatalist('member-name-options', options.full_name);
+        populateDatalist('member-phone-options', options.phone_number);
+        populateDatalist('member-location-options', options.location);
+        populateDatalist('member-group-options', options.group_name);
+        populateDatalist('member-registered-options', options.registered_at);
+      })
+      .catch(err => console.error(err));
   }
 
   function renderView(viewName) {
@@ -226,6 +255,7 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     if (window.initCustomSelects) window.initCustomSelects();
+    loadFilterOptions();
     loadData();
   });
 </script>

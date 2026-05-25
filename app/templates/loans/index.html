@@ -23,15 +23,15 @@
       <div class="filter-grid">
         <div class="form-group">
           <label>Applicant</label>
-          <input type="text" id="filter-applicant-name" class="form-control" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-applicant-name" class="form-control" list="loan-applicant-options" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Phone</label>
-          <input type="text" id="filter-phone-number" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-phone-number" class="form-control" list="loan-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Amount</label>
-          <input type="text" id="filter-amount-requested" class="form-control" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-amount-requested" class="form-control" list="loan-amount-options" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Status</label>
@@ -44,11 +44,11 @@
         </div>
         <div class="form-group">
           <label>Group</label>
-          <input type="text" id="filter-group-name" class="form-control" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-group-name" class="form-control" list="loan-group-options" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
           <label>Date</label>
-          <input type="text" id="filter-created-at" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <input type="text" id="filter-created-at" class="form-control" list="loan-date-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -88,6 +88,12 @@
 <div id="view-kanban" class="view-container">
   <div class="odoo-kanban" id="kanban-board"></div>
 </div>
+
+<datalist id="loan-applicant-options"></datalist>
+<datalist id="loan-phone-options"></datalist>
+<datalist id="loan-amount-options"></datalist>
+<datalist id="loan-group-options"></datalist>
+<datalist id="loan-date-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
@@ -145,6 +151,29 @@
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    datalist.innerHTML = '';
+    (values || []).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+  }
+
+  function loadFilterOptions() {
+    fetch(`{{ url_for('reports.get_filter_options') }}?entity=loans`)
+      .then(res => res.json())
+      .then(options => {
+        populateDatalist('loan-applicant-options', options.applicant_name);
+        populateDatalist('loan-phone-options', options.phone_number);
+        populateDatalist('loan-amount-options', options.amount_requested);
+        populateDatalist('loan-group-options', options.group_name);
+        populateDatalist('loan-date-options', options.created_at);
+      })
+      .catch(err => console.error(err));
   }
 
   function renderView(viewName) {
@@ -235,6 +264,7 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     if (window.initCustomSelects) window.initCustomSelects();
+    loadFilterOptions();
     loadData();
   });
 </script>
