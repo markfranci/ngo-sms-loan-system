@@ -200,6 +200,7 @@ def get_report_data():
                 'group_name': m.group.name if m.group else 'Unassigned',
                 'registered_at': m.registered_at.strftime('%Y-%m-%d') if m.registered_at else ''
             })
+        data = _filter_records(data)
         return jsonify(data)
         
     elif entity == 'loans':
@@ -225,6 +226,7 @@ def get_report_data():
                 'status': l.status,
                 'created_at': l.created_at.strftime('%Y-%m-%d') if l.created_at else ''
             })
+        data = _filter_records(data)
         return jsonify(data)
         
     elif entity == 'groups':
@@ -242,6 +244,7 @@ def get_report_data():
                 'manager': g.manager.username if g.manager else 'Unassigned',
                 'created_at': g.created_at.strftime('%Y-%m-%d') if g.created_at else ''
             })
+        data = _filter_records(data)
         return jsonify(data)
         
     elif entity == 'surveys':
@@ -260,6 +263,7 @@ def get_report_data():
                 'creator': s.creator.username if s.creator else 'System',
                 'created_at': s.created_at.strftime('%Y-%m-%d') if s.created_at else ''
             })
+        data = _filter_records(data)
         return jsonify(data)
         
     return jsonify({'error': 'Invalid entity'}), 400
@@ -274,6 +278,33 @@ def _safe_float(value):
 
 def _format_column_label(column_name):
     return column_name.replace('_', ' ').title()
+
+
+def _get_column_filters():
+    return {
+        key.removeprefix('filter_'): value.strip()
+        for key, value in request.args.items()
+        if key.startswith('filter_') and value.strip()
+    }
+
+
+def _record_matches_column_filters(record):
+    for column, filter_value in _get_column_filters().items():
+        record_value = str(record.get(column, '')).casefold()
+        if filter_value.casefold() not in record_value:
+            return False
+    return True
+
+
+def _filter_records(records):
+    return [record for record in records if _record_matches_column_filters(record)]
+
+
+def _rows_from_records(records, selected_columns):
+    return [
+        [record.get(column, '') for column in selected_columns]
+        for record in records
+    ]
 
 
 def _build_report_filters():
@@ -306,6 +337,9 @@ def _build_report_filters():
         value = request.args.get(key)
         if value and value != 'all':
             filters.append((label, value))
+
+    for column, value in _get_column_filters().items():
+        filters.append((_format_column_label(column), value))
 
     return filters
 
@@ -478,37 +512,25 @@ def _build_custom_report_payload():
             except ValueError:
                 pass
 
-        records = query.all()
-        rows = []
-        for member in records:
-            row = []
-            for col in selected_columns:
-                if col == 'id':
-                    row.append(member.id)
-                elif col == 'full_name':
-                    row.append(member.full_name)
-                elif col == 'phone_number':
-                    row.append(member.phone_number)
-                elif col == 'id_number':
-                    row.append(member.id_number or '')
-                elif col == 'gender':
-                    row.append(member.gender or '')
-                elif col == 'location':
-                    row.append(member.location or '')
-                elif col == 'group_name':
-                    row.append(member.group.name if member.group else 'Unassigned')
-                elif col == 'registered_at':
-                    row.append(member.registered_at.strftime('%Y-%m-%d %H:%M') if member.registered_at else '')
-                elif col == 'current_survey_id':
-                    row.append(member.current_survey_id or '')
-                else:
-                    row.append('')
-            rows.append(row)
+        records = []
+        for member in query.all():
+            records.append({
+                'id': member.id,
+                'full_name': member.full_name,
+                'phone_number': member.phone_number,
+                'id_number': member.id_number or '',
+                'gender': member.gender or '',
+                'location': member.location or '',
+                'group_name': member.group.name if member.group else 'Unassigned',
+                'registered_at': member.registered_at.strftime('%Y-%m-%d %H:%M') if member.registered_at else '',
+                'current_survey_id': member.current_survey_id or '',
+            })
+        records = _filter_records(records)
 
         return (
             'Members Report',
             [_format_column_label(col) for col in selected_columns],
-            rows,
+            _rows_from_records(records, selected_columns),
             'custom_members_report',
             None,
         )
@@ -549,39 +571,26 @@ def _build_custom_report_payload():
             except ValueError:
                 pass
 
-        records = query.all()
-        rows = []
-        for loan in records:
-            row = []
-            for col in selected_columns:
-                if col == 'id':
-                    row.append(loan.id)
-                elif col == 'applicant_name':
-                    row.append(loan.member.full_name)
-                elif col == 'phone_number':
-                    row.append(loan.member.phone_number)
-                elif col == 'group_name':
-                    row.append(loan.member.group.name if loan.member.group else 'Unassigned')
-                elif col == 'amount_requested':
-                    row.append(loan.amount_requested or 0)
-                elif col == 'status':
-                    row.append(loan.status.upper())
-                elif col == 'notes':
-                    row.append(loan.notes or '')
-                elif col == 'assessed_by':
-                    row.append(loan.assessor.username if loan.assessor else 'System')
-                elif col == 'created_at':
-                    row.append(loan.created_at.strftime('%Y-%m-%d %H:%M') if loan.created_at else '')
-                elif col == 'updated_at':
-                    row.append(loan.updated_at.strftime('%Y-%m-%d %H:%M') if loan.updated_at else '')
-                else:
-                    row.append('')
-            rows.append(row)
+        records = []
+        for loan in query.all():
+            records.append({
+                'id': loan.id,
+                'applicant_name': loan.member.full_name,
+                'phone_number': loan.member.phone_number,
+                'group_name': loan.member.group.name if loan.member.group else 'Unassigned',
+                'amount_requested': loan.amount_requested or 0,
+                'status': loan.status.upper(),
+                'notes': loan.notes or '',
+                'assessed_by': loan.assessor.username if loan.assessor else 'System',
+                'created_at': loan.created_at.strftime('%Y-%m-%d %H:%M') if loan.created_at else '',
+                'updated_at': loan.updated_at.strftime('%Y-%m-%d %H:%M') if loan.updated_at else '',
+            })
+        records = _filter_records(records)
 
         return (
             'Loans Report',
             [_format_column_label(col) for col in selected_columns],
-            rows,
+            _rows_from_records(records, selected_columns),
             'custom_loans_report',
             None,
         )
@@ -591,31 +600,22 @@ def _build_custom_report_payload():
         if search:
             query = query.filter(Group.name.ilike(f"%{search}%"))
 
-        records = query.all()
-        rows = []
-        for group in records:
-            row = []
-            for col in selected_columns:
-                if col == 'id':
-                    row.append(group.id)
-                elif col == 'name':
-                    row.append(group.name)
-                elif col == 'description':
-                    row.append(group.description or 'No description')
-                elif col == 'member_count':
-                    row.append(len(group.members))
-                elif col == 'manager':
-                    row.append(group.manager.username if group.manager else 'Unassigned')
-                elif col == 'created_at':
-                    row.append(group.created_at.strftime('%Y-%m-%d %H:%M') if group.created_at else '')
-                else:
-                    row.append('')
-            rows.append(row)
+        records = []
+        for group in query.all():
+            records.append({
+                'id': group.id,
+                'name': group.name,
+                'description': group.description or 'No description',
+                'member_count': len(group.members),
+                'manager': group.manager.username if group.manager else 'Unassigned',
+                'created_at': group.created_at.strftime('%Y-%m-%d %H:%M') if group.created_at else '',
+            })
+        records = _filter_records(records)
 
         return (
             'Groups Report',
             [_format_column_label(col) for col in selected_columns],
-            rows,
+            _rows_from_records(records, selected_columns),
             'custom_groups_report',
             None,
         )
@@ -625,31 +625,22 @@ def _build_custom_report_payload():
         if search:
             query = query.filter(SurveyTemplate.title.ilike(f"%{search}%"))
 
-        records = query.all()
-        rows = []
-        for survey in records:
-            row = []
-            for col in selected_columns:
-                if col == 'id':
-                    row.append(survey.id)
-                elif col == 'title':
-                    row.append(survey.title)
-                elif col == 'description':
-                    row.append(survey.description or 'No description')
-                elif col == 'question_count':
-                    row.append(len(survey.questions))
-                elif col == 'creator':
-                    row.append(survey.creator.username if survey.creator else 'System')
-                elif col == 'created_at':
-                    row.append(survey.created_at.strftime('%Y-%m-%d %H:%M') if survey.created_at else '')
-                else:
-                    row.append('')
-            rows.append(row)
+        records = []
+        for survey in query.all():
+            records.append({
+                'id': survey.id,
+                'title': survey.title,
+                'description': survey.description or 'No description',
+                'question_count': len(survey.questions),
+                'creator': survey.creator.username if survey.creator else 'System',
+                'created_at': survey.created_at.strftime('%Y-%m-%d %H:%M') if survey.created_at else '',
+            })
+        records = _filter_records(records)
 
         return (
             'Surveys Report',
             [_format_column_label(col) for col in selected_columns],
-            rows,
+            _rows_from_records(records, selected_columns),
             'custom_surveys_report',
             None,
         )

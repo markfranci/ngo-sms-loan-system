@@ -41,6 +41,14 @@
         
         <!-- Member Specific -->
         <div class="form-group member-filter">
+          <label>Name</label>
+          <input type="text" id="filter-full-name" class="form-control" placeholder="Member name" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group member-filter">
+          <label>Phone</label>
+          <input type="text" id="filter-member-phone" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group member-filter">
           <label>Gender</label>
           <select id="filter-gender" class="form-control" onchange="loadData()">
             <option value="all">All</option>
@@ -52,8 +60,24 @@
           <label>Location</label>
           <input type="text" id="filter-location" class="form-control" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
+        <div class="form-group member-filter">
+          <label>Registered</label>
+          <input type="text" id="filter-member-registered" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
 
         <!-- Loan Specific -->
+        <div class="form-group loan-filter" style="display:none;">
+          <label>Applicant</label>
+          <input type="text" id="filter-applicant-name" class="form-control" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group loan-filter" style="display:none;">
+          <label>Phone</label>
+          <input type="text" id="filter-loan-phone" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group loan-filter" style="display:none;">
+          <label>Amount</label>
+          <input type="text" id="filter-amount-requested" class="form-control" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
         <div class="form-group loan-filter" style="display:none;">
           <label>Status</label>
           <select id="filter-status" class="form-control" onchange="loadData()">
@@ -62,6 +86,10 @@
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
           </select>
+        </div>
+        <div class="form-group loan-filter" style="display:none;">
+          <label>Date</label>
+          <input type="text" id="filter-loan-created" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -157,8 +185,20 @@
     if (entity === 'members') {
       params += `&gender=${document.getElementById('filter-gender').value}`;
       params += `&location=${encodeURIComponent(document.getElementById('filter-location').value)}`;
+      params += `&filter_full_name=${encodeURIComponent(document.getElementById('filter-full-name').value)}`;
+      params += `&filter_phone_number=${encodeURIComponent(document.getElementById('filter-member-phone').value)}`;
+      params += `&filter_gender=${encodeURIComponent(document.getElementById('filter-gender').value === 'all' ? '' : document.getElementById('filter-gender').value)}`;
+      params += `&filter_location=${encodeURIComponent(document.getElementById('filter-location').value)}`;
+      params += `&filter_group_name=${encodeURIComponent(document.getElementById('filter-group').selectedOptions[0].textContent === 'All Groups' ? '' : document.getElementById('filter-group').selectedOptions[0].textContent)}`;
+      params += `&filter_registered_at=${encodeURIComponent(document.getElementById('filter-member-registered').value)}`;
     } else {
       params += `&status=${document.getElementById('filter-status').value}`;
+      params += `&filter_applicant_name=${encodeURIComponent(document.getElementById('filter-applicant-name').value)}`;
+      params += `&filter_phone_number=${encodeURIComponent(document.getElementById('filter-loan-phone').value)}`;
+      params += `&filter_amount_requested=${encodeURIComponent(document.getElementById('filter-amount-requested').value)}`;
+      params += `&filter_status=${encodeURIComponent(document.getElementById('filter-status').value === 'all' ? '' : document.getElementById('filter-status').value)}`;
+      params += `&filter_group_name=${encodeURIComponent(document.getElementById('filter-group').selectedOptions[0].textContent === 'All Groups' ? '' : document.getElementById('filter-group').selectedOptions[0].textContent)}`;
+      params += `&filter_created_at=${encodeURIComponent(document.getElementById('filter-loan-created').value)}`;
     }
     return params;
   }

@@ -22,6 +22,18 @@
     <div class="odoo-filter-panel" id="filter-panel">
       <div class="filter-grid">
         <div class="form-group">
+          <label>Applicant</label>
+          <input type="text" id="filter-applicant-name" class="form-control" placeholder="Applicant name" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" id="filter-phone-number" class="form-control" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="text" id="filter-amount-requested" class="form-control" placeholder="Requested amount" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
           <label>Status</label>
           <select id="filter-status" class="form-control" onchange="loadData()">
             <option value="all">All</option>
@@ -29,6 +41,14 @@
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Group</label>
+          <input type="text" id="filter-group-name" class="form-control" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="text" id="filter-created-at" class="form-control" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -103,8 +123,23 @@
   function getFilterParamsString() {
     const search = document.getElementById('search-input').value;
     const status = document.getElementById('filter-status').value;
+    const applicantName = document.getElementById('filter-applicant-name').value;
+    const phoneNumber = document.getElementById('filter-phone-number').value;
+    const amountRequested = document.getElementById('filter-amount-requested').value;
+    const groupName = document.getElementById('filter-group-name').value;
+    const createdAt = document.getElementById('filter-created-at').value;
 
-    return `entity=loans&search=${encodeURIComponent(search)}&status=${status}`;
+    return [
+      `entity=loans`,
+      `search=${encodeURIComponent(search)}`,
+      `status=${status}`,
+      `filter_applicant_name=${encodeURIComponent(applicantName)}`,
+      `filter_phone_number=${encodeURIComponent(phoneNumber)}`,
+      `filter_amount_requested=${encodeURIComponent(amountRequested)}`,
+      `filter_status=${encodeURIComponent(status === 'all' ? '' : status)}`,
+      `filter_group_name=${encodeURIComponent(groupName)}`,
+      `filter_created_at=${encodeURIComponent(createdAt)}`
+    ].join('&');
   }
 
   function getExportUrl(format) {
