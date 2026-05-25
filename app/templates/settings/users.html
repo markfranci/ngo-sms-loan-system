@@ -94,10 +94,10 @@
               {% endif %}
             </td>
             <td>
-              {% if user.invitation_token %}
-                <span class="badge badge-warning">Invited</span>
-              {% else %}
+              {% if user.invitation_accepted_at or not user.invitation_token %}
                 <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-warning">Invited</span>
               {% endif %}
             </td>
             <td>

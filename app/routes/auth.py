@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
 from app import db
+from datetime import datetime
 
 # ----------------------------------------------------------------
 # Create the auth blueprint
@@ -40,6 +41,11 @@ def login():
 
         # Check if we found a user AND the password matches
         if user and user.check_password(password):
+            if user.invitation_token:
+                user.invitation_token = None
+                user.invitation_accepted_at = user.invitation_accepted_at or datetime.utcnow()
+                db.session.commit()
+
             # Log them in — Flask-Login saves their info in the session
             # remember=True means they stay logged in even if they close the browser
             login_user(user, remember=True)
