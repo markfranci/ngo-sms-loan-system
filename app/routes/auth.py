@@ -90,7 +90,6 @@ def accept_invitation(token):
         user.invitation_token = None
         user.invitation_accepted_at = datetime.utcnow()
         db.session.commit()
-        db.session.refresh(user)
         login_user(user, remember=True)
         flash('Your account is active. You are now signed in.', 'success')
         return redirect(url_for('main.dashboard'))
