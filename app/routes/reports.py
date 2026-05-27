@@ -87,7 +87,7 @@ def export_members():
             m.phone_number, 
             m.id_number or '', 
             m.gender or '', 
-            m.location or '', 
+            m.display_location or '',
             group_name, 
             m.registered_at.strftime('%Y-%m-%d %H:%M')
         ])
@@ -179,25 +179,29 @@ def get_report_data():
             query = query.filter(Member.group_id == group_id)
         if gender and gender != 'all':
             query = query.filter(Member.gender.ilike(gender))
-        if location:
-            query = query.filter(Member.location.ilike(f"%{location}%"))
-        if search:
-            query = query.filter(db.or_(
-                Member.full_name.ilike(f"%{search}%"),
-                Member.phone_number.ilike(f"%{search}%"),
-                Member.id_number.ilike(f"%{search}%")
-            ))
         query = _apply_date_range(query, Member.registered_at)
             
         data = []
         for m in query.all():
+            display_location = m.display_location or 'Unknown'
+            if location and location.casefold() not in display_location.casefold():
+                continue
+            if search:
+                searchable_text = ' '.join([
+                    m.full_name or '',
+                    m.phone_number or '',
+                    m.id_number or '',
+                    display_location,
+                ]).casefold()
+                if search.casefold() not in searchable_text:
+                    continue
             data.append({
                 'id': m.id,
                 'full_name': m.full_name,
                 'phone_number': m.phone_number,
                 'id_number': m.id_number or '',
                 'gender': m.gender or 'Unknown',
-                'location': m.location or 'Unknown',
+                'location': display_location,
                 'group_name': m.group.name if m.group else 'Unassigned',
                 'registered_at': m.registered_at.strftime('%Y-%m-%d') if m.registered_at else ''
             })
@@ -417,7 +421,7 @@ def get_filter_options():
                 'phone_number': member.phone_number,
                 'id_number': member.id_number or '',
                 'gender': member.gender or 'Unknown',
-                'location': member.location or 'Unknown',
+                'location': member.display_location or 'Unknown',
                 'group_name': member.group.name if member.group else 'Unassigned',
                 'registered_at': member.registered_at.strftime('%Y-%m-%d') if member.registered_at else '',
             }
@@ -585,30 +589,33 @@ def _build_custom_report_payload():
             query = query.filter(Member.group_id == group_id)
         if gender and gender != 'all':
             query = query.filter(Member.gender.ilike(gender))
-        if location:
-            query = query.filter(Member.location.ilike(f"%{location}%"))
         if phone_number:
             query = query.filter(Member.phone_number.ilike(f"%{phone_number}%"))
         if id_number:
             query = query.filter(Member.id_number.ilike(f"%{id_number}%"))
-        if search:
-            query = query.filter(db.or_(
-                Member.full_name.ilike(f"%{search}%"),
-                Member.phone_number.ilike(f"%{search}%"),
-                Member.id_number.ilike(f"%{search}%")
-            ))
-
         query = _apply_date_range(query, Member.registered_at)
 
         records = []
         for member in query.all():
+            display_location = member.display_location or ''
+            if location and location.casefold() not in display_location.casefold():
+                continue
+            if search:
+                searchable_text = ' '.join([
+                    member.full_name or '',
+                    member.phone_number or '',
+                    member.id_number or '',
+                    display_location,
+                ]).casefold()
+                if search.casefold() not in searchable_text:
+                    continue
             records.append({
                 'id': member.id,
                 'full_name': member.full_name,
                 'phone_number': member.phone_number,
                 'id_number': member.id_number or '',
                 'gender': member.gender or '',
-                'location': member.location or '',
+                'location': display_location,
                 'group_name': member.group.name if member.group else 'Unassigned',
                 'registered_at': member.registered_at.strftime('%Y-%m-%d %H:%M') if member.registered_at else '',
                 'current_survey_id': member.current_survey_id or '',

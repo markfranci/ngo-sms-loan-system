@@ -7,7 +7,7 @@ from app.models.group import Group
 from app.models.loan import Loan
 from app.models.survey import SurveyResponse
 from app import db
-from app.validators import is_valid_national_id, is_valid_person_name, is_valid_phone_number, title_case_name
+from app.validators import clean_spaces, is_valid_label, is_valid_national_id, is_valid_person_name, is_valid_phone_number, title_case_name
 from flask import request, flash, redirect, url_for
 from app.routes.loans import delete_loan_record
 
@@ -59,6 +59,7 @@ def update(member_id):
     phone_number = request.form.get('phone_number', '').strip()
     id_number = request.form.get('id_number', '').strip() or None
     gender = request.form.get('gender', '').strip() or None
+    location = clean_spaces(request.form.get('location', '')) or None
     group_id = request.form.get('group_id')
 
     if not full_name or not phone_number:
@@ -79,6 +80,10 @@ def update(member_id):
 
     if id_number and not is_valid_national_id(id_number):
         flash('ID number must contain 5 to 20 digits only.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if location and not is_valid_label(location, min_length=2, max_length=100):
+        flash('Location must contain meaningful text using letters, numbers, and standard punctuation.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
     group_id_int = None
@@ -113,6 +118,7 @@ def update(member_id):
     member.phone_number = phone_number
     member.id_number = id_number
     member.gender = gender
+    member.location = location
     member.group_id = group_id_int
 
     db.session.commit()

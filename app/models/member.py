@@ -62,6 +62,39 @@ class Member(db.Model):
     # One member can have many loan assessments over time
     loans = db.relationship('Loan', back_populates='member')
 
+    @property
+    def display_location(self):
+        if self.location:
+            return self.location
+
+        latest_loans = sorted(
+            self.loans,
+            key=lambda loan: loan.created_at or datetime.min,
+            reverse=True,
+        )
+        for loan in latest_loans:
+            details = getattr(loan, 'details', None)
+            if not details:
+                continue
+
+            location_parts = [
+                details.ward,
+                details.sub_county,
+                details.county,
+            ]
+            location = ', '.join(
+                part.strip()
+                for part in location_parts
+                if part and part.strip()
+            )
+            if location:
+                return location
+
+            if details.business_location:
+                return details.business_location.strip()
+
+        return ''
+
     def __repr__(self):
         return f'<Member {self.full_name} ({self.phone_number})>'
 

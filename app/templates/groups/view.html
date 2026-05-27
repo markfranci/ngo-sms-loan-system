@@ -70,7 +70,7 @@
           <tr>
             <td class="td-primary">{{ member.full_name }}</td>
             <td class="td-mono">{{ member.phone_number }}</td>
-            <td>{{ member.location or 'N/A' }}</td>
+            <td>{{ member.display_location or 'N/A' }}</td>
             <td style="text-align:right;">
               <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-sm btn-outline-primary">
                 View Profile <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
