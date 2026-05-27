@@ -8,4 +8,4 @@ from app.models.group import Group
 from app.models.member import Member
 from app.models.sms_log import SMSLog
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
-from app.models.loan import Loan
+from app.models.loan import Loan, LoanDocument, LoanRepayment

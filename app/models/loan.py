@@ -31,10 +31,11 @@ class Loan(db.Model):
     score = db.Column(db.Float, nullable=True)
 
     # The final loan decision:
-    # 'pending'  = assessment is not yet complete
+    # 'submitted' = assessment was submitted by staff and awaits admin review
     # 'approved' = member qualifies for the loan
     # 'rejected' = member does not qualify
-    status = db.Column(db.String(20), nullable=False, default='pending')
+    # 'pending' is kept as a legacy value for older records.
+    status = db.Column(db.String(20), nullable=False, default='submitted')
 
     # Any extra notes or remarks written by the staff member
     # For example: "Member has stable income but high existing debt"
@@ -45,7 +46,7 @@ class Loan(db.Model):
 
     # When this assessment was last updated
     # onupdate=datetime.utcnow means this automatically updates
-    # every time the row is changed (e.g. status changed from pending to approved)
+    # every time the row is changed (e.g. status changed from submitted to approved)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
@@ -72,7 +73,19 @@ class Loan(db.Model):
         return self.status == 'rejected'
 
     def is_pending(self):
-        return self.status == 'pending'
+        return self.status in ('pending', 'submitted')
+
+    @property
+    def total_repaid(self):
+        return sum(repayment.amount or 0 for repayment in self.repayments)
+
+    @property
+    def outstanding_balance(self):
+        return max((self.amount_requested or 0) - self.total_repaid, 0)
+
+    @property
+    def is_cleared(self):
+        return self.status == 'approved' and self.outstanding_balance <= 0
 
     def __repr__(self):
         return f'<Loan member={self.member_id} status={self.status}>'
@@ -164,3 +177,34 @@ class LoanApprovalSignoff(db.Model):
     
     recommending_officer = db.relationship('User', foreign_keys=[recommending_officer_id])
     approving_officer = db.relationship('User', foreign_keys=[approving_officer_id])
+
+
+class LoanDocument(db.Model):
+    __tablename__ = 'loan_documents'
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    document_type = db.Column(db.String(80), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    loan = db.relationship('Loan', backref=db.backref('documents', lazy=True, cascade="all, delete-orphan"))
+    uploader = db.relationship('User', foreign_keys=[uploaded_by])
+
+
+class LoanRepayment(db.Model):
+    __tablename__ = 'loan_repayments'
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=False)
+    posted_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    amount = db.Column(db.Float, nullable=False)
+    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    reference = db.Column(db.String(120), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    loan = db.relationship('Loan', backref=db.backref('repayments', lazy=True, cascade="all, delete-orphan"))
+    poster = db.relationship('User', foreign_keys=[posted_by])

@@ -60,10 +60,11 @@
       <button type="button" class="tab-btn" onclick="openTab(event, 'tab-income')">Income Statement</button>
       <button type="button" class="tab-btn" onclick="openTab(event, 'tab-inventory')">Inventory</button>
       <button type="button" class="tab-btn" onclick="openTab(event, 'tab-cashflow')">Cash Flow</button>
+      <button type="button" class="tab-btn" onclick="openTab(event, 'tab-documents')">Verification Documents</button>
       <button type="button" class="tab-btn" onclick="openTab(event, 'tab-approval')">Recommendation</button>
     </div>
 
-    <form method="POST" id="loan-assessment-form" novalidate>
+    <form method="POST" id="loan-assessment-form" enctype="multipart/form-data" novalidate>
       
       <!-- TAB: APPLICANT DETAILS -->
       <div id="tab-applicant" class="tab-content active">
@@ -232,6 +233,46 @@
         
         <div style="margin-top:2rem;display:flex;justify-content:space-between;">
           <button type="button" class="btn btn-ghost" onclick="nextTab('tab-inventory')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-documents')">Next: Documents <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- TAB: VERIFICATION DOCUMENTS -->
+      <div id="tab-documents" class="tab-content">
+        <h3 class="glass-card-title mb-3">Verification Documents</h3>
+        <div class="info-alert mb-3">
+          <i data-lucide="info"></i>
+          <div>
+            Upload PDF, PNG, JPG, or JPEG documents. All documents below are required before submission.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">National ID Copy</label>
+          <input type="file" name="national_id" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Verification Document</label>
+          <input type="file" name="business_verification" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Group or Guarantor Confirmation</label>
+          <input type="file" name="group_confirmation" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Balance Sheet</label>
+          <input type="file" name="balance_sheet" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profit and Loss Statement</label>
+          <input type="file" name="profit_and_loss" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cash Flow Statement</label>
+          <input type="file" name="cash_flow_statement" class="form-input" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+
+        <div style="margin-top:2rem;display:flex;justify-content:space-between;">
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-cashflow')"><i data-lucide="arrow-left"></i> Previous</button>
           <button type="button" class="btn btn-outline-primary" onclick="nextTab('tab-approval')">Next: Recommendation <i data-lucide="arrow-right"></i></button>
         </div>
       </div>
@@ -263,11 +304,11 @@
         </div>
 
         <div class="form-actions" style="margin-top:2rem;display:flex;justify-content:space-between;">
-          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-cashflow')"><i data-lucide="arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-ghost" onclick="nextTab('tab-documents')"><i data-lucide="arrow-left"></i> Previous</button>
           <div>
             <a href="{{ url_for('members.profile', member_id=member.id) }}" class="btn btn-ghost" style="margin-right:10px;">Cancel</a>
             <button type="submit" class="btn btn-primary" id="btn-submit-assessment">
-              <i data-lucide="save" style="width:16px;height:16px;"></i> Save Assessment
+              <i data-lucide="send" style="width:16px;height:16px;"></i> Submit for Approval
             </button>
           </div>
         </div>

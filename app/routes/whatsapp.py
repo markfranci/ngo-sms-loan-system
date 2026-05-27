@@ -1,3 +1,5 @@
+from html import escape
+
 from flask import Blueprint, request, jsonify, Response
 from app import db
 from app.models.sms_log import SMSLog
@@ -20,14 +22,24 @@ def _option_label(option):
 def _format_multiple_choice_options(options):
     return '\n'.join(_split_multiple_choice_options(options))
 
+
+def _clean_whatsapp_phone(sender_id):
+    phone = sender_id.replace('whatsapp:', '').strip()
+    if not re.fullmatch(r'\+?\d{7,15}', phone):
+        return None
+    return phone
+
 @whatsapp.route('/incoming', methods=['POST'])
 def incoming_message():
     sender_id = request.form.get('From', '')
-    clean_phone = sender_id.replace('whatsapp:', '')
+    clean_phone = _clean_whatsapp_phone(sender_id)
     message_body = request.form.get('Body', '').strip()
     
-    if not sender_id or not message_body:
+    if not sender_id or not clean_phone or not message_body:
         return jsonify({'error': 'Missing data'}), 400
+
+    if len(message_body) > 1000:
+        return jsonify({'error': 'Message too long'}), 400
 
     member = Member.query.filter_by(phone_number=clean_phone).first()
     
@@ -61,7 +73,7 @@ def incoming_message():
         else:
             if session.step == 1:
                 # Validation: Name must be at least 2 characters and not just numbers
-                if len(message_body) < 2 or message_body.replace(' ', '').isdigit():
+                if len(message_body) < 2 or len(message_body) > 100 or message_body.replace(' ', '').isdigit():
                     reply_text = "Please reply with a valid Full Name (letters only)."
                 else:
                     session.full_name = message_body
@@ -71,8 +83,11 @@ def incoming_message():
             elif session.step == 2:
                 # Validation: ID must be digits and reasonable length
                 clean_id = message_body.replace(' ', '').strip()
-                if not clean_id.isdigit() or len(clean_id) < 5:
+                existing_member = Member.query.filter_by(id_number=clean_id).first()
+                if not clean_id.isdigit() or len(clean_id) < 5 or len(clean_id) > 20:
                     reply_text = "Please reply with a valid National ID Number (Numbers only, minimum 5 digits)."
+                elif existing_member:
+                    reply_text = "That National ID Number is already registered. Please contact support for assistance."
                 else:
                     session.id_number = clean_id
                     session.step = 3
@@ -249,14 +264,14 @@ def incoming_message():
                          reply_text += f"\n\n{_format_multiple_choice_options(first_question.options)}"
                 else:
                     reply_text = "That survey does not exist or has no questions."
-            except:
+            except (IndexError, ValueError):
                 reply_text = "Invalid format. Send 'START [ID]' to begin a survey."
         else:
              reply_text = f"Hello {member.full_name}, we received your message! Reply 'START 1' to take an assessment."
 
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
     <Response>
-        <Message>{reply_text}</Message>
+        <Message>{escape(reply_text)}</Message>
     </Response>
     """
     return Response(twiml_response, mimetype='text/xml')

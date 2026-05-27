@@ -76,6 +76,59 @@
       </div>
     </div>
 
+    <!-- Loan Statements Card -->
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <h3 class="glass-card-title">Loan Statements</h3>
+      </div>
+      {% if member.loans %}
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Loan</th>
+                <th>Status</th>
+                <th>Outstanding</th>
+                <th>Downloads</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in member.loans %}
+              <tr>
+                <td>
+                  <div class="td-primary">Assessment #{{ loan.id }}</div>
+                  <div class="text-muted" style="font-size:0.8rem;">KSh {{ "{:,.2f}".format(loan.amount_requested or 0) }}</div>
+                </td>
+                <td>
+                  {% if loan.status == 'approved' %}
+                    <span class="badge badge-success">Approved</span>
+                  {% elif loan.status == 'rejected' %}
+                    <span class="badge badge-danger">Rejected</span>
+                  {% else %}
+                    <span class="badge badge-warning">{{ loan.status|capitalize }}</span>
+                  {% endif %}
+                </td>
+                <td class="td-mono">KSh {{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.loan_statement', loan_id=loan.id) }}">
+                    <i data-lucide="file-text" style="width:14px;height:14px;"></i> Statement
+                  </a>
+                  {% if loan.is_cleared %}
+                  <a class="btn btn-sm btn-success" href="{{ url_for('loans.clearance_certificate', loan_id=loan.id) }}">
+                    <i data-lucide="badge-check" style="width:14px;height:14px;"></i> Clearance
+                  </a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted" style="font-style:italic;">No loan assessments yet.</p>
+      {% endif %}
+    </div>
+
     <!-- Survey Responses Card -->
     <div class="glass-card">
       <div class="glass-card-header">

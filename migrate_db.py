@@ -22,6 +22,12 @@ with app.app_context():
                 db.session.execute(text(statement))
         db.session.commit()
 
+    if 'loans' in inspector.get_table_names():
+        db.session.execute(text(
+            "UPDATE loans SET status = 'submitted' WHERE status = 'pending'"
+        ))
+        db.session.commit()
+
     from app.loan_assessment_surveys import ensure_default_loan_assessment_templates
 
     ensure_default_loan_assessment_templates()

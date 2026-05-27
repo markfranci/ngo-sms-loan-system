@@ -31,3 +31,9 @@ class Config:
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+
+    UPLOAD_FOLDER = os.getenv(
+        'UPLOAD_FOLDER',
+        os.path.join(os.path.dirname(__file__), 'uploads')
+    )
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024

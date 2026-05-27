@@ -1,7 +1,18 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import os
+import uuid
+from datetime import datetime
+from html import escape
+
+from flask import Blueprint, current_app, render_template, request, redirect, send_from_directory, url_for, flash
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from werkzeug.utils import secure_filename
+
 from app.models.loan import (
     Loan, LoanAssessmentDetails, LoanFinancialSnapshot, 
-    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff
+    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff, LoanDocument, LoanRepayment
 )
 from app.models.member import Member
 from app.loan_assessment_surveys import (
@@ -11,8 +22,90 @@ from app.loan_assessment_surveys import (
 from app.decorators import admin_required
 from app import db
 from flask_login import current_user, login_required
+from app.whatsapp_service import WhatsAppNotConfiguredError, send_whatsapp_message
 
 loans_bp = Blueprint('loans', __name__, url_prefix='/loans')
+
+ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+REQUIRED_DOCUMENTS = {
+    'national_id': 'National ID Copy',
+    'business_verification': 'Business Verification Document',
+    'group_confirmation': 'Group or Guarantor Confirmation',
+    'balance_sheet': 'Balance Sheet',
+    'profit_and_loss': 'Profit and Loss Statement',
+    'cash_flow_statement': 'Cash Flow Statement',
+}
+
+
+def _allowed_document(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
+
+
+def _loan_document_dir():
+    path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'loan_documents')
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _save_loan_documents(loan, files_by_type):
+    for document_type, file in files_by_type.items():
+        extension = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+        stored_filename = f'loan-{loan.id}-{document_type}-{uuid.uuid4().hex}.{extension}'
+        file.save(os.path.join(_loan_document_dir(), stored_filename))
+        db.session.add(LoanDocument(
+            loan_id=loan.id,
+            uploaded_by=current_user.id,
+            document_type=document_type,
+            original_filename=secure_filename(file.filename),
+            stored_filename=stored_filename,
+        ))
+
+
+def _validate_required_documents(files):
+    valid_files = {}
+    for document_type, label in REQUIRED_DOCUMENTS.items():
+        file = files.get(document_type)
+        if not file or not file.filename:
+            return None, f'{label} is required.'
+        if not _allowed_document(file.filename):
+            return None, f'{label} must be a PDF, PNG, JPG, or JPEG file.'
+        valid_files[document_type] = file
+    return valid_files, None
+
+
+def _notify_loan_decision(loan):
+    if loan.status == 'approved':
+        message = (
+            f"Hello {loan.member.full_name}, your loan application for "
+            f"KSh {loan.amount_requested:,.2f} has been approved."
+        )
+    elif loan.status == 'rejected':
+        message = (
+            f"Hello {loan.member.full_name}, your loan application for "
+            f"KSh {loan.amount_requested:,.2f} was not approved at this time."
+        )
+    else:
+        return
+
+    send_whatsapp_message(loan.member, message)
+
+
+def _build_pdf_response(filename, title, story):
+    from io import BytesIO
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    content = [Paragraph(title, styles['Title']), Spacer(1, 12), *story]
+    doc.build(content)
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    from flask import make_response
+    response = make_response(pdf)
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    response.headers['Content-Type'] = 'application/pdf'
+    return response
 
 
 def _blank_inventory_data():
@@ -88,6 +181,41 @@ def _missing_required_assessment_fields(form):
         if not str(form.get(field_name, '')).strip()
     ]
 
+
+def _parse_required_float(form, field_name, label, minimum=0):
+    raw_value = str(form.get(field_name, '')).strip().replace(',', '')
+    try:
+        value = float(raw_value)
+    except ValueError:
+        return None, f'{label} must be a valid number.'
+    if value < minimum:
+        return None, f'{label} must be at least {minimum}.'
+    return value, None
+
+
+def _parse_required_int(form, field_name, label, minimum=0):
+    raw_value = str(form.get(field_name, '')).strip()
+    try:
+        value = int(raw_value)
+    except ValueError:
+        return None, f'{label} must be a valid whole number.'
+    if value < minimum:
+        return None, f'{label} must be at least {minimum}.'
+    return value, None
+
+
+def _parse_optional_float(form, field_name, label, minimum=0):
+    raw_value = str(form.get(field_name, '')).strip().replace(',', '')
+    if raw_value == '':
+        return 0.0, None
+    try:
+        value = float(raw_value)
+    except ValueError:
+        return None, f'{label} must be a valid number.'
+    if value < minimum:
+        return None, f'{label} must be at least {minimum}.'
+    return value, None
+
 @loans_bp.route('/')
 @login_required
 def index():
@@ -112,39 +240,73 @@ def new(member_id):
     assessment_cash_flow = _blank_cash_flow_data()
 
     if request.method == 'POST':
+        valid_documents, document_error = _validate_required_documents(request.files)
+        if document_error:
+            flash(document_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
         missing_fields = _missing_required_assessment_fields(request.form)
         if missing_fields:
             flash(f'Please complete required assessment fields: {", ".join(missing_fields)}.', 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
 
-        amount_requested = request.form.get('amount_requested', type=float) or 0.0
-        
-        if amount_requested <= 0:
-            flash('Amount requested must be greater than zero.', 'danger')
+        amount_requested, number_error = _parse_required_float(request.form, 'amount_requested', 'Amount requested', 1)
+        if number_error:
+            flash(number_error, 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
 
-        loan_term_months = request.form.get('loan_term_months', type=int) or 0
-        monthly_instalment = request.form.get('monthly_instalment', type=float) or 0.0
-
-        if loan_term_months <= 0:
-            flash('Loan term must be greater than zero.', 'danger')
+        loan_term_months, number_error = _parse_required_int(request.form, 'loan_term_months', 'Loan term', 1)
+        if number_error:
+            flash(number_error, 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
 
-        if monthly_instalment <= 0:
-            flash('Proposed monthly instalment must be greater than zero.', 'danger')
+        monthly_instalment, number_error = _parse_required_float(request.form, 'monthly_instalment', 'Proposed monthly instalment', 1)
+        if number_error:
+            flash(number_error, 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
             
         notes = request.form.get('notes', '')
         
-        disposable_income = request.form.get('disposable_income', type=float) or 0.0
-        existing_debts = request.form.get('liabilities', type=float) or 0.0
-        business_assets = request.form.get('current_assets', type=float) or 0.0
+        disposable_income, number_error = _parse_required_float(request.form, 'disposable_income', 'Disposable income', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        existing_debts, number_error = _parse_required_float(request.form, 'liabilities', 'Existing debts', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        business_assets, number_error = _parse_required_float(request.form, 'current_assets', 'Current assets', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        fixed_assets, number_error = _parse_required_float(request.form, 'fixed_assets', 'Fixed assets', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        revenue, number_error = _parse_required_float(request.form, 'revenue', 'Revenue', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        business_expenses, number_error = _parse_required_float(request.form, 'business_expenses', 'Business expenses', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        family_expenses, number_error = _parse_required_float(request.form, 'family_expenses', 'Family expenses', 0)
+        if number_error:
+            flash(number_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
         
         loan = Loan(
             member_id=member.id,
             assessed_by=current_user.id,
             amount_requested=amount_requested,
-            status='pending',
+            status='submitted',
             notes=notes
         )
         db.session.add(loan)
@@ -171,12 +333,12 @@ def new(member_id):
         # Save Financial Snapshot
         financials = LoanFinancialSnapshot(
             loan_id=loan.id,
-            fixed_assets=request.form.get('fixed_assets', type=float) or 0.0,
+            fixed_assets=fixed_assets,
             current_assets=business_assets,
             liabilities=existing_debts,
-            revenue=request.form.get('revenue', type=float) or 0.0,
-            business_expenses=request.form.get('business_expenses', type=float) or 0.0,
-            family_expenses=request.form.get('family_expenses', type=float) or 0.0,
+            revenue=revenue,
+            business_expenses=business_expenses,
+            family_expenses=family_expenses,
             disposable_income=disposable_income
         )
         db.session.add(financials)
@@ -188,8 +350,15 @@ def new(member_id):
         
         for i in range(len(item_names)):
             if item_names[i].strip():
-                qty = int(quantities[i]) if i < len(quantities) and quantities[i] else 0
-                price = float(unit_prices[i]) if i < len(unit_prices) and unit_prices[i] else 0.0
+                try:
+                    qty = int(quantities[i]) if i < len(quantities) and quantities[i] else 0
+                    price = float(unit_prices[i]) if i < len(unit_prices) and unit_prices[i] else 0.0
+                except ValueError:
+                    flash('Inventory quantities and unit prices must be valid numbers.', 'danger')
+                    return redirect(url_for('loans.new', member_id=member.id))
+                if qty < 0 or price < 0:
+                    flash('Inventory quantities and unit prices cannot be negative.', 'danger')
+                    return redirect(url_for('loans.new', member_id=member.id))
                 inv = LoanInventoryItem(
                     loan_id=loan.id,
                     item_name=item_names[i],
@@ -201,8 +370,14 @@ def new(member_id):
 
         # Process Cash Flow
         for m in range(1, 7):
-            inflow = request.form.get(f'cash_inflow_{m}', type=float) or 0.0
-            outflow = request.form.get(f'cash_outflow_{m}', type=float) or 0.0
+            inflow, number_error = _parse_optional_float(request.form, f'cash_inflow_{m}', f'Month {m} cash inflow', 0)
+            if number_error:
+                flash(number_error, 'danger')
+                return redirect(url_for('loans.new', member_id=member.id))
+            outflow, number_error = _parse_optional_float(request.form, f'cash_outflow_{m}', f'Month {m} cash outflow', 0)
+            if number_error:
+                flash(number_error, 'danger')
+                return redirect(url_for('loans.new', member_id=member.id))
             cf = LoanCashFlowMonth(
                 loan_id=loan.id,
                 month_index=m,
@@ -213,9 +388,10 @@ def new(member_id):
             )
             db.session.add(cf)
 
+        _save_loan_documents(loan, valid_documents)
         db.session.commit()
         
-        flash('Loan assessment created successfully. Review it and make the final decision manually.', 'success')
+        flash('Loan assessment submitted successfully for admin approval.', 'success')
         return redirect(url_for('loans.view', loan_id=loan.id))
         
     return render_template(
@@ -229,6 +405,13 @@ def new(member_id):
 
 def delete_loan_record(loan):
     LoanApprovalSignoff.query.filter_by(loan_id=loan.id).delete()
+    LoanRepayment.query.filter_by(loan_id=loan.id).delete()
+    for document in LoanDocument.query.filter_by(loan_id=loan.id).all():
+        try:
+            os.remove(os.path.join(_loan_document_dir(), document.stored_filename))
+        except OSError:
+            pass
+        db.session.delete(document)
     LoanCashFlowMonth.query.filter_by(loan_id=loan.id).delete()
     LoanInventoryItem.query.filter_by(loan_id=loan.id).delete()
     LoanFinancialSnapshot.query.filter_by(loan_id=loan.id).delete()
@@ -243,22 +426,53 @@ def update_status(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     status = request.form.get('status')
     
-    if status in ['approved', 'rejected', 'pending']:
+    if loan.status not in ['submitted', 'pending'] and status in ['approved', 'rejected']:
+        flash('Only submitted assessments can be approved or rejected.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if status in ['approved', 'rejected']:
+        if not loan.documents:
+            flash('Verification documents are required before making a decision.', 'danger')
+            return redirect(url_for('loans.view', loan_id=loan.id))
+
+        decision_notes = request.form.get('approval_notes', '').strip()
+        if not decision_notes:
+            flash('Decision notes are required before confirming approval or rejection.', 'danger')
+            return redirect(url_for('loans.view', loan_id=loan.id))
+
         loan.status = status
         
-        # Save Signoff Details
+        signoff = LoanApprovalSignoff.query.filter_by(loan_id=loan.id).first()
+        if not signoff:
+            signoff = LoanApprovalSignoff(loan_id=loan.id)
+            db.session.add(signoff)
         if status == 'approved':
-            signoff = LoanApprovalSignoff.query.filter_by(loan_id=loan.id).first()
-            if not signoff:
-                signoff = LoanApprovalSignoff(loan_id=loan.id)
-                db.session.add(signoff)
             signoff.approving_officer_id = current_user.id
-            from datetime import datetime
             signoff.approval_date = datetime.utcnow()
-            signoff.approval_notes = request.form.get('approval_notes', '')
+            signoff.approval_notes = decision_notes
+        else:
+            signoff.approving_officer_id = current_user.id
+            signoff.approval_date = datetime.utcnow()
+            signoff.approval_notes = decision_notes
+
+        notification_sent = False
+        notification_error = None
+        try:
+            _notify_loan_decision(loan)
+            notification_sent = True
+        except WhatsAppNotConfiguredError as error:
+            notification_error = str(error)
+        except Exception as error:
+            notification_error = str(error)
 
         db.session.commit()
-        flash(f'Loan assessment marked as {status.capitalize()}.', 'success')
+        if notification_sent:
+            flash(f'Loan assessment marked as {status.capitalize()} and member notified on WhatsApp.', 'success')
+        else:
+            flash(
+                f'Loan assessment marked as {status.capitalize()}, but WhatsApp notification failed: {notification_error}',
+                'warning',
+            )
     else:
         flash('Invalid status provided.', 'danger')
         
@@ -274,3 +488,124 @@ def delete(loan_id):
     db.session.commit()
     flash('Loan assessment deleted successfully.', 'success')
     return redirect(url_for('loans.index'))
+
+
+@loans_bp.route('/documents/<int:document_id>/download')
+@login_required
+def download_document(document_id):
+    document = LoanDocument.query.get_or_404(document_id)
+    return send_from_directory(
+        _loan_document_dir(),
+        document.stored_filename,
+        as_attachment=True,
+        download_name=document.original_filename,
+    )
+
+
+@loans_bp.route('/<int:loan_id>/repayments', methods=['POST'])
+@login_required
+def post_repayment(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status != 'approved':
+        flash('Repayments can only be posted for approved loans.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    amount = request.form.get('amount', type=float) or 0
+    payment_date_text = request.form.get('payment_date', '').strip()
+    reference = request.form.get('reference', '').strip()
+    notes = request.form.get('notes', '').strip()
+
+    if amount <= 0:
+        flash('Repayment amount must be greater than zero.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if amount > loan.outstanding_balance:
+        flash('Repayment amount cannot exceed the outstanding balance.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if len(reference) > 120:
+        flash('Payment reference is too long.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if len(notes) > 1000:
+        flash('Repayment notes are too long.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    try:
+        payment_date = datetime.strptime(payment_date_text, '%Y-%m-%d') if payment_date_text else datetime.utcnow()
+    except ValueError:
+        flash('Payment date must use YYYY-MM-DD format.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    db.session.add(LoanRepayment(
+        loan_id=loan.id,
+        posted_by=current_user.id,
+        amount=amount,
+        payment_date=payment_date,
+        reference=reference,
+        notes=notes,
+    ))
+    db.session.commit()
+
+    flash('Repayment posted successfully.', 'success')
+    return redirect(url_for('loans.view', loan_id=loan.id))
+
+
+@loans_bp.route('/<int:loan_id>/statement.pdf')
+@login_required
+def loan_statement(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    styles = getSampleStyleSheet()
+    rows = [['Date', 'Reference', 'Amount', 'Posted By', 'Notes']]
+    for repayment in loan.repayments:
+        rows.append([
+            repayment.payment_date.strftime('%Y-%m-%d') if repayment.payment_date else '',
+            repayment.reference or '',
+            f"KSh {repayment.amount:,.2f}",
+            repayment.poster.username if repayment.poster else 'System',
+            repayment.notes or '',
+        ])
+    rows.extend([
+        ['', '', '', '', ''],
+        ['Loan Amount', '', f"KSh {loan.amount_requested:,.2f}", '', ''],
+        ['Total Repaid', '', f"KSh {loan.total_repaid:,.2f}", '', ''],
+        ['Outstanding', '', f"KSh {loan.outstanding_balance:,.2f}", '', ''],
+    ])
+
+    table = Table(rows, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f766e')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d1d5db')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ]))
+    story = [
+        Paragraph(f'Member: {escape(loan.member.full_name)}', styles['BodyText']),
+        Paragraph(f'Phone: {escape(loan.member.phone_number)}', styles['BodyText']),
+        Paragraph(f'Loan Amount: KSh {loan.amount_requested:,.2f}', styles['BodyText']),
+        Spacer(1, 12),
+        table,
+    ]
+    return _build_pdf_response(f'loan_{loan.id}_statement.pdf', 'Loan Repayment Statement', story)
+
+
+@loans_bp.route('/<int:loan_id>/clearance-certificate.pdf')
+@login_required
+def clearance_certificate(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if not loan.is_cleared:
+        flash('Clearance certificate is only available after the loan is fully repaid.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph(f'This certifies that {escape(loan.member.full_name)} has fully repaid loan assessment #{loan.id}.', styles['BodyText']),
+        Spacer(1, 12),
+        Paragraph(f'Loan Amount: KSh {loan.amount_requested:,.2f}', styles['BodyText']),
+        Paragraph(f'Total Repaid: KSh {loan.total_repaid:,.2f}', styles['BodyText']),
+        Paragraph(f'Outstanding Balance: KSh {loan.outstanding_balance:,.2f}', styles['BodyText']),
+        Paragraph(f'Issued On: {datetime.utcnow().strftime("%Y-%m-%d")}', styles['BodyText']),
+    ]
+    return _build_pdf_response(f'loan_{loan.id}_clearance_certificate.pdf', 'Loan Clearance Certificate', story)

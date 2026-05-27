@@ -7,7 +7,6 @@ from app.decorators import admin_required
 from app.models.survey import SurveySkipRule, SurveyTemplate, SurveyQuestion, SurveyResponse
 from app.models.member import Member
 from app.models.group import Group
-from app.models.sms_log import SMSLog
 
 # Create a new Blueprint for surveys
 surveys = Blueprint('surveys', __name__, url_prefix='/surveys')
@@ -161,7 +160,11 @@ def dispatch_survey(survey_id):
         flash('Please select a group.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
         
-    group = Group.query.get_or_404(int(group_id))
+    try:
+        group = Group.query.get_or_404(int(group_id))
+    except ValueError:
+        flash('Please select a valid group.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
     
     if not survey.questions:
         flash('Cannot dispatch an empty survey. Please add questions first.', 'danger')
@@ -177,19 +180,7 @@ def dispatch_survey(survey_id):
         )
         message_text += f"\n\n{formatted_options}"
 
-    # Initialize the Twilio client for sending WhatsApp messages
-    from twilio.rest import Client
-    from flask import current_app
-
-    account_sid = current_app.config.get('TWILIO_ACCOUNT_SID')
-    auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
-    from_number = current_app.config.get('TWILIO_WHATSAPP_NUMBER')
-
-    if not account_sid or not auth_token:
-        flash('Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env', 'danger')
-        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
-
-    client = Client(account_sid, auth_token)
+    from app.whatsapp_service import WhatsAppNotConfiguredError, send_whatsapp_message
 
     dispatch_count = 0
     fail_count = 0
@@ -199,30 +190,16 @@ def dispatch_survey(survey_id):
         member.current_survey_id = survey.id
         member.current_question_order = first_question.order_number
 
-        # Actually send the WhatsApp message via Twilio
         try:
-            twilio_message = client.messages.create(
-                body=message_text,
-                from_=from_number,
-                to=f'whatsapp:{member.phone_number}'
-            )
-            sms_status = 'sent'
+            send_whatsapp_message(member, message_text)
             dispatch_count += 1
+        except WhatsAppNotConfiguredError:
+            db.session.rollback()
+            flash('Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env', 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
         except Exception as e:
-            sms_status = 'failed'
             fail_count += 1
             print(f"[Twilio Error] Failed to send to {member.phone_number}: {e}")
-
-        # Log the outgoing message
-        new_sms = SMSLog(
-            sender='System',
-            recipient=member.phone_number,
-            message=message_text,
-            direction='outgoing',
-            status=sms_status,
-            member_id=member.id
-        )
-        db.session.add(new_sms)
         
     db.session.commit()
 

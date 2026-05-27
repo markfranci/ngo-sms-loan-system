@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, render_template, abort
 from flask_login import login_required, current_user
 from app.decorators import admin_required
@@ -11,6 +13,10 @@ from flask import request, flash, redirect, url_for
 from app.routes.loans import delete_loan_record
 
 members = Blueprint('members', __name__, url_prefix='/members')
+
+
+def _valid_phone_number(value):
+    return bool(re.fullmatch(r'\+?\d{7,15}', value or ''))
 
 @members.route('/')
 @login_required
@@ -53,6 +59,26 @@ def update(member_id):
 
     if not full_name or not phone_number:
         flash('Full name and phone number are required.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if len(full_name) > 100 or full_name.replace(' ', '').isdigit():
+        flash('Please enter a valid full name.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if not _valid_phone_number(phone_number):
+        flash('Please enter a valid phone number using digits and optional leading +.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if gender and gender not in ('male', 'female'):
+        flash('Please select a valid gender.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if id_number and (not id_number.isdigit() or len(id_number) > 20):
+        flash('ID number must contain digits only.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
+    if group_id and not Group.query.get(group_id):
+        flash('Please select a valid group.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
     existing_phone = Member.query.filter(
