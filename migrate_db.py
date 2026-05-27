@@ -24,6 +24,9 @@ with app.app_context():
 
     if 'loans' in inspector.get_table_names():
         db.session.execute(text(
+            "UPDATE loans SET status = 'disbursement_pending' WHERE status = 'disbursement_in_progress'"
+        ))
+        db.session.execute(text(
             "UPDATE loans SET status = 'submitted' WHERE status = 'pending'"
         ))
         db.session.commit()

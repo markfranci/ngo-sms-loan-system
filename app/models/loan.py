@@ -33,7 +33,7 @@ class Loan(db.Model):
     # The final loan decision:
     # 'submitted' = assessment was submitted by staff and awaits admin review
     # 'approved' = member qualifies for the loan
-    # 'disbursement_in_progress' = staff has prepared disbursement for admin confirmation
+    # 'disbursement_pending' = staff has prepared disbursement for admin confirmation
     # 'disbursed' = admin confirmed funds were released to the member
     # 'rejected' = member does not qualify
     # 'pending' is kept as a legacy value for older records.

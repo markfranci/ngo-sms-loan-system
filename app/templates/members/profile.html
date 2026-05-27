@@ -108,7 +108,7 @@
                 <td>
                   {% if loan.status == 'approved' %}
                     <span class="badge badge-success">Approved</span>
-                  {% elif loan.status == 'disbursement_in_progress' %}
+                  {% elif loan.status == 'disbursement_pending' %}
                     <span class="badge badge-warning">Disbursement In Progress</span>
                   {% elif loan.status == 'disbursed' %}
                     <span class="badge badge-success">Disbursed</span>

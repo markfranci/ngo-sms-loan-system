@@ -699,7 +699,7 @@ def initiate_disbursement(loan_id):
             notes=notes,
             status='pending',
         ))
-        loan.status = 'disbursement_in_progress'
+        loan.status = 'disbursement_pending'
         db.session.commit()
     except SQLAlchemyError as error:
         db.session.rollback()
@@ -717,7 +717,7 @@ def initiate_disbursement(loan_id):
 def confirm_disbursement(loan_id):
     loan = Loan.query.get_or_404(loan_id)
 
-    if loan.status != 'disbursement_in_progress':
+    if loan.status != 'disbursement_pending':
         flash('Only loans with disbursement in progress can be confirmed.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 

@@ -29,7 +29,7 @@
     <div style="margin-bottom:2rem;">
       {% if loan.status == 'approved' %}
         <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">Approved</span>
-      {% elif loan.status == 'disbursement_in_progress' %}
+      {% elif loan.status == 'disbursement_pending' %}
         <span class="badge badge-warning" style="padding:0.4rem 1rem;font-size:0.85rem;">Disbursement In Progress</span>
       {% elif loan.status == 'disbursed' %}
         <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">Disbursed</span>
@@ -79,7 +79,7 @@
       <h3 class="glass-card-title">Application Details</h3>
       {% if loan.status == 'approved' %}
         <span class="badge badge-success"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> Approved</span>
-      {% elif loan.status == 'disbursement_in_progress' %}
+      {% elif loan.status == 'disbursement_pending' %}
         <span class="badge badge-warning"><i data-lucide="clock" style="width:12px;height:12px;"></i> Disbursement In Progress</span>
       {% elif loan.status == 'disbursed' %}
         <span class="badge badge-success"><i data-lucide="banknote" style="width:12px;height:12px;"></i> Disbursed</span>
@@ -187,7 +187,7 @@
   <div class="glass-card">
     <div class="glass-card-header">
       <h3 class="glass-card-title">Disbursement & Repayments</h3>
-      {% if loan.status in ['disbursed', 'disbursement_in_progress', 'approved'] %}
+      {% if loan.status in ['disbursed', 'disbursement_pending', 'approved'] %}
       <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.loan_statement', loan_id=loan.id) }}">
         <i data-lucide="file-text" style="width:14px;height:14px;"></i> Statement
       </a>
@@ -249,7 +249,7 @@
         <i data-lucide="send" style="width:16px;height:16px;"></i> Submit Disbursement for Admin Confirmation
       </button>
     </form>
-    {% elif loan.status == 'disbursement_in_progress' %}
+    {% elif loan.status == 'disbursement_pending' %}
       {% set pending_disbursement = loan.disbursements|selectattr('status', 'equalto', 'pending')|list|first %}
       {% if pending_disbursement %}
       <div class="info-alert mb-3">
