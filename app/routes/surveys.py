@@ -1,6 +1,9 @@
+import csv
+import io
 import re
+from datetime import datetime
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, make_response, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
 from app.decorators import admin_required
@@ -226,22 +229,184 @@ def dispatch_survey(survey_id):
 def view_responses(survey_id):
     survey = SurveyTemplate.query.get_or_404(survey_id)
     questions = survey.questions
+    export_format = request.args.get('export')
+    filters = {
+        'member_name': request.args.get('member_name', '').strip(),
+        'phone_number': request.args.get('phone_number', '').strip(),
+        'start_date': request.args.get('start_date', '').strip(),
+        'end_date': request.args.get('end_date', '').strip(),
+        'group_by': request.args.get('group_by', '').strip(),
+        'answers': {
+            question.id: request.args.get(f'answer_{question.id}', '').strip()
+            for question in questions
+        },
+    }
     
-    # Get all responses for these questions
-    responses = SurveyResponse.query.join(SurveyQuestion).filter(SurveyQuestion.template_id == survey_id).all()
+    responses_query = SurveyResponse.query.join(SurveyQuestion).filter(SurveyQuestion.template_id == survey_id)
+
+    start_dt = None
+    end_dt = None
+    if filters['start_date']:
+        try:
+            start_dt = datetime.strptime(filters['start_date'], '%Y-%m-%d')
+            responses_query = responses_query.filter(SurveyResponse.submitted_at >= start_dt)
+        except ValueError:
+            filters['start_date'] = ''
+    if filters['end_date']:
+        try:
+            end_dt = datetime.strptime(filters['end_date'], '%Y-%m-%d')
+            responses_query = responses_query.filter(
+                SurveyResponse.submitted_at <= end_dt.replace(hour=23, minute=59, second=59)
+            )
+        except ValueError:
+            filters['end_date'] = ''
+
+    responses = responses_query.order_by(SurveyResponse.submitted_at.desc()).all()
     
     # Group responses by member
-    # member_data = { member_id: { 'member': Member_obj, 'answers': { question_id: answer } } }
+    # member_data = { member_id: { 'member': Member_obj, 'answers': { question_id: answer }, 'submitted_at': latest_response_date } }
     member_data = {}
     for response in responses:
         if response.member_id not in member_data:
             member_data[response.member_id] = {
                 'member': Member.query.get(response.member_id),
-                'answers': {}
+                'answers': {},
+                'submitted_at': response.submitted_at,
             }
-        member_data[response.member_id]['answers'][response.question.id] = response.answer
-        
-    return render_template('surveys/responses.html', survey=survey, questions=questions, member_data=member_data)
+        if response.question.id not in member_data[response.member_id]['answers']:
+            member_data[response.member_id]['answers'][response.question.id] = response.answer
+        if response.submitted_at and (
+            not member_data[response.member_id]['submitted_at']
+            or response.submitted_at > member_data[response.member_id]['submitted_at']
+        ):
+            member_data[response.member_id]['submitted_at'] = response.submitted_at
+
+    member_rows = []
+    for data in member_data.values():
+        member = data['member']
+        if not member:
+            continue
+        if filters['member_name'] and filters['member_name'].casefold() not in member.full_name.casefold():
+            continue
+        if filters['phone_number'] and filters['phone_number'] not in member.phone_number:
+            continue
+
+        answer_matches = True
+        for question_id, answer_filter in filters['answers'].items():
+            if not answer_filter:
+                continue
+            answer = str(data['answers'].get(question_id, ''))
+            if answer_filter.casefold() not in answer.casefold():
+                answer_matches = False
+                break
+        if not answer_matches:
+            continue
+
+        member_rows.append(data)
+
+    member_rows.sort(
+        key=lambda item: (
+            item['member'].full_name.casefold(),
+            item['submitted_at'] or datetime.min,
+        )
+    )
+
+    grouped_rows = {'All Responses': member_rows}
+    if filters['group_by'] == 'member_name':
+        grouped_rows = {row['member'].full_name: [row] for row in member_rows}
+    elif filters['group_by'] == 'submitted_date':
+        grouped_rows = {}
+        for row in sorted(member_rows, key=lambda item: item['submitted_at'] or datetime.min, reverse=True):
+            key = row['submitted_at'].strftime('%Y-%m-%d') if row['submitted_at'] else 'Unknown Date'
+            grouped_rows.setdefault(key, []).append(row)
+
+    if export_format:
+        return _export_survey_responses(survey, questions, member_rows, filters, export_format)
+
+    return render_template(
+        'surveys/responses.html',
+        survey=survey,
+        questions=questions,
+        member_data={row['member'].id: row for row in member_rows},
+        grouped_rows=grouped_rows,
+        filters=filters,
+    )
+
+
+def _survey_response_rows(questions, member_rows):
+    rows = []
+    for data in member_rows:
+        submitted_at = data['submitted_at'].strftime('%Y-%m-%d %H:%M') if data['submitted_at'] else ''
+        rows.append([
+            data['member'].full_name,
+            data['member'].phone_number,
+            submitted_at,
+            *[data['answers'].get(question.id, '') for question in questions],
+        ])
+    return rows
+
+
+def _export_survey_responses(survey, questions, member_rows, filters, export_format):
+    headers = [
+        'Member Name',
+        'Phone Number',
+        'Submitted At',
+        *[f'Q{question.order_number}: {question.question_text}' for question in questions],
+    ]
+    rows = _survey_response_rows(questions, member_rows)
+    filename_base = f"survey_{survey.id}_responses"
+
+    if export_format == 'pdf':
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        except ImportError:
+            return make_response('PDF export requires reportlab to be installed.', 500)
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+        styles = getSampleStyleSheet()
+        story = [Paragraph(f'Responses: {survey.title}', styles['Title'])]
+
+        active_filters = []
+        if filters.get('member_name'):
+            active_filters.append(f"Member: {filters['member_name']}")
+        if filters.get('phone_number'):
+            active_filters.append(f"Phone: {filters['phone_number']}")
+        if filters.get('start_date'):
+            active_filters.append(f"From: {filters['start_date']}")
+        if filters.get('end_date'):
+            active_filters.append(f"To: {filters['end_date']}")
+        if active_filters:
+            story.append(Paragraph(' | '.join(active_filters), styles['BodyText']))
+            story.append(Spacer(1, 8))
+
+        table = Table([[Paragraph(str(cell), styles['BodyText']) for cell in headers]] + rows, repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#18181B')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#d4d4d8')),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(table)
+        doc.build(story)
+
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Disposition'] = f'attachment; filename={filename_base}.pdf'
+        response.headers['Content-Type'] = 'application/pdf'
+        return response
+
+    si = io.StringIO()
+    writer = csv.writer(si)
+    writer.writerow(headers)
+    writer.writerows(rows)
+    response = make_response(si.getvalue())
+    response.headers['Content-Disposition'] = f'attachment; filename={filename_base}.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
 
 
 @surveys.route('/<int:survey_id>/delete', methods=['POST'])

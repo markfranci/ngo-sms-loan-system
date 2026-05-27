@@ -17,6 +17,57 @@
   </div>
 </div>
 
+<div class="glass-card" style="margin-bottom:1rem;">
+  <form method="GET">
+    <div class="filter-grid">
+      <div class="form-group">
+        <label class="form-label" for="member_name">Member Name</label>
+        <input type="text" id="member_name" name="member_name" class="form-input" value="{{ filters.member_name }}" placeholder="Member name">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="phone_number">Phone</label>
+        <input type="text" id="phone_number" name="phone_number" class="form-input" value="{{ filters.phone_number }}" placeholder="Phone number">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="start_date">From Date</label>
+        <input type="date" id="start_date" name="start_date" class="form-input" value="{{ filters.start_date }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="end_date">To Date</label>
+        <input type="date" id="end_date" name="end_date" class="form-input" value="{{ filters.end_date }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="group_by">Group By</label>
+        <select id="group_by" name="group_by" class="form-select">
+          <option value="" {% if not filters.group_by %}selected{% endif %}>No Grouping</option>
+          <option value="member_name" {% if filters.group_by == 'member_name' %}selected{% endif %}>Member Name</option>
+          <option value="submitted_date" {% if filters.group_by == 'submitted_date' %}selected{% endif %}>Submitted Date</option>
+        </select>
+      </div>
+      {% for question in questions %}
+      <div class="form-group">
+        <label class="form-label" for="answer_{{ question.id }}">Q{{ question.order_number }}</label>
+        <input type="text" id="answer_{{ question.id }}" name="answer_{{ question.id }}" class="form-input" value="{{ filters.answers.get(question.id, '') }}" placeholder="{{ question.question_text }}">
+      </div>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem;">
+      <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-ghost">
+        <i data-lucide="x" style="width:16px;height:16px;"></i> Clear
+      </a>
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="filter" style="width:16px;height:16px;"></i> Apply Filters
+      </button>
+      <button type="submit" name="export" value="csv" class="btn btn-outline-primary">
+        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Export CSV
+      </button>
+      <button type="submit" name="export" value="pdf" class="btn btn-outline-primary">
+        <i data-lucide="file-text" style="width:16px;height:16px;"></i> Export PDF
+      </button>
+    </div>
+  </form>
+</div>
+
 {% if member_data %}
 <div class="glass-card">
   <div class="table-wrapper">
@@ -25,6 +76,7 @@
         <tr>
           <th>Member Name</th>
           <th>Phone Number</th>
+          <th>Submitted At</th>
           {% for question in questions %}
           <th style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ question.question_text }}">
             Q{{ question.order_number }}: {{ question.question_text }}
@@ -33,10 +85,19 @@
         </tr>
       </thead>
       <tbody>
-        {% for member_id, data in member_data.items() %}
+        {% for group_label, rows in grouped_rows.items() %}
+        {% if filters.group_by %}
+        <tr>
+          <td colspan="{{ questions|length + 3 }}" style="background:var(--color-surface-muted,#f8fafc);font-weight:700;color:var(--text-secondary);">
+            {{ group_label }} ({{ rows|length }})
+          </td>
+        </tr>
+        {% endif %}
+        {% for data in rows %}
         <tr>
           <td class="td-primary">{{ data.member.full_name }}</td>
           <td class="td-mono">{{ data.member.phone_number }}</td>
+          <td>{{ data.submitted_at.strftime('%Y-%m-%d %H:%M') if data.submitted_at else '' }}</td>
           {% for question in questions %}
           <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ data.answers.get(question.id, 'N/A') }}">
             {% if data.answers.get(question.id) %}
@@ -48,6 +109,7 @@
           {% endfor %}
         </tr>
         {% endfor %}
+        {% endfor %}
       </tbody>
     </table>
   </div>
@@ -56,9 +118,9 @@
 <div class="glass-card">
   <div class="empty-state">
     <div class="empty-state-icon"><i data-lucide="message-circle"></i></div>
-    <h3>No Responses Yet</h3>
-    <p>No responses have been collected for this survey yet.</p>
-    <a href="{{ url_for('surveys.view_survey', survey_id=survey.id) }}" class="btn btn-ghost">Back to Questions</a>
+    <h3>No Responses Found</h3>
+    <p>No responses matched the selected filters.</p>
+    <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-ghost">Clear Filters</a>
   </div>
 </div>
 {% endif %}
