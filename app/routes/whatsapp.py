@@ -6,21 +6,101 @@ from app.models.sms_log import SMSLog
 from app.models.member import Member, RegistrationSession
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
 import re
+from decimal import Decimal, InvalidOperation
 
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
 
 
+def _clean_text_value(value):
+    value = re.sub(r'[\x00-\x1f\x7f]', ' ', str(value or ''))
+    return re.sub(r'\s+', ' ', value).strip()
+
+
 def _split_multiple_choice_options(options):
-    parts = re.split(r'\n+|,\s*|\t+|\s+(?=\d+[\.\)])', str(options))
-    return [part.strip() for part in parts if part.strip()]
+    parts = re.split(r'\n+|,\s*|\t+|\s+(?=(?:\d+|[A-Za-z])[\.\)])', str(options))
+    return [_clean_text_value(part) for part in parts if _clean_text_value(part)]
 
 
 def _option_label(option):
-    return re.sub(r'^\s*\d+[\.\)]\s*', '', option.strip())
+    return re.sub(r'^\s*(?:\d+|[A-Za-z])[\.\)]\s*', '', _clean_text_value(option))
 
 
 def _format_multiple_choice_options(options):
     return '\n'.join(_split_multiple_choice_options(options))
+
+
+def _matching_choice_answer(question, raw_answer):
+    valid_options = _split_multiple_choice_options(question.options)
+    user_input = _clean_text_value(raw_answer)
+    user_keys = {
+        user_input.casefold(),
+        user_input.strip('.):;- ').casefold(),
+    }
+
+    for idx, option in enumerate(valid_options):
+        label = _option_label(option)
+        accepted_values = {
+            option.casefold(),
+            label.casefold(),
+            str(idx + 1),
+            chr(ord('a') + idx),
+        }
+
+        prefix_match = re.match(r'^\s*((?:\d+|[A-Za-z]))[\.\)]', option)
+        if prefix_match:
+            accepted_values.add(prefix_match.group(1).casefold())
+
+        if user_keys.intersection(accepted_values):
+            return label
+
+    return None
+
+
+def _normalize_text_answer(raw_answer):
+    answer = _clean_text_value(raw_answer)
+    if not answer:
+        return ''
+    return answer.casefold().capitalize()
+
+
+def _normalize_number_answer(raw_answer):
+    answer = _clean_text_value(raw_answer).replace(',', '')
+    try:
+        number = Decimal(answer)
+    except InvalidOperation:
+        return None
+    if not number.is_finite():
+        return None
+    return format(number.normalize(), 'f')
+
+
+def _normalize_survey_answer(question, raw_answer):
+    if question.question_type == 'number':
+        answer = _normalize_number_answer(raw_answer)
+        if answer is None:
+            return None, "Please reply with a valid number (e.g., 5000)."
+        return answer, ""
+
+    if question.question_type == 'multiple_choice' and question.options:
+        answer = _matching_choice_answer(question, raw_answer)
+        if answer is None:
+            return None, "Please reply with one of the valid options."
+        return answer, ""
+
+    answer = _normalize_text_answer(raw_answer)
+    if not answer:
+        return None, "Please reply with a valid answer."
+    if len(answer) > 1000:
+        return None, "Your answer is too long. Please keep it under 1000 characters."
+    return answer, ""
+
+
+def _normalize_skip_condition(question, condition):
+    if question.question_type == 'multiple_choice' and question.options:
+        return _matching_choice_answer(question, condition) or _normalize_text_answer(condition)
+    if question.question_type == 'number':
+        return _normalize_number_answer(condition) or _clean_text_value(condition)
+    return _normalize_text_answer(condition)
 
 
 def _clean_whatsapp_phone(sender_id):
@@ -134,59 +214,19 @@ def incoming_message():
                 # ---------------------------------------------------------
                 # INPUT VALIDATION ENGINE
                 # ---------------------------------------------------------
-                is_valid = True
-                error_msg = ""
-                
-                if current_question.question_type == 'number':
-                    # Allow integers and floats, optionally negative
-                    clean_val = message_body.strip().replace(',', '')
-                    if clean_val.startswith('-'):
-                        clean_val = clean_val[1:]
-                    if not clean_val.replace('.', '', 1).isdigit():
-                        is_valid = False
-                        error_msg = "Please reply with a valid number (e.g., 5000)."
-                
-                elif current_question.question_type == 'multiple_choice' and current_question.options:
-                    # Parse valid options
-                    valid_options = _split_multiple_choice_options(current_question.options)
-                    
-                    # Accept exact match (case insensitive) or the numerical index (1, 2, 3...)
-                    # or the prefix letter (A, B, C...)
-                    user_input_clean = message_body.strip().lower()
-                    
-                    matched = False
-                    for idx, opt in enumerate(valid_options):
-                        opt_lower = opt.lower()
-                        option_label = _option_label(opt).lower()
-                        # If user types "1" and the option is "1. Yes", or just "yes"
-                        if user_input_clean in {opt_lower, option_label, str(idx + 1)}:
-                            matched = True
-                            # Optionally normalize the saved answer to the full text
-                            message_body = opt
-                            break
-                        # Also check if option is like "A. Option" and user typed "A"
-                        elif '.' in opt_lower:
-                            prefix = opt_lower.split('.')[0].strip()
-                            if user_input_clean == prefix:
-                                matched = True
-                                message_body = opt
-                                break
-                    
-                    if not matched:
-                        is_valid = False
-                        error_msg = "Please reply with one of the valid options."
+                normalized_answer, error_msg = _normalize_survey_answer(current_question, message_body)
 
-                if not is_valid:
+                if normalized_answer is None:
                     # Validation failed. Repeat the question.
                     reply_text = f"❌ {error_msg}\n\nPlease try again:\n{current_question.order_number}. {current_question.question_text}"
                     if current_question.question_type == 'multiple_choice' and current_question.options:
                          reply_text += f"\n\n{_format_multiple_choice_options(current_question.options)}"
                 else:
-                    # Input is valid! Save their message as the answer
+                    # Input is valid! Save the cleaned, canonical answer.
                     new_response = SurveyResponse(
                         member_id=member.id,
                         question_id=current_question.id,
-                        answer=message_body
+                        answer=normalized_answer
                     )
                     db.session.add(new_response)
                     
@@ -198,7 +238,7 @@ def incoming_message():
                     # Check new multiple skip rules first
                     if current_question.skip_rules:
                         for rule in current_question.skip_rules:
-                            if message_body.strip().lower() == rule.condition.strip().lower():
+                            if normalized_answer.casefold() == _normalize_skip_condition(current_question, rule.condition).casefold():
                                 matched_rule = True
                                 if rule.skip_to_order == 0:
                                     next_question = None
@@ -211,7 +251,7 @@ def incoming_message():
                                 
                     # Fallback to legacy single skip condition if no new rules matched
                     if not matched_rule and current_question.skip_condition and current_question.skip_to_order is not None:
-                        if message_body.strip().lower() == current_question.skip_condition.strip().lower():
+                        if normalized_answer.casefold() == _normalize_skip_condition(current_question, current_question.skip_condition).casefold():
                             matched_rule = True
                             if current_question.skip_to_order == 0:
                                 next_question = None
