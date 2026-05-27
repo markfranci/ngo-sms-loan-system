@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 import secrets
@@ -24,6 +26,14 @@ def users():
 
         if not username or not email:
             flash('Username and email address are required.', 'danger')
+            return redirect(url_for('settings.users'))
+
+        if len(username) < 2 or len(username) > 50:
+            flash('Username must be between 2 and 50 characters.', 'danger')
+            return redirect(url_for('settings.users'))
+
+        if not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+            flash('Please enter a valid email address.', 'danger')
             return redirect(url_for('settings.users'))
 
         if role not in ['admin', 'staff']:

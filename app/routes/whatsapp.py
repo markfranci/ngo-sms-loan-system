@@ -72,9 +72,11 @@ def incoming_message():
                 reply_text = "Welcome! Your phone number is not registered. Please send 'START' to begin registration."
         else:
             if session.step == 1:
-                # Validation: Name must be at least 2 characters and not just numbers
-                if len(message_body) < 2 or len(message_body) > 100 or message_body.replace(' ', '').isdigit():
-                    reply_text = "Please reply with a valid Full Name (letters only)."
+                # Validation: Name must be at least 2 characters, not just numbers,
+                # and must contain at least one letter (no pure special chars)
+                name_clean = message_body.replace(' ', '')
+                if len(message_body) < 2 or len(message_body) > 100 or name_clean.isdigit() or not any(c.isalpha() for c in name_clean):
+                    reply_text = "Please reply with a valid Full Name (must contain letters)."
                 else:
                     session.full_name = message_body
                     session.step = 2

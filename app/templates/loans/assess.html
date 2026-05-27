@@ -209,8 +209,8 @@
           {% for item in assessment_inventory %}
             <div class="inventory-row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
               <input type="text" name="item_name[]" class="form-input" placeholder="Item Name" value="{{ item.item_name }}">
-              <input type="number" name="quantity[]" class="form-input" placeholder="Qty" value="{{ item.quantity }}">
-              <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price" value="{{ item.unit_price }}">
+              <input type="number" name="quantity[]" class="form-input" placeholder="Qty" min="0" value="{{ item.quantity }}">
+              <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price" min="0" value="{{ item.unit_price }}">
             </div>
           {% endfor %}
         </div>
@@ -468,8 +468,8 @@ function addInventoryRow() {
   row.style.marginBottom = '1rem';
   row.innerHTML = `
     <input type="text" name="item_name[]" class="form-input" placeholder="Item Name">
-    <input type="number" name="quantity[]" class="form-input" placeholder="Qty">
-    <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price">
+    <input type="number" name="quantity[]" class="form-input" placeholder="Qty" min="0">
+    <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price" min="0">
   `;
   container.appendChild(row);
 }

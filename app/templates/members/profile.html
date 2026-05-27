@@ -43,15 +43,15 @@
       <form method="POST" action="{{ url_for('members.update', member_id=member.id) }}">
         <div class="form-group">
           <label class="form-label" for="full_name">Full Name</label>
-          <input type="text" name="full_name" id="full_name" class="form-input" value="{{ member.full_name }}" required>
+          <input type="text" name="full_name" id="full_name" class="form-input" value="{{ member.full_name }}" required minlength="2" maxlength="100">
         </div>
         <div class="form-group">
           <label class="form-label" for="phone_number">Phone Number</label>
-          <input type="text" name="phone_number" id="phone_number" class="form-input td-mono" value="{{ member.phone_number }}" required>
+          <input type="tel" name="phone_number" id="phone_number" class="form-input td-mono" value="{{ member.phone_number }}" required pattern="\+?\d{7,15}" inputmode="tel" title="Phone number (7-15 digits, optional leading +)">
         </div>
         <div class="form-group">
           <label class="form-label" for="id_number">ID Number</label>
-          <input type="text" name="id_number" id="id_number" class="form-input" value="{{ member.id_number or '' }}">
+          <input type="text" name="id_number" id="id_number" class="form-input" value="{{ member.id_number or '' }}" pattern="\d{5,20}" inputmode="numeric" maxlength="20" title="National ID (5-20 digits)">
         </div>
         <div class="form-group">
           <label class="form-label" for="gender">Gender</label>

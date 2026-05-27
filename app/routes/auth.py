@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
@@ -33,8 +35,17 @@ def login():
 
         # Get the values the user typed into the form
         # request.form is a dictionary of all form fields
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        # Reject empty or obviously invalid submissions early
+        if not email or not password:
+            flash('Please enter both email and password.', 'danger')
+            return render_template('auth/login.html')
+
+        if not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+            flash('Please enter a valid email address.', 'danger')
+            return render_template('auth/login.html')
 
         # Look up the user in the database by their email
         user = User.query.filter_by(email=email).first()

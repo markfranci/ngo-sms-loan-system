@@ -50,12 +50,20 @@ def index():
 def create():
     if request.method == 'POST':
         # Grab the text the user typed into the form
-        title = request.form.get('title')
-        description = request.form.get('description')
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
         
         # Validation: Ensure they didn't leave the title blank
         if not title:
             flash('Survey title is required.', 'danger')
+            return redirect(url_for('surveys.create'))
+
+        if len(title) > 200:
+            flash('Survey title must not exceed 200 characters.', 'danger')
+            return redirect(url_for('surveys.create'))
+
+        if len(description) > 1000:
+            flash('Description must not exceed 1000 characters.', 'danger')
             return redirect(url_for('surveys.create'))
             
         # Build a new SurveyTemplate object using the model we reviewed
@@ -85,8 +93,8 @@ def view_survey(survey_id):
     
     if request.method == 'POST':
         # 2. Grab what you typed into the "Add Question" form
-        question_text = request.form.get('question_text')
-        question_type = request.form.get('question_type')
+        question_text = request.form.get('question_text', '').strip()
+        question_type = request.form.get('question_type', '').strip()
         option_values = request.form.getlist('option_text[]')
         options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
         
@@ -95,6 +103,10 @@ def view_survey(survey_id):
         
         if not question_text:
             flash('Question text cannot be empty.', 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+        if len(question_text) > 500:
+            flash('Question text must not exceed 500 characters.', 'danger')
             return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
         if question_type not in ['text', 'number', 'multiple_choice']:
@@ -267,7 +279,7 @@ def edit_question(survey_id, question_id):
     question = SurveyQuestion.query.filter_by(id=question_id, template_id=survey.id).first_or_404()
 
     question_text = request.form.get('question_text', '').strip()
-    question_type = request.form.get('question_type', 'text')
+    question_type = request.form.get('question_type', 'text').strip()
     option_values = request.form.getlist('option_text[]')
     options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
     skip_conditions = request.form.getlist('skip_condition[]')
@@ -275,6 +287,10 @@ def edit_question(survey_id, question_id):
 
     if not question_text:
         flash('Question text cannot be empty.', 'danger')
+        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+    if len(question_text) > 500:
+        flash('Question text must not exceed 500 characters.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
     if question_type not in ['text', 'number', 'multiple_choice']:

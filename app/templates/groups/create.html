@@ -18,12 +18,12 @@
   <form method="POST" action="{{ url_for('groups.create') }}">
     <div class="form-group">
       <label for="name" class="form-label">Group Name *</label>
-      <input type="text" id="name" name="name" required class="form-input" placeholder="e.g. Nairobi SME Cohort 1">
+      <input type="text" id="name" name="name" required class="form-input" placeholder="e.g. Nairobi SME Cohort 1" minlength="2" maxlength="100">
     </div>
 
     <div class="form-group">
       <label for="description" class="form-label">Description</label>
-      <textarea id="description" name="description" rows="3" class="form-textarea" placeholder="Brief description of this group..."></textarea>
+      <textarea id="description" name="description" rows="3" class="form-textarea" placeholder="Brief description of this group..." maxlength="500"></textarea>
     </div>
 
     <div class="form-group">
