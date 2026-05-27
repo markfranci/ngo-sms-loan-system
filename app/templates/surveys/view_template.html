@@ -96,7 +96,7 @@
             <div class="question-builder-row">
               <div class="form-group">
                 <label class="form-label" for="question_text_{{ question.id }}">Question</label>
-                <input type="text" id="question_text_{{ question.id }}" name="question_text" required class="form-input question-title-input" value="{{ question.question_text }}">
+                <input type="text" id="question_text_{{ question.id }}" name="question_text" required class="form-input question-title-input" value="{{ question.question_text }}" minlength="3" maxlength="500" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
               </div>
               <div class="form-group">
                 <label class="form-label" for="question_type_{{ question.id }}">Answer Format</label>
@@ -116,7 +116,7 @@
                   {% for option in edit_options %}
                   <div class="choice-option-row">
                     <span class="choice-option-index">{{ loop.index }}</span>
-                    <input type="text" name="option_text[]" class="form-input" value="{{ option }}" placeholder="Option {{ loop.index }}">
+                    <input type="text" name="option_text[]" class="form-input" value="{{ option }}" placeholder="Option {{ loop.index }}" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
                     <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
                       <i data-lucide="x"></i>
                     </button>
@@ -125,14 +125,14 @@
                 {% else %}
                   <div class="choice-option-row">
                     <span class="choice-option-index">1</span>
-                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 1">
+                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 1" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
                     <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
                       <i data-lucide="x"></i>
                     </button>
                   </div>
                   <div class="choice-option-row">
                     <span class="choice-option-index">2</span>
-                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 2">
+                    <input type="text" name="option_text[]" class="form-input" placeholder="Option 2" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
                     <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
                       <i data-lucide="x"></i>
                     </button>
@@ -150,7 +150,7 @@
               <div class="question-edit-grid">
                 <div class="form-group">
                   <label class="form-label">If Answer Is</label>
-                  <input type="text" name="skip_condition[]" class="form-input" value="{{ first_rule.condition if first_rule else '' }}" placeholder="e.g. No">
+                  <input type="text" name="skip_condition[]" class="form-input" value="{{ first_rule.condition if first_rule else '' }}" placeholder="e.g. No" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Go To Question # <small class="text-muted">(0 = end)</small></label>
@@ -162,7 +162,7 @@
                 {% for rule in question.skip_rules[1:] %}
                 <div class="question-edit-grid">
                   <div class="form-group">
-                    <input type="text" name="skip_condition[]" class="form-input" value="{{ rule.condition }}" placeholder="e.g. Yes">
+                    <input type="text" name="skip_condition[]" class="form-input" value="{{ rule.condition }}" placeholder="e.g. Yes" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
                   </div>
                   <div class="form-group">
                     <input type="number" name="skip_to_order[]" class="form-input" min="0" value="{{ rule.skip_to_order }}" placeholder="e.g. 2">
@@ -222,7 +222,7 @@
     <div class="question-builder-row">
       <div class="form-group">
         <label for="question_text" class="form-label">Question</label>
-        <input type="text" id="question_text" name="question_text" required class="form-input question-title-input" placeholder="Untitled question">
+        <input type="text" id="question_text" name="question_text" required class="form-input question-title-input" placeholder="Untitled question" minlength="3" maxlength="500" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
       </div>
 
       <div class="form-group">
@@ -240,14 +240,14 @@
       <div class="choice-option-list" id="new-options-list">
         <div class="choice-option-row">
           <span class="choice-option-index">1</span>
-          <input type="text" name="option_text[]" class="form-input" placeholder="Option 1">
+          <input type="text" name="option_text[]" class="form-input" placeholder="Option 1" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
           <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
             <i data-lucide="x"></i>
           </button>
         </div>
         <div class="choice-option-row">
           <span class="choice-option-index">2</span>
-          <input type="text" name="option_text[]" class="form-input" placeholder="Option 2">
+          <input type="text" name="option_text[]" class="form-input" placeholder="Option 2" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
           <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
             <i data-lucide="x"></i>
           </button>
@@ -264,7 +264,7 @@
       <div class="skip-rule-row" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem;align-items:flex-end;">
         <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
           <label class="form-label">If Answer Is <small class="text-muted">(optional)</small></label>
-          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. No">
+          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. No" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
         </div>
 
         <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
@@ -288,7 +288,7 @@
       row.style.cssText = 'display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;align-items:flex-end;';
       row.innerHTML = `
         <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0;">
-          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. Yes">
+          <input type="text" name="skip_condition[]" class="form-input" placeholder="e.g. Yes" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\s.,;:!?/%+#&()'\- ]*">
         </div>
         <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
           <input type="number" name="skip_to_order[]" class="form-input" min="0" placeholder="e.g. 2">
@@ -354,7 +354,7 @@
     row.className = 'choice-option-row';
     row.innerHTML = `
       <span class="choice-option-index"></span>
-      <input type="text" name="option_text[]" class="form-input">
+      <input type="text" name="option_text[]" class="form-input" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9\\s.,;:!?/%+#&()'\\- ]*">
       <button type="button" class="btn btn-ghost btn-sm choice-remove-btn" onclick="removeChoiceOption(this)" title="Remove option">
         <i data-lucide="x"></i>
       </button>

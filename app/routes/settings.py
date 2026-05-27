@@ -1,5 +1,3 @@
-import re
-
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 import secrets
@@ -7,6 +5,7 @@ import secrets
 from app import db
 from app.decorators import admin_required
 from app.models.user import User
+from app.validators import clean_spaces, is_valid_email, is_valid_username
 
 
 settings = Blueprint('settings', __name__, url_prefix='/settings')
@@ -20,7 +19,7 @@ def users():
     invited_user = None
 
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        username = clean_spaces(request.form.get('username', ''))
         email = request.form.get('email', '').strip().lower()
         role = request.form.get('role', 'staff')
 
@@ -28,11 +27,11 @@ def users():
             flash('Username and email address are required.', 'danger')
             return redirect(url_for('settings.users'))
 
-        if len(username) < 2 or len(username) > 50:
-            flash('Username must be between 2 and 50 characters.', 'danger')
+        if not is_valid_username(username):
+            flash('Username must start with a letter and use only letters, numbers, dots, underscores, or hyphens.', 'danger')
             return redirect(url_for('settings.users'))
 
-        if not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+        if not is_valid_email(email):
             flash('Please enter a valid email address.', 'danger')
             return redirect(url_for('settings.users'))
 

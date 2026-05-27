@@ -1,10 +1,9 @@
-import re
-
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
 from app import db
 from datetime import datetime
+from app.validators import is_valid_email
 
 # ----------------------------------------------------------------
 # Create the auth blueprint
@@ -43,7 +42,7 @@ def login():
             flash('Please enter both email and password.', 'danger')
             return render_template('auth/login.html')
 
-        if not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+        if not is_valid_email(email):
             flash('Please enter a valid email address.', 'danger')
             return render_template('auth/login.html')
 
@@ -89,8 +88,17 @@ def accept_invitation(token):
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
-        if len(password) < 8:
-            flash('Password must be at least 8 characters long.', 'danger')
+        if len(password) < 8 or len(password) > 128:
+            flash('Password must be between 8 and 128 characters long.', 'danger')
+            return redirect(url_for('auth.accept_invitation', token=token))
+
+        if (
+            password.islower()
+            or password.isupper()
+            or not any(char.isdigit() for char in password)
+            or not any(not char.isalnum() for char in password)
+        ):
+            flash('Password must include uppercase, lowercase, a number, and a symbol.', 'danger')
             return redirect(url_for('auth.accept_invitation', token=token))
 
         if password != confirm_password:

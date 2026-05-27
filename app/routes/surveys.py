@@ -11,6 +11,7 @@ from app.models.survey import SurveySkipRule, SurveyTemplate, SurveyQuestion, Su
 from app.models.member import Member
 from app.models.group import Group
 from app.pdf_utils import build_pdf_response, landscape_a4, modern_table, pdf_styles
+from app.validators import clean_spaces, is_valid_label
 
 # Create a new Blueprint for surveys
 surveys = Blueprint('surveys', __name__, url_prefix='/surveys')
@@ -30,11 +31,49 @@ def _split_options_text(options):
 
 
 def _build_options_text(option_values):
-    options = [value.strip() for value in option_values if value and value.strip()]
+    options = [clean_spaces(value) for value in option_values if clean_spaces(value)]
     return '\n'.join(
         f'{index}. {option}'
         for index, option in enumerate(options, start=1)
     )
+
+
+def _validate_survey_options(option_values):
+    options = [clean_spaces(value) for value in option_values if clean_spaces(value)]
+    if len(options) < 2:
+        return None, 'Add at least two multiple choice options.'
+    normalized = [option.casefold() for option in options]
+    if len(normalized) != len(set(normalized)):
+        return None, 'Multiple choice options must be unique.'
+    for option in options:
+        if not is_valid_label(option, min_length=1, max_length=120):
+            return None, 'Multiple choice options must contain meaningful text and standard punctuation only.'
+    return options, None
+
+
+def _build_validated_options_text(option_values):
+    options, error = _validate_survey_options(option_values)
+    if error:
+        return None, error
+    return _build_options_text(options), None
+
+
+def _validate_skip_rules(skip_conditions, skip_to_orders, max_order):
+    rules = []
+    for index, condition in enumerate(skip_conditions):
+        condition = clean_spaces(condition)
+        order_raw = skip_to_orders[index].strip() if index < len(skip_to_orders) else ''
+        if not condition and not order_raw:
+            continue
+        if not condition or not order_raw.isdigit():
+            return None, 'Skip rules require both a condition and a valid destination question number.'
+        skip_to_order = int(order_raw)
+        if skip_to_order < 0 or skip_to_order > max_order:
+            return None, f'Skip destination must be between 0 and {max_order}.'
+        if not is_valid_label(condition, min_length=1, max_length=120):
+            return None, 'Skip conditions must contain meaningful text and standard punctuation only.'
+        rules.append((condition, skip_to_order))
+    return rules, None
 
 
 @surveys.route('/')
@@ -54,20 +93,19 @@ def index():
 def create():
     if request.method == 'POST':
         # Grab the text the user typed into the form
-        title = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
+        title = clean_spaces(request.form.get('title', ''))
+        description = clean_spaces(request.form.get('description', ''))
         
         # Validation: Ensure they didn't leave the title blank
-        if not title:
-            flash('Survey title is required.', 'danger')
-            return redirect(url_for('surveys.create'))
-
-        if len(title) > 200:
-            flash('Survey title must not exceed 200 characters.', 'danger')
+        if not is_valid_label(title, min_length=3, max_length=200):
+            flash('Survey title must be meaningful, include letters, and be between 3 and 200 characters.', 'danger')
             return redirect(url_for('surveys.create'))
 
         if len(description) > 1000:
             flash('Description must not exceed 1000 characters.', 'danger')
+            return redirect(url_for('surveys.create'))
+        if description and not is_valid_label(description, min_length=5, max_length=1000):
+            flash('Description must contain meaningful text using letters, numbers, and standard punctuation.', 'danger')
             return redirect(url_for('surveys.create'))
             
         # Build a new SurveyTemplate object using the model we reviewed
@@ -97,29 +135,27 @@ def view_survey(survey_id):
     
     if request.method == 'POST':
         # 2. Grab what you typed into the "Add Question" form
-        question_text = request.form.get('question_text', '').strip()
+        question_text = clean_spaces(request.form.get('question_text', ''))
         question_type = request.form.get('question_type', '').strip()
         option_values = request.form.getlist('option_text[]')
-        options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
+        options = None
         
         skip_conditions = request.form.getlist('skip_condition[]')
         skip_to_orders = request.form.getlist('skip_to_order[]')
         
-        if not question_text:
-            flash('Question text cannot be empty.', 'danger')
-            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
-
-        if len(question_text) > 500:
-            flash('Question text must not exceed 500 characters.', 'danger')
+        if not is_valid_label(question_text, min_length=3, max_length=500):
+            flash('Question text must be meaningful, include letters, and be between 3 and 500 characters.', 'danger')
             return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
         if question_type not in ['text', 'number', 'multiple_choice']:
             flash('Invalid answer format selected.', 'danger')
             return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
-        if question_type == 'multiple_choice' and not options:
-            flash('Add at least one multiple choice option.', 'danger')
-            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+        if question_type == 'multiple_choice':
+            options, option_error = _build_validated_options_text(option_values)
+            if option_error:
+                flash(option_error, 'danger')
+                return redirect(url_for('surveys.view_survey', survey_id=survey.id))
             
         # 3. Automatically set the order (if there are 3 questions, this new one is #4)
         next_order = len(survey.questions) + 1
@@ -135,18 +171,18 @@ def view_survey(survey_id):
         db.session.add(new_question)
         db.session.flush() # Get question ID
         
-        from app.models.survey import SurveySkipRule
-        for i in range(len(skip_conditions)):
-            cond = skip_conditions[i].strip()
-            order_raw = skip_to_orders[i].strip() if i < len(skip_to_orders) else ''
-            
-            if cond and order_raw.isdigit():
-                rule = SurveySkipRule(
-                    question_id=new_question.id,
-                    condition=cond,
-                    skip_to_order=int(order_raw)
-                )
-                db.session.add(rule)
+        skip_rules, skip_error = _validate_skip_rules(skip_conditions, skip_to_orders, next_order)
+        if skip_error:
+            db.session.rollback()
+            flash(skip_error, 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+        for condition, skip_to_order in skip_rules:
+            db.session.add(SurveySkipRule(
+                question_id=new_question.id,
+                condition=condition,
+                skip_to_order=skip_to_order
+            ))
         
         # 4. Save the new question permanently to MariaDB
         db.session.commit()
@@ -431,27 +467,30 @@ def edit_question(survey_id, question_id):
     survey = SurveyTemplate.query.get_or_404(survey_id)
     question = SurveyQuestion.query.filter_by(id=question_id, template_id=survey.id).first_or_404()
 
-    question_text = request.form.get('question_text', '').strip()
+    question_text = clean_spaces(request.form.get('question_text', ''))
     question_type = request.form.get('question_type', 'text').strip()
     option_values = request.form.getlist('option_text[]')
-    options = _build_options_text(option_values) if question_type == 'multiple_choice' else None
+    options = None
     skip_conditions = request.form.getlist('skip_condition[]')
     skip_to_orders = request.form.getlist('skip_to_order[]')
 
-    if not question_text:
-        flash('Question text cannot be empty.', 'danger')
-        return redirect(url_for('surveys.view_survey', survey_id=survey.id))
-
-    if len(question_text) > 500:
-        flash('Question text must not exceed 500 characters.', 'danger')
+    if not is_valid_label(question_text, min_length=3, max_length=500):
+        flash('Question text must be meaningful, include letters, and be between 3 and 500 characters.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
     if question_type not in ['text', 'number', 'multiple_choice']:
         flash('Invalid answer format selected.', 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
-    if question_type == 'multiple_choice' and not options:
-        flash('Add at least one multiple choice option.', 'danger')
+    if question_type == 'multiple_choice':
+        options, option_error = _build_validated_options_text(option_values)
+        if option_error:
+            flash(option_error, 'danger')
+            return redirect(url_for('surveys.view_survey', survey_id=survey.id))
+
+    skip_rules, skip_error = _validate_skip_rules(skip_conditions, skip_to_orders, len(survey.questions))
+    if skip_error:
+        flash(skip_error, 'danger')
         return redirect(url_for('surveys.view_survey', survey_id=survey.id))
 
     question.question_text = question_text
@@ -461,15 +500,12 @@ def edit_question(survey_id, question_id):
     question.skip_to_order = None
 
     SurveySkipRule.query.filter_by(question_id=question.id).delete()
-    for index, condition in enumerate(skip_conditions):
-        condition = condition.strip()
-        order_raw = skip_to_orders[index].strip() if index < len(skip_to_orders) else ''
-        if condition and order_raw.isdigit():
-            db.session.add(SurveySkipRule(
-                question_id=question.id,
-                condition=condition,
-                skip_to_order=int(order_raw),
-            ))
+    for condition, skip_to_order in skip_rules:
+        db.session.add(SurveySkipRule(
+            question_id=question.id,
+            condition=condition,
+            skip_to_order=skip_to_order,
+        ))
 
     db.session.commit()
     flash('Question updated successfully.', 'success')

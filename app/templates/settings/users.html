@@ -39,7 +39,7 @@
     <form method="POST" action="{{ url_for('settings.users') }}">
       <div class="form-group">
         <label class="form-label" for="username">Username</label>
-        <input type="text" name="username" id="username" class="form-input" required minlength="2" maxlength="50">
+        <input type="text" name="username" id="username" class="form-input" required minlength="3" maxlength="50" pattern="[A-Za-z][A-Za-z0-9_.-]{2,49}" title="Start with a letter. Use letters, numbers, dots, underscores, or hyphens.">
       </div>
 
       <div class="form-group">

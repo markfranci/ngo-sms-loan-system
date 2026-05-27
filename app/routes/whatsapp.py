@@ -7,6 +7,7 @@ from app.models.member import Member, RegistrationSession
 from app.models.survey import SurveyTemplate, SurveyQuestion, SurveyResponse
 import re
 from decimal import Decimal, InvalidOperation
+from app.validators import is_valid_national_id, is_valid_person_name, title_case_name
 
 whatsapp = Blueprint('whatsapp', __name__, url_prefix='/whatsapp')
 
@@ -154,21 +155,18 @@ def incoming_message():
                 reply_text = "Welcome! Your phone number is not registered. Please send 'START' to begin registration."
         else:
             if session.step == 1:
-                # Validation: Name must be at least 2 characters, not just numbers,
-                # and must contain at least one letter (no pure special chars)
-                name_clean = message_body.replace(' ', '')
-                if len(message_body) < 2 or len(message_body) > 100 or name_clean.isdigit() or not any(c.isalpha() for c in name_clean):
-                    reply_text = "Please reply with a valid Full Name (must contain letters)."
+                if not is_valid_person_name(message_body):
+                    reply_text = "Please reply with your real full name, using at least two names with letters only."
                 else:
-                    session.full_name = message_body
+                    session.full_name = title_case_name(message_body)
                     session.step = 2
                     db.session.commit()
-                    reply_text = f"Thanks, {message_body}. Now, please reply with your National ID Number (Numbers only)."
+                    reply_text = f"Thanks, {session.full_name}. Now, please reply with your National ID Number (Numbers only)."
             elif session.step == 2:
                 # Validation: ID must be digits and reasonable length
                 clean_id = message_body.replace(' ', '').strip()
                 existing_member = Member.query.filter_by(id_number=clean_id).first()
-                if not clean_id.isdigit() or len(clean_id) < 5 or len(clean_id) > 20:
+                if not is_valid_national_id(clean_id):
                     reply_text = "Please reply with a valid National ID Number (Numbers only, minimum 5 digits)."
                 elif existing_member:
                     reply_text = "That National ID Number is already registered. Please contact support for assistance."

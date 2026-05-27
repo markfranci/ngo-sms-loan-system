@@ -1,5 +1,3 @@
-import re
-
 from flask import Blueprint, render_template, abort
 from flask_login import login_required, current_user
 from app.decorators import admin_required
@@ -9,14 +7,12 @@ from app.models.group import Group
 from app.models.loan import Loan
 from app.models.survey import SurveyResponse
 from app import db
+from app.validators import is_valid_national_id, is_valid_person_name, is_valid_phone_number, title_case_name
 from flask import request, flash, redirect, url_for
 from app.routes.loans import delete_loan_record
 
 members = Blueprint('members', __name__, url_prefix='/members')
 
-
-def _valid_phone_number(value):
-    return bool(re.fullmatch(r'\+?\d{7,15}', value or ''))
 
 @members.route('/')
 @login_required
@@ -39,7 +35,15 @@ def assign_group(member_id):
     member = Member.query.get_or_404(member_id)
     group_id = request.form.get('group_id')
     if group_id:
-        member.group_id = int(group_id)
+        try:
+            group_id_int = int(group_id)
+        except ValueError:
+            flash('Please select a valid group.', 'danger')
+            return redirect(url_for('members.profile', member_id=member_id))
+        if not Group.query.get(group_id_int):
+            flash('Please select a valid group.', 'danger')
+            return redirect(url_for('members.profile', member_id=member_id))
+        member.group_id = group_id_int
         db.session.commit()
         flash(f'Member assigned to group successfully.', 'success')
     else:
@@ -61,11 +65,11 @@ def update(member_id):
         flash('Full name and phone number are required.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
-    if len(full_name) > 100 or full_name.replace(' ', '').isdigit():
-        flash('Please enter a valid full name.', 'danger')
+    if not is_valid_person_name(full_name):
+        flash('Please enter a valid real full name with at least two letter-based names.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
-    if not _valid_phone_number(phone_number):
+    if not is_valid_phone_number(phone_number):
         flash('Please enter a valid phone number using digits and optional leading +.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
@@ -73,13 +77,20 @@ def update(member_id):
         flash('Please select a valid gender.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
-    if id_number and (not id_number.isdigit() or len(id_number) > 20):
-        flash('ID number must contain digits only.', 'danger')
+    if id_number and not is_valid_national_id(id_number):
+        flash('ID number must contain 5 to 20 digits only.', 'danger')
         return redirect(url_for('members.profile', member_id=member.id))
 
-    if group_id and not Group.query.get(group_id):
-        flash('Please select a valid group.', 'danger')
-        return redirect(url_for('members.profile', member_id=member.id))
+    group_id_int = None
+    if group_id:
+        try:
+            group_id_int = int(group_id)
+        except ValueError:
+            flash('Please select a valid group.', 'danger')
+            return redirect(url_for('members.profile', member_id=member.id))
+        if not Group.query.get(group_id_int):
+            flash('Please select a valid group.', 'danger')
+            return redirect(url_for('members.profile', member_id=member.id))
 
     existing_phone = Member.query.filter(
         Member.phone_number == phone_number,
@@ -98,11 +109,11 @@ def update(member_id):
             flash('Another member already uses that ID number.', 'danger')
             return redirect(url_for('members.profile', member_id=member.id))
 
-    member.full_name = full_name
+    member.full_name = title_case_name(full_name)
     member.phone_number = phone_number
     member.id_number = id_number
     member.gender = gender
-    member.group_id = int(group_id) if group_id else None
+    member.group_id = group_id_int
 
     db.session.commit()
     flash('Member details updated successfully.', 'success')

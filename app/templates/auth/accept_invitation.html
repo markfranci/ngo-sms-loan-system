@@ -30,6 +30,9 @@
             class="form-input"
             placeholder="At least 8 characters"
             minlength="8"
+            maxlength="128"
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,128}"
+            title="Use 8-128 characters with uppercase, lowercase, a number, and a symbol."
             required
             autofocus
           />
@@ -44,6 +47,7 @@
             class="form-input"
             placeholder="Repeat your password"
             minlength="8"
+            maxlength="128"
             required
           />
         </div>

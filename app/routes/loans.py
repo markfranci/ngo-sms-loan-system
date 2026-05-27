@@ -35,6 +35,7 @@ from app.pdf_utils import (
     pdf_styles,
 )
 from flask_login import current_user, login_required
+from app.validators import clean_spaces, is_valid_label, is_valid_reference
 from app.whatsapp_service import WhatsAppNotConfiguredError, send_whatsapp_message
 
 loans_bp = Blueprint('loans', __name__, url_prefix='/loans')
@@ -254,6 +255,14 @@ def _parse_optional_float(form, field_name, label, minimum=0):
         return None, f'{label} must be at least {minimum}.'
     return value, None
 
+
+def _clean_required_label(form, field_name, label, min_length=2, max_length=200):
+    value = clean_spaces(form.get(field_name, ''))
+    if not is_valid_label(value, min_length=min_length, max_length=max_length):
+        return None, f'{label} must contain meaningful text using letters, numbers, and standard punctuation.'
+    return value, None
+
+
 @loans_bp.route('/')
 @login_required
 def index():
@@ -333,7 +342,35 @@ def new(member_id):
             flash(number_error, 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
             
-        notes = request.form.get('notes', '')
+        ward, text_error = _clean_required_label(request.form, 'ward', 'Ward', min_length=2, max_length=120)
+        if text_error:
+            flash(text_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        business_location, text_error = _clean_required_label(request.form, 'business_location', 'Business location', min_length=3, max_length=200)
+        if text_error:
+            flash(text_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        nature_of_business, text_error = _clean_required_label(request.form, 'nature_of_business', 'Nature of business', min_length=3, max_length=200)
+        if text_error:
+            flash(text_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        loan_purpose, text_error = _clean_required_label(request.form, 'loan_purpose', 'Loan purpose', min_length=5, max_length=500)
+        if text_error:
+            flash(text_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        notes, text_error = _clean_required_label(request.form, 'notes', 'Assessment notes', min_length=5, max_length=1000)
+        if text_error:
+            flash(text_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
+        registration_number = clean_spaces(request.form.get('registration_number', ''))
+        if registration_number and not is_valid_reference(registration_number, max_length=120):
+            flash('Registration number must use letters, numbers, spaces, and standard reference punctuation only.', 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
         
         disposable_income, number_error = _parse_required_float(request.form, 'disposable_income', 'Disposable income', 0)
         if number_error:
@@ -385,16 +422,16 @@ def new(member_id):
             loan_id=loan.id,
             county=county,
             sub_county=sub_county,
-            ward=request.form.get('ward', ''),
+            ward=ward,
             group_name=member.group.name,
-            business_location=request.form.get('business_location', ''),
-            nature_of_business=request.form.get('nature_of_business', ''),
-            registration_number=request.form.get('registration_number', ''),
+            business_location=business_location,
+            nature_of_business=nature_of_business,
+            registration_number=registration_number,
             male_participants=male_participants,
             female_participants=female_participants,
             loan_term_months=loan_term_months,
             monthly_instalment=monthly_instalment,
-            loan_purpose=request.form.get('loan_purpose', '')
+            loan_purpose=loan_purpose
         )
         db.session.add(details)
 
@@ -417,19 +454,23 @@ def new(member_id):
         unit_prices = request.form.getlist('unit_price[]')
         
         for i in range(len(item_names)):
-            if item_names[i].strip():
+            item_name = clean_spaces(item_names[i])
+            if item_name:
+                if not is_valid_label(item_name, min_length=2, max_length=120):
+                    flash('Inventory item names must contain meaningful text and standard punctuation only.', 'danger')
+                    return redirect(url_for('loans.new', member_id=member.id))
                 try:
                     qty = int(quantities[i]) if i < len(quantities) and quantities[i] else 0
                     price = float(unit_prices[i]) if i < len(unit_prices) and unit_prices[i] else 0.0
                 except ValueError:
                     flash('Inventory quantities and unit prices must be valid numbers.', 'danger')
                     return redirect(url_for('loans.new', member_id=member.id))
-                if qty < 0 or price < 0:
-                    flash('Inventory quantities and unit prices cannot be negative.', 'danger')
+                if qty <= 0 or price <= 0:
+                    flash('Inventory quantities and unit prices must be positive when an item is entered.', 'danger')
                     return redirect(url_for('loans.new', member_id=member.id))
                 inv = LoanInventoryItem(
                     loan_id=loan.id,
-                    item_name=item_names[i],
+                    item_name=item_name,
                     quantity=qty,
                     unit_price=price,
                     total_value=qty * price
@@ -446,10 +487,15 @@ def new(member_id):
             if number_error:
                 flash(number_error, 'danger')
                 return redirect(url_for('loans.new', member_id=member.id))
+            month_name = clean_spaces(request.form.get(f'month_name_{m}', f'Month {m}'))
+            if not is_valid_label(month_name, min_length=3, max_length=40):
+                flash(f'Month {m} name must contain meaningful text.', 'danger')
+                return redirect(url_for('loans.new', member_id=member.id))
+
             cf = LoanCashFlowMonth(
                 loan_id=loan.id,
                 month_index=m,
-                month_name=request.form.get(f'month_name_{m}', f'Month {m}'),
+                month_name=month_name,
                 cash_inflow=inflow,
                 cash_outflow=outflow,
                 net_cash=inflow - outflow
@@ -505,9 +551,9 @@ def update_status(loan_id):
             flash('Verification documents are required before making a decision.', 'danger')
             return redirect(url_for('loans.view', loan_id=loan.id))
 
-        decision_notes = request.form.get('approval_notes', '').strip()
-        if not decision_notes:
-            flash('Decision notes are required before confirming approval or rejection.', 'danger')
+        decision_notes = clean_spaces(request.form.get('approval_notes', ''))
+        if not is_valid_label(decision_notes, min_length=5, max_length=1000):
+            flash('Decision notes must contain meaningful text before confirming approval or rejection.', 'danger')
             return redirect(url_for('loans.view', loan_id=loan.id))
 
         loan.status = status
@@ -599,23 +645,19 @@ def post_repayment(loan_id):
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     payment_date_text = request.form.get('payment_date', '').strip()
-    reference = request.form.get('reference', '').strip()
-    notes = request.form.get('notes', '').strip()
+    reference = clean_spaces(request.form.get('reference', ''))
+    notes = clean_spaces(request.form.get('notes', ''))
 
-    if not reference:
-        flash('Payment reference is required.', 'danger')
+    if not is_valid_reference(reference):
+        flash('Payment reference is required and may only contain letters, numbers, spaces, and standard reference punctuation.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     if amount > loan.outstanding_balance:
         flash('Repayment amount cannot exceed the outstanding balance.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    if len(reference) > 120:
-        flash('Payment reference is too long.', 'danger')
-        return redirect(url_for('loans.view', loan_id=loan.id))
-
-    if len(notes) > 1000:
-        flash('Repayment notes are too long.', 'danger')
+    if notes and not is_valid_label(notes, min_length=5, max_length=1000):
+        flash('Repayment notes must contain meaningful text using standard punctuation.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     try:
@@ -677,32 +719,24 @@ def initiate_disbursement(loan_id):
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     disbursement_date_text = request.form.get('disbursement_date', '').strip()
-    reference = request.form.get('reference', '').strip()
+    reference = clean_spaces(request.form.get('reference', ''))
     method = request.form.get('method', '').strip()
-    notes = request.form.get('notes', '').strip()
+    notes = clean_spaces(request.form.get('notes', ''))
 
     if amount > (loan.amount_requested or 0):
         flash('Disbursement amount cannot exceed the approved loan amount.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    if not reference:
-        flash('Disbursement reference is required.', 'danger')
+    if not is_valid_reference(reference):
+        flash('Disbursement reference is required and may only contain letters, numbers, spaces, and standard reference punctuation.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    if len(reference) > 120:
-        flash('Disbursement reference is too long.', 'danger')
-        return redirect(url_for('loans.view', loan_id=loan.id))
-
-    if len(method) > 80:
-        flash('Disbursement method is too long.', 'danger')
-        return redirect(url_for('loans.view', loan_id=loan.id))
-
-    if method and method not in DISBURSEMENT_METHODS:
+    if method not in DISBURSEMENT_METHODS:
         flash('Please select a valid disbursement method.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    if len(notes) > 1000:
-        flash('Disbursement notes are too long.', 'danger')
+    if notes and not is_valid_label(notes, min_length=5, max_length=1000):
+        flash('Disbursement notes must contain meaningful text using standard punctuation.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     try:

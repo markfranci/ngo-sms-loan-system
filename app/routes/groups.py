@@ -5,6 +5,7 @@ from app.models.group import Group
 from app.models.member import Member
 from app.models.user import User
 from app.decorators import admin_required
+from app.validators import clean_spaces, is_valid_label
 
 groups = Blueprint('groups', __name__, url_prefix='/groups')
 
@@ -25,21 +26,20 @@ def index():
 @admin_required
 def create():
     if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
+        name = clean_spaces(request.form.get('name', ''))
+        description = clean_spaces(request.form.get('description', ''))
         assigned_staff_id = request.form.get('assigned_staff_id', '').strip()
         
         # Validation
-        if not name or len(name) < 2:
-            flash('Group name is required and must be at least 2 characters.', 'danger')
-            return redirect(url_for('groups.create'))
-
-        if len(name) > 100:
-            flash('Group name must not exceed 100 characters.', 'danger')
+        if not is_valid_label(name, min_length=3, max_length=100):
+            flash('Group name must be meaningful, include letters, and be between 3 and 100 characters.', 'danger')
             return redirect(url_for('groups.create'))
 
         if len(description) > 500:
             flash('Description must not exceed 500 characters.', 'danger')
+            return redirect(url_for('groups.create'))
+        if description and not is_valid_label(description, min_length=5, max_length=500):
+            flash('Description must contain meaningful text using letters, numbers, and standard punctuation.', 'danger')
             return redirect(url_for('groups.create'))
 
         existing_group = Group.query.filter_by(name=name).first()
@@ -58,6 +58,9 @@ def create():
             staff_user = User.query.get(staff_user_id)
             if not staff_user:
                 flash('Selected staff member does not exist.', 'danger')
+                return redirect(url_for('groups.create'))
+            if staff_user.role != 'staff':
+                flash('Groups can only be assigned to staff users.', 'danger')
                 return redirect(url_for('groups.create'))
 
         new_group = Group(
