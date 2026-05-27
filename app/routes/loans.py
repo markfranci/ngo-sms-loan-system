@@ -8,6 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
 from app.models.loan import (
@@ -36,6 +37,14 @@ REQUIRED_DOCUMENTS = {
     'profit_and_loss': 'Profit and Loss Statement',
     'cash_flow_statement': 'Cash Flow Statement',
 }
+
+DISBURSEMENT_METHODS = [
+    'Bank transfer',
+    'M-Pesa',
+    'Cheque',
+    'Cash',
+    'Mobile money',
+]
 
 
 def _allowed_document(filename):
@@ -260,7 +269,12 @@ def index():
 def view(loan_id):
     # Detailed view of a loan assessment
     loan = Loan.query.get_or_404(loan_id)
-    return render_template('loans/view.html', loan=loan)
+    return render_template(
+        'loans/view.html',
+        loan=loan,
+        now=datetime.utcnow(),
+        disbursement_methods=DISBURSEMENT_METHODS,
+    )
 
 @loans_bp.route('/new/<int:member_id>', methods=['GET', 'POST'])
 @login_required
@@ -626,15 +640,23 @@ def initiate_disbursement(loan_id):
         flash('Only approved loans can be prepared for disbursement.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    amount = request.form.get('amount', type=float) or 0
+    pending_disbursement = LoanDisbursement.query.filter_by(
+        loan_id=loan.id,
+        status='pending',
+    ).first()
+    if pending_disbursement:
+        flash('This loan already has a pending disbursement waiting for admin confirmation.', 'warning')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    amount, amount_error = _parse_required_float(request.form, 'amount', 'Disbursement amount', 1)
+    if amount_error:
+        flash(amount_error, 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
     disbursement_date_text = request.form.get('disbursement_date', '').strip()
     reference = request.form.get('reference', '').strip()
     method = request.form.get('method', '').strip()
     notes = request.form.get('notes', '').strip()
-
-    if amount <= 0:
-        flash('Disbursement amount must be greater than zero.', 'danger')
-        return redirect(url_for('loans.view', loan_id=loan.id))
 
     if amount > (loan.amount_requested or 0):
         flash('Disbursement amount cannot exceed the approved loan amount.', 'danger')
@@ -648,6 +670,14 @@ def initiate_disbursement(loan_id):
         flash('Disbursement reference is too long.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
+    if len(method) > 80:
+        flash('Disbursement method is too long.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if method and method not in DISBURSEMENT_METHODS:
+        flash('Please select a valid disbursement method.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
     if len(notes) > 1000:
         flash('Disbursement notes are too long.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
@@ -658,18 +688,24 @@ def initiate_disbursement(loan_id):
         flash('Disbursement date is required and must use YYYY-MM-DD format.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    db.session.add(LoanDisbursement(
-        loan_id=loan.id,
-        initiated_by=current_user.id,
-        amount=amount,
-        disbursement_date=disbursement_date,
-        reference=reference,
-        method=method,
-        notes=notes,
-        status='pending',
-    ))
-    loan.status = 'disbursement_in_progress'
-    db.session.commit()
+    try:
+        db.session.add(LoanDisbursement(
+            loan_id=loan.id,
+            initiated_by=current_user.id,
+            amount=amount,
+            disbursement_date=disbursement_date,
+            reference=reference,
+            method=method,
+            notes=notes,
+            status='pending',
+        ))
+        loan.status = 'disbursement_in_progress'
+        db.session.commit()
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        current_app.logger.exception('Failed to submit loan disbursement %s', loan.id)
+        flash(f'Could not submit disbursement for admin confirmation: {error.__class__.__name__}.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
 
     flash('Disbursement prepared and submitted for admin confirmation.', 'success')
     return redirect(url_for('loans.view', loan_id=loan.id))

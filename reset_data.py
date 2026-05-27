@@ -4,7 +4,8 @@ from app.models.sms_log import SMSLog
 from app.models.survey import SurveyResponse
 from app.models.loan import (
     Loan, LoanAssessmentDetails, LoanFinancialSnapshot, 
-    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff
+    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff,
+    LoanDisbursement, LoanRepayment
 )
 
 app = create_app()
@@ -13,6 +14,8 @@ with app.app_context():
     try:
         # Delete in order of dependencies to avoid foreign key constraints
         db.session.query(LoanApprovalSignoff).delete()
+        db.session.query(LoanRepayment).delete()
+        db.session.query(LoanDisbursement).delete()
         db.session.query(LoanCashFlowMonth).delete()
         db.session.query(LoanInventoryItem).delete()
         db.session.query(LoanFinancialSnapshot).delete()

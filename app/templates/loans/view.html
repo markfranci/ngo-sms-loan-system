@@ -225,7 +225,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Disbursement Date</label>
-          <input type="date" name="disbursement_date" class="form-input" required>
+          <input type="date" name="disbursement_date" class="form-input" value="{{ now.strftime('%Y-%m-%d') if now is defined else '' }}" required>
         </div>
       </div>
       <div class="form-group">
@@ -234,7 +234,12 @@
       </div>
       <div class="form-group">
         <label class="form-label">Method</label>
-        <input type="text" name="method" class="form-input" placeholder="Bank transfer, M-Pesa, cheque">
+        <select name="method" class="form-select" required>
+          <option value="">Select method</option>
+          {% for method in disbursement_methods %}
+          <option value="{{ method }}">{{ method }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">Notes</label>
