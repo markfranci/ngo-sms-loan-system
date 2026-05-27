@@ -30,6 +30,10 @@
           <input type="text" id="filter-phone-number" class="form-control" list="member-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
+          <label>National ID</label>
+          <input type="text" id="filter-id-number" class="form-control" list="member-id-options" placeholder="ID number" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
           <label>Gender</label>
           <select id="filter-gender" class="form-control" onchange="loadData()">
             <option value="all">All</option>
@@ -46,12 +50,19 @@
           <input type="text" id="filter-group-name" class="form-control" list="member-group-options" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
-          <label>Registered</label>
-          <input type="text" id="filter-registered-at" class="form-control" list="member-registered-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <label>From Date</label>
+          <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group">
+          <label>To Date</label>
+          <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
         <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+          </button>
           <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
             <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
           </button>
@@ -90,9 +101,9 @@
 
 <datalist id="member-name-options"></datalist>
 <datalist id="member-phone-options"></datalist>
+<datalist id="member-id-options"></datalist>
 <datalist id="member-location-options"></datalist>
 <datalist id="member-group-options"></datalist>
-<datalist id="member-registered-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
@@ -131,26 +142,43 @@
     const location = document.getElementById('filter-location').value;
     const fullName = document.getElementById('filter-full-name').value;
     const phoneNumber = document.getElementById('filter-phone-number').value;
+    const idNumber = document.getElementById('filter-id-number').value;
     const groupName = document.getElementById('filter-group-name').value;
-    const registeredAt = document.getElementById('filter-registered-at').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
 
     return [
       `entity=members`,
       `search=${encodeURIComponent(search)}`,
       `gender=${gender}`,
       `location=${encodeURIComponent(location)}`,
+      `start_date=${encodeURIComponent(startDate)}`,
+      `end_date=${encodeURIComponent(endDate)}`,
       `filter_full_name=${encodeURIComponent(fullName)}`,
       `filter_phone_number=${encodeURIComponent(phoneNumber)}`,
+      `filter_id_number=${encodeURIComponent(idNumber)}`,
       `filter_gender=${encodeURIComponent(gender === 'all' ? '' : gender)}`,
       `filter_location=${encodeURIComponent(location)}`,
-      `filter_group_name=${encodeURIComponent(groupName)}`,
-      `filter_registered_at=${encodeURIComponent(registeredAt)}`
+      `filter_group_name=${encodeURIComponent(groupName)}`
     ].join('&');
   }
 
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-full-name').value = '';
+    document.getElementById('filter-phone-number').value = '';
+    document.getElementById('filter-id-number').value = '';
+    document.getElementById('filter-gender').value = 'all';
+    document.getElementById('filter-location').value = '';
+    document.getElementById('filter-group-name').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    loadData();
   }
 
   function populateDatalist(id, values) {
@@ -169,9 +197,9 @@
       .then(options => {
         populateDatalist('member-name-options', options.full_name);
         populateDatalist('member-phone-options', options.phone_number);
+        populateDatalist('member-id-options', options.id_number);
         populateDatalist('member-location-options', options.location);
         populateDatalist('member-group-options', options.group_name);
-        populateDatalist('member-registered-options', options.registered_at);
       })
       .catch(err => console.error(err));
   }

@@ -37,8 +37,12 @@
             <input type="text" id="filter-manager" class="form-control" list="group-manager-options" placeholder="Manager" onkeyup="if(event.key === 'Enter') loadData()">
           </div>
           <div class="form-group">
-            <label>Created At</label>
-            <input type="text" id="filter-created-at" class="form-control" list="group-created-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+            <label>From Date</label>
+            <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+          </div>
+          <div class="form-group">
+            <label>To Date</label>
+            <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
           </div>
         </div>
         <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -48,6 +52,9 @@
             </button>
             <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
               <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+              <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
             </button>
           </div>
           <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
@@ -87,7 +94,6 @@
 <datalist id="group-description-options"></datalist>
 <datalist id="group-member-count-options"></datalist>
 <datalist id="group-manager-options"></datalist>
-<datalist id="group-created-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
@@ -126,22 +132,35 @@
     const description = document.getElementById('filter-description').value;
     const memberCount = document.getElementById('filter-member-count').value;
     const manager = document.getElementById('filter-manager').value;
-    const createdAt = document.getElementById('filter-created-at').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
 
     return [
       `entity=groups`,
       `search=${encodeURIComponent(search)}`,
+      `start_date=${encodeURIComponent(startDate)}`,
+      `end_date=${encodeURIComponent(endDate)}`,
       `filter_name=${encodeURIComponent(name)}`,
       `filter_description=${encodeURIComponent(description)}`,
       `filter_member_count=${encodeURIComponent(memberCount)}`,
-      `filter_manager=${encodeURIComponent(manager)}`,
-      `filter_created_at=${encodeURIComponent(createdAt)}`
+      `filter_manager=${encodeURIComponent(manager)}`
     ].join('&');
   }
 
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-name').value = '';
+    document.getElementById('filter-description').value = '';
+    document.getElementById('filter-member-count').value = '';
+    document.getElementById('filter-manager').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    loadData();
   }
 
   function populateDatalist(id, values) {
@@ -162,7 +181,6 @@
         populateDatalist('group-description-options', options.description);
         populateDatalist('group-member-count-options', options.member_count);
         populateDatalist('group-manager-options', options.manager);
-        populateDatalist('group-created-options', options.created_at);
       })
       .catch(err => console.error(err));
   }

@@ -189,6 +189,7 @@ def get_report_data():
                 Member.phone_number.ilike(f"%{search}%"),
                 Member.id_number.ilike(f"%{search}%")
             ))
+        query = _apply_date_range(query, Member.registered_at)
             
         data = []
         for m in query.all():
@@ -196,6 +197,7 @@ def get_report_data():
                 'id': m.id,
                 'full_name': m.full_name,
                 'phone_number': m.phone_number,
+                'id_number': m.id_number or '',
                 'gender': m.gender or 'Unknown',
                 'location': m.location or 'Unknown',
                 'group_name': m.group.name if m.group else 'Unassigned',
@@ -206,15 +208,19 @@ def get_report_data():
         
     elif entity == 'loans':
         query = Loan.query
+        needs_member_join = (group_id and group_id != 'all') or bool(search)
+        if needs_member_join:
+            query = query.join(Member)
         if group_id and group_id != 'all':
-            query = query.join(Member).filter(Member.group_id == group_id)
+            query = query.filter(Member.group_id == group_id)
         if status and status != 'all':
             query = query.filter(Loan.status.ilike(status))
         if search:
-            query = query.join(Member).filter(db.or_(
+            query = query.filter(db.or_(
                 Member.full_name.ilike(f"%{search}%"),
                 Member.phone_number.ilike(f"%{search}%")
             ))
+        query = _apply_date_range(query, Loan.created_at)
             
         data = []
         for l in query.all():
@@ -234,6 +240,7 @@ def get_report_data():
         query = Group.query
         if search:
             query = query.filter(Group.name.ilike(f"%{search}%"))
+        query = _apply_date_range(query, Group.created_at)
         
         data = []
         for g in query.all():
@@ -253,8 +260,6 @@ def get_report_data():
         direction = request.args.get('direction')
         sms_status = request.args.get('sms_status')
         member_id = request.args.get('member_id')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
 
         if direction and direction != 'all':
             query = query.filter(SMSLog.direction == direction)
@@ -262,18 +267,7 @@ def get_report_data():
             query = query.filter(SMSLog.status == sms_status)
         if member_id and member_id != 'all':
             query = query.filter(SMSLog.member_id == int(member_id))
-        if start_date:
-            try:
-                dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query = query.filter(SMSLog.created_at >= dt)
-            except ValueError:
-                pass
-        if end_date:
-            try:
-                dt = datetime.strptime(end_date, '%Y-%m-%d')
-                query = query.filter(SMSLog.created_at <= dt.replace(hour=23, minute=59, second=59))
-            except ValueError:
-                pass
+        query = _apply_date_range(query, SMSLog.created_at)
         if search:
             query = query.outerjoin(Member, SMSLog.member_id == Member.id).filter(db.or_(
                 SMSLog.sender.ilike(f"%{search}%"),
@@ -305,6 +299,7 @@ def get_report_data():
         query = SurveyTemplate.query
         if search:
             query = query.filter(SurveyTemplate.title.ilike(f"%{search}%"))
+        query = _apply_date_range(query, SurveyTemplate.created_at)
             
         data = []
         for s in query.all():
@@ -342,17 +337,52 @@ def _get_column_filters():
 
 
 def _record_matches_column_filters(record):
+    exact_match_columns = {
+        'gender',
+        'status',
+        'direction',
+        'member_count',
+        'question_count',
+        'amount_requested',
+    }
+
     for column, filter_value in _get_column_filters().items():
         record_value = str(record.get(column, '')).strip().casefold()
         if column.endswith('_at') and len(filter_value.strip()) == 10:
             record_value = record_value[:10]
-        if record_value != filter_value.casefold():
+        filter_value = filter_value.casefold()
+        if column in exact_match_columns or column.endswith('_at'):
+            if record_value != filter_value:
+                return False
+            continue
+        if filter_value not in record_value:
             return False
     return True
 
 
 def _filter_records(records):
     return [record for record in records if _record_matches_column_filters(record)]
+
+
+def _parse_date_filter(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+
+def _apply_date_range(query, column):
+    start_dt = _parse_date_filter(request.args.get('start_date'))
+    end_dt = _parse_date_filter(request.args.get('end_date'))
+
+    if start_dt:
+        query = query.filter(column >= start_dt)
+    if end_dt:
+        query = query.filter(column <= end_dt.replace(hour=23, minute=59, second=59))
+
+    return query
 
 
 def _rows_from_records(records, selected_columns):
@@ -387,6 +417,7 @@ def get_filter_options():
             {
                 'full_name': member.full_name,
                 'phone_number': member.phone_number,
+                'id_number': member.id_number or '',
                 'gender': member.gender or 'Unknown',
                 'location': member.location or 'Unknown',
                 'group_name': member.group.name if member.group else 'Unassigned',
@@ -445,6 +476,19 @@ def get_filter_options():
         result = _unique_filter_options(records)
         result['members'] = member_options
         return jsonify(result)
+
+    if entity == 'surveys':
+        records = [
+            {
+                'title': survey.title,
+                'description': survey.description or 'No description',
+                'question_count': len(survey.questions),
+                'creator': survey.creator.username if survey.creator else 'System',
+                'created_at': survey.created_at.strftime('%Y-%m-%d') if survey.created_at else '',
+            }
+            for survey in SurveyTemplate.query.all()
+        ]
+        return jsonify(_unique_filter_options(records))
 
     return jsonify({})
 
@@ -642,18 +686,7 @@ def _build_custom_report_payload():
                 Member.id_number.ilike(f"%{search}%")
             ))
 
-        if start_date:
-            try:
-                dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query = query.filter(Member.registered_at >= dt)
-            except ValueError:
-                pass
-        if end_date:
-            try:
-                dt = datetime.strptime(end_date, '%Y-%m-%d')
-                query = query.filter(Member.registered_at <= dt.replace(hour=23, minute=59, second=59))
-            except ValueError:
-                pass
+        query = _apply_date_range(query, Member.registered_at)
 
         records = []
         for member in query.all():
@@ -701,18 +734,7 @@ def _build_custom_report_payload():
                 Member.phone_number.ilike(f"%{search}%")
             ))
 
-        if start_date:
-            try:
-                dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query = query.filter(Loan.created_at >= dt)
-            except ValueError:
-                pass
-        if end_date:
-            try:
-                dt = datetime.strptime(end_date, '%Y-%m-%d')
-                query = query.filter(Loan.created_at <= dt.replace(hour=23, minute=59, second=59))
-            except ValueError:
-                pass
+        query = _apply_date_range(query, Loan.created_at)
 
         records = []
         for loan in query.all():
@@ -742,6 +764,7 @@ def _build_custom_report_payload():
         query = Group.query
         if search:
             query = query.filter(Group.name.ilike(f"%{search}%"))
+        query = _apply_date_range(query, Group.created_at)
 
         records = []
         for group in query.all():
@@ -782,18 +805,7 @@ def _build_custom_report_payload():
                 SMSLog.message.ilike(f"%{search}%"),
                 Member.full_name.ilike(f"%{search}%")
             ))
-        if start_date:
-            try:
-                dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query = query.filter(SMSLog.created_at >= dt)
-            except ValueError:
-                pass
-        if end_date:
-            try:
-                dt = datetime.strptime(end_date, '%Y-%m-%d')
-                query = query.filter(SMSLog.created_at <= dt.replace(hour=23, minute=59, second=59))
-            except ValueError:
-                pass
+        query = _apply_date_range(query, SMSLog.created_at)
 
         query = query.order_by(SMSLog.created_at.desc()).limit(500)
 
@@ -823,6 +835,7 @@ def _build_custom_report_payload():
         query = SurveyTemplate.query
         if search:
             query = query.filter(SurveyTemplate.title.ilike(f"%{search}%"))
+        query = _apply_date_range(query, SurveyTemplate.created_at)
 
         records = []
         for survey in query.all():

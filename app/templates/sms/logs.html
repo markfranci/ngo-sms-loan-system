@@ -227,7 +227,25 @@
       return;
     }
 
+    let previousGroup = '';
     currentData.forEach(row => {
+      const dateParts = row.created_at ? row.created_at.split(' ') : ['', ''];
+      const memberLabel = row.member_name || 'Unknown member';
+      const directionLabel = row.direction === 'incoming' ? 'Received' : 'Sent';
+      const groupKey = `${dateParts[0] || 'Unknown Date'}|${memberLabel}|${directionLabel}`;
+
+      if (groupKey !== previousGroup) {
+        const groupRow = document.createElement('tr');
+        const colSpan = canDeleteRecords ? 7 : 6;
+        groupRow.innerHTML = `
+          <td colspan="${colSpan}" style="background:var(--surface-muted,#f8fafc);font-weight:700;color:var(--text-secondary);">
+            ${dateParts[0] || 'Unknown Date'} / ${memberLabel} / ${directionLabel}
+          </td>
+        `;
+        tbody.appendChild(groupRow);
+        previousGroup = groupKey;
+      }
+
       let tr = document.createElement('tr');
       if (row.status === 'failed') tr.style.background = 'var(--color-danger-bg, #fef2f2)';
 
@@ -252,8 +270,6 @@
       else statusCell = `<span class="text-muted" style="font-size:0.85rem;">${row.status}</span>`;
 
       const msgPreview = row.message.length > 80 ? row.message.substring(0, 80) + '…' : row.message;
-
-      const dateParts = row.created_at ? row.created_at.split(' ') : ['', ''];
 
       const deleteAction = canDeleteRecords ? `
         <td>

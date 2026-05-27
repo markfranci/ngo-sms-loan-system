@@ -27,6 +27,9 @@
           <select id="filter-entity" class="form-control" onchange="updateFilterVisibility(); loadFilterOptions(); loadData();">
             <option value="members">Members</option>
             <option value="loans">Loans</option>
+            <option value="groups">Groups</option>
+            <option value="sms_logs">SMS Logs</option>
+            <option value="surveys">Surveys</option>
           </select>
         </div>
         <div class="form-group">
@@ -49,6 +52,10 @@
           <input type="text" id="filter-member-phone" class="form-control" list="report-member-phone-options" placeholder="Phone number" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group member-filter">
+          <label>National ID</label>
+          <input type="text" id="filter-member-id" class="form-control" list="report-member-id-options" placeholder="ID number" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group member-filter">
           <label>Gender</label>
           <select id="filter-gender" class="form-control" onchange="loadData()">
             <option value="all">All</option>
@@ -61,8 +68,12 @@
           <input type="text" id="filter-location" class="form-control" list="report-member-location-options" placeholder="Town/City" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group member-filter">
-          <label>Registered</label>
-          <input type="text" id="filter-member-registered" class="form-control" list="report-member-registered-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <label>From Date</label>
+          <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group member-filter">
+          <label>To Date</label>
+          <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
         </div>
 
         <!-- Loan Specific -->
@@ -91,17 +102,123 @@
           </select>
         </div>
         <div class="form-group loan-filter" style="display:none;">
-          <label>Date</label>
-          <input type="text" id="filter-loan-created" class="form-control" list="report-loan-date-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <label>From Date</label>
+          <input type="date" id="filter-loan-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group loan-filter" style="display:none;">
+          <label>To Date</label>
+          <input type="date" id="filter-loan-end-date" class="form-control" onchange="loadData()">
+        </div>
+
+        <!-- Group Specific -->
+        <div class="form-group group-filter" style="display:none;">
+          <label>Group Name</label>
+          <input type="text" id="filter-group-name-text" class="form-control" list="report-group-name-options" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group group-filter" style="display:none;">
+          <label>Description</label>
+          <input type="text" id="filter-group-description" class="form-control" list="report-group-description-options" placeholder="Description" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group group-filter" style="display:none;">
+          <label>Manager</label>
+          <input type="text" id="filter-group-manager" class="form-control" list="report-group-manager-options" placeholder="Manager" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group group-filter" style="display:none;">
+          <label>Members</label>
+          <input type="text" id="filter-group-member-count" class="form-control" list="report-group-member-count-options" placeholder="Member count" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group group-filter" style="display:none;">
+          <label>From Date</label>
+          <input type="date" id="filter-group-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group group-filter" style="display:none;">
+          <label>To Date</label>
+          <input type="date" id="filter-group-end-date" class="form-control" onchange="loadData()">
+        </div>
+
+        <!-- SMS Specific -->
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Direction</label>
+          <select id="filter-sms-direction" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="incoming">Incoming (Received)</option>
+            <option value="outgoing">Outgoing (Sent)</option>
+          </select>
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Status</label>
+          <select id="filter-sms-status" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="received">Received</option>
+            <option value="sent">Sent</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Member</label>
+          <select id="filter-sms-member" class="form-control" onchange="loadData()">
+            <option value="all">All Members</option>
+          </select>
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>From Date</label>
+          <input type="date" id="filter-sms-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>To Date</label>
+          <input type="date" id="filter-sms-end-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Sender</label>
+          <input type="text" id="filter-sms-sender" class="form-control" list="report-sms-sender-options" placeholder="Sender phone" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Recipient</label>
+          <input type="text" id="filter-sms-recipient" class="form-control" list="report-sms-recipient-options" placeholder="Recipient phone" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group sms-filter" style="display:none;">
+          <label>Message</label>
+          <input type="text" id="filter-sms-message" class="form-control" placeholder="Message text" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+
+        <!-- Survey Specific -->
+        <div class="form-group survey-filter" style="display:none;">
+          <label>Title</label>
+          <input type="text" id="filter-survey-title" class="form-control" list="report-survey-title-options" placeholder="Survey title" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group survey-filter" style="display:none;">
+          <label>Creator</label>
+          <input type="text" id="filter-survey-creator" class="form-control" list="report-survey-creator-options" placeholder="Creator" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group survey-filter" style="display:none;">
+          <label>Description</label>
+          <input type="text" id="filter-survey-description" class="form-control" list="report-survey-description-options" placeholder="Description" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group survey-filter" style="display:none;">
+          <label>Questions</label>
+          <input type="text" id="filter-survey-question-count" class="form-control" list="report-survey-question-count-options" placeholder="Question count" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group survey-filter" style="display:none;">
+          <label>From Date</label>
+          <input type="date" id="filter-survey-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group survey-filter" style="display:none;">
+          <label>To Date</label>
+          <input type="date" id="filter-survey-end-date" class="form-control" onchange="loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
-          <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
-        </button>
-        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
-          <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+            <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+            <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+          </button>
+        </div>
         <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
       </div>
     </div>
@@ -152,12 +269,21 @@
 
 <datalist id="report-member-name-options"></datalist>
 <datalist id="report-member-phone-options"></datalist>
+<datalist id="report-member-id-options"></datalist>
 <datalist id="report-member-location-options"></datalist>
-<datalist id="report-member-registered-options"></datalist>
 <datalist id="report-loan-applicant-options"></datalist>
 <datalist id="report-loan-phone-options"></datalist>
 <datalist id="report-loan-amount-options"></datalist>
-<datalist id="report-loan-date-options"></datalist>
+<datalist id="report-group-name-options"></datalist>
+<datalist id="report-group-description-options"></datalist>
+<datalist id="report-group-manager-options"></datalist>
+<datalist id="report-group-member-count-options"></datalist>
+<datalist id="report-sms-sender-options"></datalist>
+<datalist id="report-sms-recipient-options"></datalist>
+<datalist id="report-survey-title-options"></datalist>
+<datalist id="report-survey-creator-options"></datalist>
+<datalist id="report-survey-description-options"></datalist>
+<datalist id="report-survey-question-count-options"></datalist>
 
 {% endblock %}
 
@@ -175,6 +301,9 @@
     const entity = document.getElementById('filter-entity').value;
     document.querySelectorAll('.member-filter').forEach(el => el.style.display = (entity === 'members') ? 'block' : 'none');
     document.querySelectorAll('.loan-filter').forEach(el => el.style.display = (entity === 'loans') ? 'block' : 'none');
+    document.querySelectorAll('.group-filter').forEach(el => el.style.display = (entity === 'groups') ? 'block' : 'none');
+    document.querySelectorAll('.sms-filter').forEach(el => el.style.display = (entity === 'sms_logs') ? 'block' : 'none');
+    document.querySelectorAll('.survey-filter').forEach(el => el.style.display = (entity === 'surveys') ? 'block' : 'none');
   }
 
   function switchView(viewName) {
@@ -197,20 +326,50 @@
     if (entity === 'members') {
       params += `&gender=${document.getElementById('filter-gender').value}`;
       params += `&location=${encodeURIComponent(document.getElementById('filter-location').value)}`;
+      params += `&start_date=${encodeURIComponent(document.getElementById('filter-start-date').value)}`;
+      params += `&end_date=${encodeURIComponent(document.getElementById('filter-end-date').value)}`;
       params += `&filter_full_name=${encodeURIComponent(document.getElementById('filter-full-name').value)}`;
       params += `&filter_phone_number=${encodeURIComponent(document.getElementById('filter-member-phone').value)}`;
+      params += `&filter_id_number=${encodeURIComponent(document.getElementById('filter-member-id').value)}`;
       params += `&filter_gender=${encodeURIComponent(document.getElementById('filter-gender').value === 'all' ? '' : document.getElementById('filter-gender').value)}`;
       params += `&filter_location=${encodeURIComponent(document.getElementById('filter-location').value)}`;
       params += `&filter_group_name=${encodeURIComponent(document.getElementById('filter-group').selectedOptions[0].textContent === 'All Groups' ? '' : document.getElementById('filter-group').selectedOptions[0].textContent)}`;
-      params += `&filter_registered_at=${encodeURIComponent(document.getElementById('filter-member-registered').value)}`;
-    } else {
+    } else if (entity === 'loans') {
       params += `&status=${document.getElementById('filter-status').value}`;
+      params += `&start_date=${encodeURIComponent(document.getElementById('filter-loan-start-date').value)}`;
+      params += `&end_date=${encodeURIComponent(document.getElementById('filter-loan-end-date').value)}`;
       params += `&filter_applicant_name=${encodeURIComponent(document.getElementById('filter-applicant-name').value)}`;
       params += `&filter_phone_number=${encodeURIComponent(document.getElementById('filter-loan-phone').value)}`;
       params += `&filter_amount_requested=${encodeURIComponent(document.getElementById('filter-amount-requested').value)}`;
       params += `&filter_status=${encodeURIComponent(document.getElementById('filter-status').value === 'all' ? '' : document.getElementById('filter-status').value)}`;
       params += `&filter_group_name=${encodeURIComponent(document.getElementById('filter-group').selectedOptions[0].textContent === 'All Groups' ? '' : document.getElementById('filter-group').selectedOptions[0].textContent)}`;
-      params += `&filter_created_at=${encodeURIComponent(document.getElementById('filter-loan-created').value)}`;
+    } else if (entity === 'groups') {
+      params += `&start_date=${encodeURIComponent(document.getElementById('filter-group-start-date').value)}`;
+      params += `&end_date=${encodeURIComponent(document.getElementById('filter-group-end-date').value)}`;
+      params += `&filter_name=${encodeURIComponent(document.getElementById('filter-group-name-text').value)}`;
+      params += `&filter_description=${encodeURIComponent(document.getElementById('filter-group-description').value)}`;
+      params += `&filter_manager=${encodeURIComponent(document.getElementById('filter-group-manager').value)}`;
+      params += `&filter_member_count=${encodeURIComponent(document.getElementById('filter-group-member-count').value)}`;
+    } else if (entity === 'sms_logs') {
+      const direction = document.getElementById('filter-sms-direction').value;
+      const smsStatus = document.getElementById('filter-sms-status').value;
+      params += `&direction=${encodeURIComponent(direction)}`;
+      params += `&sms_status=${encodeURIComponent(smsStatus)}`;
+      params += `&member_id=${encodeURIComponent(document.getElementById('filter-sms-member').value)}`;
+      params += `&start_date=${encodeURIComponent(document.getElementById('filter-sms-start-date').value)}`;
+      params += `&end_date=${encodeURIComponent(document.getElementById('filter-sms-end-date').value)}`;
+      params += `&filter_direction=${encodeURIComponent(direction === 'all' ? '' : direction)}`;
+      params += `&filter_status=${encodeURIComponent(smsStatus === 'all' ? '' : smsStatus)}`;
+      params += `&filter_sender=${encodeURIComponent(document.getElementById('filter-sms-sender').value)}`;
+      params += `&filter_recipient=${encodeURIComponent(document.getElementById('filter-sms-recipient').value)}`;
+      params += `&filter_message=${encodeURIComponent(document.getElementById('filter-sms-message').value)}`;
+    } else if (entity === 'surveys') {
+      params += `&start_date=${encodeURIComponent(document.getElementById('filter-survey-start-date').value)}`;
+      params += `&end_date=${encodeURIComponent(document.getElementById('filter-survey-end-date').value)}`;
+      params += `&filter_title=${encodeURIComponent(document.getElementById('filter-survey-title').value)}`;
+      params += `&filter_creator=${encodeURIComponent(document.getElementById('filter-survey-creator').value)}`;
+      params += `&filter_description=${encodeURIComponent(document.getElementById('filter-survey-description').value)}`;
+      params += `&filter_question_count=${encodeURIComponent(document.getElementById('filter-survey-question-count').value)}`;
     }
     return params;
   }
@@ -230,6 +389,18 @@
     });
   }
 
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.querySelectorAll('#filter-panel input').forEach(input => input.value = '');
+    document.getElementById('filter-group').value = 'all';
+    document.getElementById('filter-gender').value = 'all';
+    document.getElementById('filter-status').value = 'all';
+    document.getElementById('filter-sms-direction').value = 'all';
+    document.getElementById('filter-sms-status').value = 'all';
+    document.getElementById('filter-sms-member').value = 'all';
+    loadData();
+  }
+
   function loadFilterOptions() {
     const entity = document.getElementById('filter-entity').value;
 
@@ -239,13 +410,35 @@
         if (entity === 'members') {
           populateDatalist('report-member-name-options', options.full_name);
           populateDatalist('report-member-phone-options', options.phone_number);
+          populateDatalist('report-member-id-options', options.id_number);
           populateDatalist('report-member-location-options', options.location);
-          populateDatalist('report-member-registered-options', options.registered_at);
-        } else {
+        } else if (entity === 'loans') {
           populateDatalist('report-loan-applicant-options', options.applicant_name);
           populateDatalist('report-loan-phone-options', options.phone_number);
           populateDatalist('report-loan-amount-options', options.amount_requested);
-          populateDatalist('report-loan-date-options', options.created_at);
+        } else if (entity === 'groups') {
+          populateDatalist('report-group-name-options', options.name);
+          populateDatalist('report-group-description-options', options.description);
+          populateDatalist('report-group-manager-options', options.manager);
+          populateDatalist('report-group-member-count-options', options.member_count);
+        } else if (entity === 'sms_logs') {
+          populateDatalist('report-sms-sender-options', options.sender);
+          populateDatalist('report-sms-recipient-options', options.recipient);
+          const memberSelect = document.getElementById('filter-sms-member');
+          const currentVal = memberSelect.value;
+          memberSelect.innerHTML = '<option value="all">All Members</option>';
+          (options.members || []).forEach(member => {
+            const opt = document.createElement('option');
+            opt.value = member.id;
+            opt.textContent = member.label;
+            memberSelect.appendChild(opt);
+          });
+          memberSelect.value = currentVal || 'all';
+        } else if (entity === 'surveys') {
+          populateDatalist('report-survey-title-options', options.title);
+          populateDatalist('report-survey-creator-options', options.creator);
+          populateDatalist('report-survey-description-options', options.description);
+          populateDatalist('report-survey-question-count-options', options.question_count);
         }
       })
       .catch(err => console.error(err));
@@ -293,8 +486,14 @@
     let cols = [];
     if (entity === 'members') {
       cols = ['full_name', 'phone_number', 'gender', 'location', 'group_name', 'registered_at'];
-    } else {
+    } else if (entity === 'loans') {
       cols = ['applicant_name', 'phone_number', 'amount_requested', 'status', 'group_name', 'created_at'];
+    } else if (entity === 'groups') {
+      cols = ['name', 'description', 'member_count', 'manager', 'created_at'];
+    } else if (entity === 'sms_logs') {
+      cols = ['direction', 'sender', 'recipient', 'member_name', 'message', 'status', 'created_at'];
+    } else {
+      cols = ['title', 'description', 'question_count', 'creator', 'created_at'];
     }
 
     // Build header
@@ -331,11 +530,21 @@
     }
 
     // Grouping logic
-    let groupBy = entity === 'members' ? 'group_name' : 'status';
+    const groupByMap = {
+      members: 'group_name',
+      loans: 'status',
+      groups: 'manager',
+      sms_logs: 'created_at',
+      surveys: 'creator'
+    };
+    let groupBy = groupByMap[entity] || 'status';
     let grouped = {};
     
     currentData.forEach(item => {
       let key = item[groupBy] || 'Unassigned';
+      if (entity === 'sms_logs' && groupBy === 'created_at' && key !== 'Unassigned') {
+        key = key.split(' ')[0];
+      }
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(item);
     });
@@ -357,10 +566,25 @@
             <div style="font-size: 0.9rem; color: var(--text-secondary);"><i data-lucide="phone" style="width:12px;height:12px;"></i> ${item.phone_number}</div>
             <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top:5px;">${item.location}</div>
           `;
-        } else {
+        } else if (entity === 'loans') {
           card.innerHTML = `
             <div class="kanban-card-title">${item.applicant_name}</div>
             <div style="font-size: 0.9rem; color: var(--text-secondary);">Amount: KSh ${item.amount_requested}</div>
+          `;
+        } else if (entity === 'groups') {
+          card.innerHTML = `
+            <div class="kanban-card-title">${item.name}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">${item.member_count} members</div>
+          `;
+        } else if (entity === 'sms_logs') {
+          card.innerHTML = `
+            <div class="kanban-card-title">${item.status}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">${item.sender} -> ${item.recipient}</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="kanban-card-title">${item.title}</div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">${item.question_count} questions</div>
           `;
         }
         colDiv.appendChild(card);
@@ -378,7 +602,14 @@
       currentChart.destroy();
     }
     
-    let groupBy = entity === 'members' ? 'group_name' : 'status';
+    const groupByMap = {
+      members: 'group_name',
+      loans: 'status',
+      groups: 'manager',
+      sms_logs: 'status',
+      surveys: 'creator'
+    };
+    let groupBy = groupByMap[entity] || 'status';
     let grouped = {};
     currentData.forEach(item => {
       let key = item[groupBy] || 'Unassigned';

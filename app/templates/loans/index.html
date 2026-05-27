@@ -50,8 +50,12 @@
           <input type="text" id="filter-group-name" class="form-control" list="loan-group-options" placeholder="Group name" onkeyup="if(event.key === 'Enter') loadData()">
         </div>
         <div class="form-group">
-          <label>Date</label>
-          <input type="text" id="filter-created-at" class="form-control" list="loan-date-options" placeholder="YYYY-MM-DD" onkeyup="if(event.key === 'Enter') loadData()">
+          <label>From Date</label>
+          <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group">
+          <label>To Date</label>
+          <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
         </div>
       </div>
       <div style="margin-top: 15px; display: flex; justify-content: space-between;">
@@ -61,6 +65,9 @@
           </button>
           <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
             <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
           </button>
         </div>
         <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
@@ -96,7 +103,6 @@
 <datalist id="loan-phone-options"></datalist>
 <datalist id="loan-amount-options"></datalist>
 <datalist id="loan-group-options"></datalist>
-<datalist id="loan-date-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
@@ -136,24 +142,38 @@
     const phoneNumber = document.getElementById('filter-phone-number').value;
     const amountRequested = document.getElementById('filter-amount-requested').value;
     const groupName = document.getElementById('filter-group-name').value;
-    const createdAt = document.getElementById('filter-created-at').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
 
     return [
       `entity=loans`,
       `search=${encodeURIComponent(search)}`,
       `status=${status}`,
+      `start_date=${encodeURIComponent(startDate)}`,
+      `end_date=${encodeURIComponent(endDate)}`,
       `filter_applicant_name=${encodeURIComponent(applicantName)}`,
       `filter_phone_number=${encodeURIComponent(phoneNumber)}`,
       `filter_amount_requested=${encodeURIComponent(amountRequested)}`,
       `filter_status=${encodeURIComponent(status === 'all' ? '' : status)}`,
-      `filter_group_name=${encodeURIComponent(groupName)}`,
-      `filter_created_at=${encodeURIComponent(createdAt)}`
+      `filter_group_name=${encodeURIComponent(groupName)}`
     ].join('&');
   }
 
   function getExportUrl(format) {
     const params = getFilterParamsString();
     return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-applicant-name').value = '';
+    document.getElementById('filter-phone-number').value = '';
+    document.getElementById('filter-amount-requested').value = '';
+    document.getElementById('filter-status').value = 'all';
+    document.getElementById('filter-group-name').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    loadData();
   }
 
   function populateDatalist(id, values) {
@@ -174,7 +194,6 @@
         populateDatalist('loan-phone-options', options.phone_number);
         populateDatalist('loan-amount-options', options.amount_requested);
         populateDatalist('loan-group-options', options.group_name);
-        populateDatalist('loan-date-options', options.created_at);
       })
       .catch(err => console.error(err));
   }

@@ -15,6 +15,48 @@
     <div class="odoo-search-container">
       <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
       <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search survey title..." onkeyup="if(event.key === 'Enter') loadData()">
+      <button class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
+        <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+      </button>
+
+      <div class="odoo-filter-panel" id="filter-panel">
+        <div class="filter-grid">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="filter-title" class="form-control" list="survey-title-options" placeholder="Survey title" onkeyup="if(event.key === 'Enter') loadData()">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="filter-description" class="form-control" list="survey-description-options" placeholder="Description" onkeyup="if(event.key === 'Enter') loadData()">
+          </div>
+          <div class="form-group">
+            <label>Creator</label>
+            <input type="text" id="filter-creator" class="form-control" list="survey-creator-options" placeholder="Creator" onkeyup="if(event.key === 'Enter') loadData()">
+          </div>
+          <div class="form-group">
+            <label>From Date</label>
+            <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+          </div>
+          <div class="form-group">
+            <label>To Date</label>
+            <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
+          </div>
+        </div>
+        <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+              <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+              <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+              <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+            </button>
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
+        </div>
+      </div>
     </div>
 
     <div class="odoo-view-switchers">
@@ -42,11 +84,19 @@
     </table>
   </div>
 </div>
+
+<datalist id="survey-title-options"></datalist>
+<datalist id="survey-description-options"></datalist>
+<datalist id="survey-creator-options"></datalist>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   let currentData = [];
+
+  function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+  }
 
   function switchView(viewName) {
     document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
@@ -57,9 +107,7 @@
   }
 
   function loadData() {
-    const search = document.getElementById('search-input').value;
-    
-    let params = `entity=surveys&search=${encodeURIComponent(search)}`;
+    const params = getFilterParamsString();
     
     fetch(`{{ url_for('reports.get_report_data') }}?${params}`)
       .then(res => res.json())
@@ -67,6 +115,61 @@
         currentData = data;
         const activeView = document.querySelector('.view-container.active').id.replace('view-', '');
         renderView(activeView);
+      })
+      .catch(err => console.error(err));
+  }
+
+  function getFilterParamsString() {
+    const search = document.getElementById('search-input').value;
+    const title = document.getElementById('filter-title').value;
+    const description = document.getElementById('filter-description').value;
+    const creator = document.getElementById('filter-creator').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+
+    return [
+      `entity=surveys`,
+      `search=${encodeURIComponent(search)}`,
+      `start_date=${encodeURIComponent(startDate)}`,
+      `end_date=${encodeURIComponent(endDate)}`,
+      `filter_title=${encodeURIComponent(title)}`,
+      `filter_description=${encodeURIComponent(description)}`,
+      `filter_creator=${encodeURIComponent(creator)}`
+    ].join('&');
+  }
+
+  function getExportUrl(format) {
+    const params = getFilterParamsString();
+    return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-title').value = '';
+    document.getElementById('filter-description').value = '';
+    document.getElementById('filter-creator').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    loadData();
+  }
+
+  function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    datalist.innerHTML = '';
+    (values || []).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+  }
+
+  function loadFilterOptions() {
+    fetch(`{{ url_for('reports.get_filter_options') }}?entity=surveys`)
+      .then(res => res.json())
+      .then(options => {
+        populateDatalist('survey-title-options', options.title);
+        populateDatalist('survey-description-options', options.description);
+        populateDatalist('survey-creator-options', options.creator);
       })
       .catch(err => console.error(err));
   }
@@ -144,6 +247,9 @@
     lucide.createIcons();
   }
 
-  document.addEventListener('DOMContentLoaded', loadData);
+  document.addEventListener('DOMContentLoaded', function() {
+    loadFilterOptions();
+    loadData();
+  });
 </script>
 {% endblock %}
