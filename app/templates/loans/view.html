@@ -29,6 +29,10 @@
     <div style="margin-bottom:2rem;">
       {% if loan.status == 'approved' %}
         <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">Approved</span>
+      {% elif loan.status == 'disbursement_in_progress' %}
+        <span class="badge badge-warning" style="padding:0.4rem 1rem;font-size:0.85rem;">Disbursement In Progress</span>
+      {% elif loan.status == 'disbursed' %}
+        <span class="badge badge-success" style="padding:0.4rem 1rem;font-size:0.85rem;">Disbursed</span>
       {% elif loan.status == 'rejected' %}
         <span class="badge badge-danger" style="padding:0.4rem 1rem;font-size:0.85rem;">Rejected</span>
       {% else %}
@@ -75,6 +79,10 @@
       <h3 class="glass-card-title">Application Details</h3>
       {% if loan.status == 'approved' %}
         <span class="badge badge-success"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> Approved</span>
+      {% elif loan.status == 'disbursement_in_progress' %}
+        <span class="badge badge-warning"><i data-lucide="clock" style="width:12px;height:12px;"></i> Disbursement In Progress</span>
+      {% elif loan.status == 'disbursed' %}
+        <span class="badge badge-success"><i data-lucide="banknote" style="width:12px;height:12px;"></i> Disbursed</span>
       {% elif loan.status == 'rejected' %}
         <span class="badge badge-danger"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> Rejected</span>
       {% else %}
@@ -175,8 +183,8 @@
 
   <div class="glass-card">
     <div class="glass-card-header">
-      <h3 class="glass-card-title">Loan Repayments</h3>
-      {% if loan.status == 'approved' %}
+      <h3 class="glass-card-title">Disbursement & Repayments</h3>
+      {% if loan.status in ['disbursed', 'disbursement_in_progress', 'approved'] %}
       <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.loan_statement', loan_id=loan.id) }}">
         <i data-lucide="file-text" style="width:14px;height:14px;"></i> Statement
       </a>
@@ -185,20 +193,74 @@
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div class="detail-item">
-        <span class="detail-label">Loan Amount</span>
+        <span class="detail-label">Approved Amount</span>
         <span class="detail-value td-mono">KSh {{ "{:,.2f}".format(loan.amount_requested or 0) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Total Disbursed</span>
+        <span class="detail-value td-mono">KSh {{ "{:,.2f}".format(loan.total_disbursed) }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Total Repaid</span>
         <span class="detail-value td-mono">KSh {{ "{:,.2f}".format(loan.total_repaid) }}</span>
       </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1rem;">
       <div class="detail-item">
         <span class="detail-label">Outstanding</span>
         <span class="detail-value td-mono">KSh {{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
       </div>
     </div>
 
-    {% if loan.status == 'approved' and loan.outstanding_balance > 0 %}
+    {% if loan.status == 'approved' %}
+    <form method="POST" action="{{ url_for('loans.initiate_disbursement', loan_id=loan.id) }}" style="margin-bottom:1rem;">
+      <h4 style="font-size:0.95rem;margin-bottom:1rem;">Process Disbursement</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label class="form-label">Disbursement Amount</label>
+          <input type="number" step="0.01" min="1" max="{{ loan.amount_requested or 0 }}" name="amount" class="form-input" value="{{ loan.amount_requested or 0 }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Disbursement Date</label>
+          <input type="date" name="disbursement_date" class="form-input" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference</label>
+        <input type="text" name="reference" class="form-input" placeholder="Bank/M-Pesa/cheque reference" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Method</label>
+        <input type="text" name="method" class="form-input" placeholder="Bank transfer, M-Pesa, cheque">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-textarea" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="send" style="width:16px;height:16px;"></i> Submit Disbursement for Admin Confirmation
+      </button>
+    </form>
+    {% elif loan.status == 'disbursement_in_progress' %}
+      {% set pending_disbursement = loan.disbursements|selectattr('status', 'equalto', 'pending')|list|first %}
+      {% if pending_disbursement %}
+      <div class="info-alert mb-3">
+        <i data-lucide="clock"></i>
+        <div>
+          Pending disbursement of KSh {{ "{:,.2f}".format(pending_disbursement.amount) }} with reference {{ pending_disbursement.reference }}.
+        </div>
+      </div>
+      {% if current_user.role == 'admin' %}
+      <form method="POST" action="{{ url_for('loans.confirm_disbursement', loan_id=loan.id) }}" data-confirm-title="Confirm Disbursement" data-confirm="Confirm that this money has been disbursed to the member?" data-confirm-action="Confirm Disbursement">
+        <button type="submit" class="btn btn-success">
+          <i data-lucide="check-circle" style="width:16px;height:16px;"></i> Confirm Money Disbursed
+        </button>
+      </form>
+      {% else %}
+      <p class="text-muted">Waiting for admin confirmation that money has been disbursed.</p>
+      {% endif %}
+      {% endif %}
+    {% elif loan.status == 'disbursed' and loan.outstanding_balance > 0 %}
     <form method="POST" action="{{ url_for('loans.post_repayment', loan_id=loan.id) }}" style="margin-bottom:1rem;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
         <div class="form-group">
@@ -212,7 +274,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Reference</label>
-        <input type="text" name="reference" class="form-input" placeholder="Receipt or transaction reference">
+        <input type="text" name="reference" class="form-input" placeholder="Receipt or transaction reference" required>
       </div>
       <div class="form-group">
         <label class="form-label">Notes</label>
@@ -226,6 +288,31 @@
     <a class="btn btn-success" href="{{ url_for('loans.clearance_certificate', loan_id=loan.id) }}">
       <i data-lucide="badge-check" style="width:16px;height:16px;"></i> Download Clearance Certificate
     </a>
+    {% endif %}
+
+    {% if loan.disbursements %}
+      <div class="table-wrapper" style="margin-bottom:1rem;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Disbursement Date</th>
+              <th>Amount</th>
+              <th>Reference</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for disbursement in loan.disbursements %}
+            <tr>
+              <td>{{ disbursement.disbursement_date.strftime('%Y-%m-%d') }}</td>
+              <td class="td-mono">KSh {{ "{:,.2f}".format(disbursement.amount) }}</td>
+              <td>{{ disbursement.reference }}</td>
+              <td>{{ disbursement.status|capitalize }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% endif %}
 
     {% if loan.repayments %}

@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 from app.models.loan import (
     Loan, LoanAssessmentDetails, LoanFinancialSnapshot, 
-    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff, LoanDocument, LoanRepayment
+    LoanInventoryItem, LoanCashFlowMonth, LoanApprovalSignoff, LoanDisbursement, LoanDocument, LoanRepayment
 )
 from app.models.member import Member
 from app.loan_assessment_surveys import (
@@ -87,6 +87,14 @@ def _notify_loan_decision(loan):
     else:
         return
 
+    send_whatsapp_message(loan.member, message)
+
+
+def _notify_loan_disbursement(loan, disbursement):
+    message = (
+        f"Hello {loan.member.full_name}, your approved loan has been disbursed. "
+        f"Amount: KSh {disbursement.amount:,.2f}. Reference: {disbursement.reference}."
+    )
     send_whatsapp_message(loan.member, message)
 
 
@@ -406,6 +414,7 @@ def new(member_id):
 def delete_loan_record(loan):
     LoanApprovalSignoff.query.filter_by(loan_id=loan.id).delete()
     LoanRepayment.query.filter_by(loan_id=loan.id).delete()
+    LoanDisbursement.query.filter_by(loan_id=loan.id).delete()
     for document in LoanDocument.query.filter_by(loan_id=loan.id).all():
         try:
             os.remove(os.path.join(_loan_document_dir(), document.stored_filename))
@@ -507,8 +516,8 @@ def download_document(document_id):
 def post_repayment(loan_id):
     loan = Loan.query.get_or_404(loan_id)
 
-    if loan.status != 'approved':
-        flash('Repayments can only be posted for approved loans.', 'danger')
+    if loan.status != 'disbursed':
+        flash('Repayments can only be posted after the loan has been disbursed.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     amount = request.form.get('amount', type=float) or 0
@@ -518,6 +527,10 @@ def post_repayment(loan_id):
 
     if amount <= 0:
         flash('Repayment amount must be greater than zero.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if not reference:
+        flash('Payment reference is required.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     if amount > loan.outstanding_balance:
@@ -552,25 +565,160 @@ def post_repayment(loan_id):
     return redirect(url_for('loans.view', loan_id=loan.id))
 
 
+@loans_bp.route('/<int:loan_id>/disbursement/initiate', methods=['POST'])
+@login_required
+def initiate_disbursement(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status != 'approved':
+        flash('Only approved loans can be prepared for disbursement.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    amount = request.form.get('amount', type=float) or 0
+    disbursement_date_text = request.form.get('disbursement_date', '').strip()
+    reference = request.form.get('reference', '').strip()
+    method = request.form.get('method', '').strip()
+    notes = request.form.get('notes', '').strip()
+
+    if amount <= 0:
+        flash('Disbursement amount must be greater than zero.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if amount > (loan.amount_requested or 0):
+        flash('Disbursement amount cannot exceed the approved loan amount.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if not reference:
+        flash('Disbursement reference is required.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if len(reference) > 120:
+        flash('Disbursement reference is too long.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if len(notes) > 1000:
+        flash('Disbursement notes are too long.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    try:
+        disbursement_date = datetime.strptime(disbursement_date_text, '%Y-%m-%d')
+    except ValueError:
+        flash('Disbursement date is required and must use YYYY-MM-DD format.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    db.session.add(LoanDisbursement(
+        loan_id=loan.id,
+        initiated_by=current_user.id,
+        amount=amount,
+        disbursement_date=disbursement_date,
+        reference=reference,
+        method=method,
+        notes=notes,
+        status='pending',
+    ))
+    loan.status = 'disbursement_in_progress'
+    db.session.commit()
+
+    flash('Disbursement prepared and submitted for admin confirmation.', 'success')
+    return redirect(url_for('loans.view', loan_id=loan.id))
+
+
+@loans_bp.route('/<int:loan_id>/disbursement/confirm', methods=['POST'])
+@login_required
+@admin_required
+def confirm_disbursement(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status != 'disbursement_in_progress':
+        flash('Only loans with disbursement in progress can be confirmed.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    disbursement = LoanDisbursement.query.filter_by(
+        loan_id=loan.id,
+        status='pending',
+    ).order_by(LoanDisbursement.created_at.desc()).first()
+
+    if not disbursement:
+        flash('No pending disbursement record was found.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    disbursement.status = 'confirmed'
+    disbursement.confirmed_by = current_user.id
+    disbursement.confirmed_at = datetime.utcnow()
+    loan.status = 'disbursed'
+
+    notification_sent = False
+    notification_error = None
+    try:
+        _notify_loan_disbursement(loan, disbursement)
+        notification_sent = True
+    except WhatsAppNotConfiguredError as error:
+        notification_error = str(error)
+    except Exception as error:
+        notification_error = str(error)
+
+    db.session.commit()
+    if notification_sent:
+        flash('Disbursement confirmed and member notified on WhatsApp.', 'success')
+    else:
+        flash(f'Disbursement confirmed, but WhatsApp notification failed: {notification_error}', 'warning')
+    return redirect(url_for('loans.view', loan_id=loan.id))
+
+
 @loans_bp.route('/<int:loan_id>/statement.pdf')
 @login_required
 def loan_statement(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     styles = getSampleStyleSheet()
-    rows = [['Date', 'Reference', 'Amount', 'Posted By', 'Notes']]
+    rows = [['Date', 'Transaction', 'Reference', 'Method', 'Debit', 'Credit', 'Balance', 'Processed By', 'Notes']]
+    transactions = []
+    for disbursement in loan.confirmed_disbursements:
+        transactions.append({
+            'date': disbursement.disbursement_date,
+            'type': 'Disbursement',
+            'reference': disbursement.reference,
+            'method': disbursement.method or '',
+            'debit': disbursement.amount or 0,
+            'credit': 0,
+            'processed_by': (
+                disbursement.confirmer.username
+                if disbursement.confirmer
+                else disbursement.initiator.username if disbursement.initiator else 'System'
+            ),
+            'notes': disbursement.notes or disbursement.method or '',
+        })
     for repayment in loan.repayments:
+        transactions.append({
+            'date': repayment.payment_date,
+            'type': 'Repayment',
+            'reference': repayment.reference or '',
+            'method': '',
+            'debit': 0,
+            'credit': repayment.amount or 0,
+            'processed_by': repayment.poster.username if repayment.poster else 'System',
+            'notes': repayment.notes or '',
+        })
+    balance = 0
+    for transaction in sorted(transactions, key=lambda item: item['date'] or datetime.utcnow()):
+        balance += transaction['debit']
+        balance -= transaction['credit']
         rows.append([
-            repayment.payment_date.strftime('%Y-%m-%d') if repayment.payment_date else '',
-            repayment.reference or '',
-            f"KSh {repayment.amount:,.2f}",
-            repayment.poster.username if repayment.poster else 'System',
-            repayment.notes or '',
+            transaction['date'].strftime('%Y-%m-%d') if transaction['date'] else '',
+            transaction['type'],
+            transaction['reference'],
+            transaction['method'],
+            f"KSh {transaction['debit']:,.2f}" if transaction['debit'] else '',
+            f"KSh {transaction['credit']:,.2f}" if transaction['credit'] else '',
+            f"KSh {balance:,.2f}",
+            transaction['processed_by'],
+            transaction['notes'],
         ])
     rows.extend([
-        ['', '', '', '', ''],
-        ['Loan Amount', '', f"KSh {loan.amount_requested:,.2f}", '', ''],
-        ['Total Repaid', '', f"KSh {loan.total_repaid:,.2f}", '', ''],
-        ['Outstanding', '', f"KSh {loan.outstanding_balance:,.2f}", '', ''],
+        ['', '', '', '', '', '', '', '', ''],
+        ['Approved Amount', '', '', '', f"KSh {loan.amount_requested:,.2f}", '', '', '', ''],
+        ['Total Disbursed', '', '', '', f"KSh {loan.total_disbursed:,.2f}", '', '', '', ''],
+        ['Total Repaid', '', '', '', '', f"KSh {loan.total_repaid:,.2f}", '', '', ''],
+        ['Outstanding', '', '', '', '', '', f"KSh {loan.outstanding_balance:,.2f}", '', ''],
     ])
 
     table = Table(rows, repeatRows=1)

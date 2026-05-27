@@ -33,6 +33,8 @@ class Loan(db.Model):
     # The final loan decision:
     # 'submitted' = assessment was submitted by staff and awaits admin review
     # 'approved' = member qualifies for the loan
+    # 'disbursement_in_progress' = staff has prepared disbursement for admin confirmation
+    # 'disbursed' = admin confirmed funds were released to the member
     # 'rejected' = member does not qualify
     # 'pending' is kept as a legacy value for older records.
     status = db.Column(db.String(20), nullable=False, default='submitted')
@@ -76,16 +78,24 @@ class Loan(db.Model):
         return self.status in ('pending', 'submitted')
 
     @property
+    def confirmed_disbursements(self):
+        return [disbursement for disbursement in self.disbursements if disbursement.status == 'confirmed']
+
+    @property
+    def total_disbursed(self):
+        return sum(disbursement.amount or 0 for disbursement in self.confirmed_disbursements)
+
+    @property
     def total_repaid(self):
         return sum(repayment.amount or 0 for repayment in self.repayments)
 
     @property
     def outstanding_balance(self):
-        return max((self.amount_requested or 0) - self.total_repaid, 0)
+        return max(self.total_disbursed - self.total_repaid, 0)
 
     @property
     def is_cleared(self):
-        return self.status == 'approved' and self.outstanding_balance <= 0
+        return self.status == 'disbursed' and self.total_disbursed > 0 and self.outstanding_balance <= 0
 
     def __repr__(self):
         return f'<Loan member={self.member_id} status={self.status}>'
@@ -208,3 +218,24 @@ class LoanRepayment(db.Model):
 
     loan = db.relationship('Loan', backref=db.backref('repayments', lazy=True, cascade="all, delete-orphan"))
     poster = db.relationship('User', foreign_keys=[posted_by])
+
+
+class LoanDisbursement(db.Model):
+    __tablename__ = 'loan_disbursements'
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=False)
+    initiated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    confirmed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    amount = db.Column(db.Float, nullable=False)
+    disbursement_date = db.Column(db.DateTime, nullable=False)
+    reference = db.Column(db.String(120), nullable=False)
+    method = db.Column(db.String(80), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+
+    loan = db.relationship('Loan', backref=db.backref('disbursements', lazy=True, cascade="all, delete-orphan"))
+    initiator = db.relationship('User', foreign_keys=[initiated_by])
+    confirmer = db.relationship('User', foreign_keys=[confirmed_by])
