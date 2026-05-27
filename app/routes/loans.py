@@ -266,11 +266,21 @@ def index():
 def view(loan_id):
     # Detailed view of a loan assessment
     loan = Loan.query.get_or_404(loan_id)
+    signoff = LoanApprovalSignoff.query.filter_by(loan_id=loan.id).first()
+    disbursement_min_date = signoff.approval_date if signoff and signoff.approval_date else loan.created_at
+    confirmed_disbursement_dates = [
+        disbursement.disbursement_date
+        for disbursement in loan.confirmed_disbursements
+        if disbursement.disbursement_date
+    ]
+    repayment_min_date = max(confirmed_disbursement_dates) if confirmed_disbursement_dates else None
     return render_template(
         'loans/view.html',
         loan=loan,
         now=datetime.utcnow(),
         disbursement_methods=DISBURSEMENT_METHODS,
+        disbursement_min_date=disbursement_min_date,
+        repayment_min_date=repayment_min_date,
     )
 
 @loans_bp.route('/new/<int:member_id>', methods=['GET', 'POST'])
@@ -583,14 +593,14 @@ def post_repayment(loan_id):
         flash('Repayments can only be posted after the loan has been disbursed.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    amount = request.form.get('amount', type=float) or 0
+    amount, amount_error = _parse_required_float(request.form, 'amount', 'Repayment amount', 1)
+    if amount_error:
+        flash(amount_error, 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
     payment_date_text = request.form.get('payment_date', '').strip()
     reference = request.form.get('reference', '').strip()
     notes = request.form.get('notes', '').strip()
-
-    if amount <= 0:
-        flash('Repayment amount must be greater than zero.', 'danger')
-        return redirect(url_for('loans.view', loan_id=loan.id))
 
     if not reference:
         flash('Payment reference is required.', 'danger')
@@ -612,6 +622,22 @@ def post_repayment(loan_id):
         payment_date = datetime.strptime(payment_date_text, '%Y-%m-%d') if payment_date_text else datetime.utcnow()
     except ValueError:
         flash('Payment date must use YYYY-MM-DD format.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    latest_disbursement_date = max(
+        (
+            disbursement.disbursement_date
+            for disbursement in loan.confirmed_disbursements
+            if disbursement.disbursement_date
+        ),
+        default=None,
+    )
+    if latest_disbursement_date and payment_date.date() < latest_disbursement_date.date():
+        flash('Payment date cannot be before the confirmed disbursement date.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if payment_date.date() > datetime.utcnow().date():
+        flash('Payment date cannot be in the future.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     db.session.add(LoanRepayment(
@@ -683,6 +709,16 @@ def initiate_disbursement(loan_id):
         disbursement_date = datetime.strptime(disbursement_date_text, '%Y-%m-%d')
     except ValueError:
         flash('Disbursement date is required and must use YYYY-MM-DD format.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    signoff = LoanApprovalSignoff.query.filter_by(loan_id=loan.id).first()
+    earliest_disbursement_date = signoff.approval_date if signoff and signoff.approval_date else loan.created_at
+    if earliest_disbursement_date and disbursement_date.date() < earliest_disbursement_date.date():
+        flash('Disbursement date cannot be before the loan approval date.', 'danger')
+        return redirect(url_for('loans.view', loan_id=loan.id))
+
+    if disbursement_date.date() > datetime.utcnow().date():
+        flash('Disbursement date cannot be in the future.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
     try:

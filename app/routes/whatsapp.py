@@ -71,6 +71,8 @@ def _normalize_number_answer(raw_answer):
         return None
     if not number.is_finite():
         return None
+    if number <= 0:
+        return None
     return format(number.normalize(), 'f')
 
 
@@ -78,7 +80,7 @@ def _normalize_survey_answer(question, raw_answer):
     if question.question_type == 'number':
         answer = _normalize_number_answer(raw_answer)
         if answer is None:
-            return None, "Please reply with a valid number (e.g., 5000)."
+            return None, "Please reply with a valid positive number (e.g., 5000)."
         return answer, ""
 
     if question.question_type == 'multiple_choice' and question.options:

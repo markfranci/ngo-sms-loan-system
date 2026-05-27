@@ -192,7 +192,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Net Profit / Disposable Income (KSh)</label>
-          <input type="number" step="0.01" name="disposable_income" class="form-input" value="{{ assessment_data.get('disposable_income', 0) }}" required>
+          <input type="number" step="0.01" min="0" name="disposable_income" class="form-input" value="{{ assessment_data.get('disposable_income', 0) }}" required>
           <span class="form-hint">Enter the committee/staff verified amount after reviewing available survey responses.</span>
         </div>
         
@@ -238,8 +238,8 @@
               {% for month in assessment_cash_flow %}
               <tr>
                 <td><input type="text" name="month_name_{{ month.month_index }}" class="form-input" value="{{ month.month_name }}"></td>
-                <td><input type="number" step="0.01" name="cash_inflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_inflow }}"></td>
-                <td><input type="number" step="0.01" name="cash_outflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_outflow }}"></td>
+                <td><input type="number" step="0.01" min="0" name="cash_inflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_inflow }}"></td>
+                <td><input type="number" step="0.01" min="0" name="cash_outflow_{{ month.month_index }}" class="form-input" value="{{ month.cash_outflow }}"></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -380,6 +380,42 @@ document.getElementById('county').addEventListener('change', function() {
 });
 fillSubCountyOptions();
 
+function normalizeNumericInput(input, forceDefault = false) {
+  let value = input.value.trim();
+
+  if (value.startsWith('-')) {
+    value = value.replace(/^-+/, '');
+  }
+
+  if (/^0+\d/.test(value)) {
+    value = value.replace(/^0+/, '');
+  }
+
+  if (/^0+\.\d+/.test(value)) {
+    value = value.replace(/^0+(?=\.)/, '0');
+  }
+
+  if (input.min !== '' && value !== '' && Number(value) < Number(input.min)) {
+    value = input.min;
+  }
+
+  if (forceDefault && value === '' && input.min === '0') {
+    value = '0';
+  }
+
+  input.value = value;
+}
+
+document.querySelectorAll('input[type="number"]:not([readonly])').forEach(input => {
+  input.addEventListener('focus', () => {
+    if (input.value === '0' || input.value === '0.0' || input.value === '0.00') {
+      input.value = '';
+    }
+  });
+  input.addEventListener('input', () => normalizeNumericInput(input));
+  input.addEventListener('blur', () => normalizeNumericInput(input, true));
+});
+
 function activeTabId() {
   const activeTab = document.querySelector('.tab-content.active');
   return activeTab ? activeTab.id : assessmentTabOrder[0];
@@ -472,6 +508,15 @@ function addInventoryRow() {
     <input type="number" step="0.01" name="unit_price[]" class="form-input" placeholder="Unit Price" min="0">
   `;
   container.appendChild(row);
+  row.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('focus', () => {
+      if (input.value === '0' || input.value === '0.0' || input.value === '0.00') {
+        input.value = '';
+      }
+    });
+    input.addEventListener('input', () => normalizeNumericInput(input));
+    input.addEventListener('blur', () => normalizeNumericInput(input, true));
+  });
 }
 
 document.getElementById('loan-assessment-form').addEventListener('submit', function(event) {
