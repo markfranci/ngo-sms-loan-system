@@ -1,109 +1,336 @@
 {% extends 'base.html' %}
 {% block title %}SMS Activity Logs{% endblock %}
 
+{% block extra_css %}
+<!-- Styles centralized in main.css -->
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div class="page-header-text">
+<div class="odoo-control-panel">
+  <div class="odoo-breadcrumb">
     <h2>SMS Activity Logs</h2>
-    <p>View the system's complete communication history.</p>
+  </div>
+
+  <div class="odoo-actions">
+    <div class="odoo-search-container">
+    <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
+    <input type="text" id="search-input" class="odoo-search-bar" placeholder="Search by phone, name, or message..." onkeyup="if(event.key === 'Enter') loadData()">
+    <button class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
+      <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+    </button>
+
+    <div class="odoo-filter-panel" id="filter-panel">
+      <div class="filter-grid">
+        <div class="form-group">
+          <label>Direction</label>
+          <select id="filter-direction" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="incoming">Incoming (Received)</option>
+            <option value="outgoing">Outgoing (Sent)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="filter-sms-status" class="form-control" onchange="loadData()">
+            <option value="all">All</option>
+            <option value="received">Received</option>
+            <option value="sent">Sent</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Member</label>
+          <select id="filter-member" class="form-control" onchange="loadData()">
+            <option value="all">All Members</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>From Date</label>
+          <input type="date" id="filter-start-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group">
+          <label>To Date</label>
+          <input type="date" id="filter-end-date" class="form-control" onchange="loadData()">
+        </div>
+        <div class="form-group">
+          <label>Sender</label>
+          <input type="text" id="filter-sender" class="form-control" list="sms-sender-options" placeholder="Sender phone" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+        <div class="form-group">
+          <label>Recipient</label>
+          <input type="text" id="filter-recipient" class="form-control" list="sms-recipient-options" placeholder="Recipient phone" onkeyup="if(event.key === 'Enter') loadData()">
+        </div>
+      </div>
+      <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+            <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('csv')">
+            <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.location.href=getExportUrl('pdf')">
+            <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+          </button>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="loadData(); toggleFilterPanel();">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+    <div class="odoo-view-switchers">
+      <button class="odoo-view-btn active" onclick="switchView('list')" id="btn-view-list" title="List View">
+        <i data-lucide="list" style="width: 18px; height: 18px;"></i>
+      </button>
+      <button class="odoo-view-btn" onclick="switchView('kanban')" id="btn-view-kanban" title="Kanban View">
+        <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
   </div>
 </div>
 
-<div class="glass-card">
-  {% if logs %}
-  <div class="table-wrapper">
-    <table class="data-table" id="sms-logs-table">
-      <thead>
-        <tr>
-          <th>Direction</th>
-          <th>Sender</th>
-          <th>Recipient</th>
-          <th>Message</th>
-          <th>Status</th>
-          <th>Time</th>
-          {% if current_user.role == 'admin' %}
-          <th>Actions</th>
-          {% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for log in logs %}
-        <tr {% if log.status == 'failed' %}style="background:var(--color-danger-bg);"{% endif %}>
-
-          <td>
-            {% if log.direction == 'incoming' %}
-              <span class="badge badge-info">
-                <i data-lucide="arrow-down-left" style="width:12px;height:12px;"></i> In
-              </span>
-            {% else %}
-              <span class="badge badge-neutral">
-                <i data-lucide="arrow-up-right" style="width:12px;height:12px;"></i> Out
-              </span>
-            {% endif %}
-          </td>
-
-          <td class="td-primary">
-            {% if log.direction == 'incoming' and log.member %}
-              <a href="{{ url_for('members.profile', member_id=log.member.id) }}">{{ log.sender }}</a><br>
-              <small class="text-muted">{{ log.member.full_name }}</small>
-            {% else %}
-              {{ log.sender }}
-            {% endif %}
-          </td>
-
-          <td>
-            {% if log.direction == 'outgoing' and log.member %}
-              <a href="{{ url_for('members.profile', member_id=log.member.id) }}">{{ log.recipient }}</a><br>
-              <small class="text-muted">{{ log.member.full_name }}</small>
-            {% else %}
-              {{ log.recipient }}
-            {% endif %}
-          </td>
-
-          <td>
-            <div style="max-height:4.5em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;max-width:300px;" title="{{ log.message }}">
-              {{ log.message }}
-            </div>
-          </td>
-
-          <td>
-            {% if log.status == 'received' %}
-              <span class="text-success fw-bold" style="font-size:0.85rem;">✓ Received</span>
-            {% elif log.status == 'sent' %}
-              <span class="text-primary fw-bold" style="font-size:0.85rem;">✓ Sent</span>
-            {% elif log.status == 'failed' %}
-              <span class="text-danger fw-bold" style="font-size:0.85rem;">✗ Failed</span>
-            {% else %}
-              <span class="text-muted" style="font-size:0.85rem;">{{ log.status|capitalize }}</span>
-            {% endif %}
-          </td>
-
-          <td style="white-space:nowrap;">
-            {{ log.created_at.strftime('%Y-%m-%d') }}<br>
-            <small class="text-muted">{{ log.created_at.strftime('%H:%M:%S') }}</small>
-          </td>
-
-          {% if current_user.role == 'admin' %}
-          <td>
-            <form method="POST" action="{{ url_for('sms.delete_log', log_id=log.id) }}" data-confirm-title="Delete SMS Log" data-confirm="Delete this SMS log?" data-confirm-action="Delete Log">
-              <button type="submit" class="btn btn-sm btn-outline-danger">
-                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
-              </button>
-            </form>
-          </td>
-          {% endif %}
-
-        </tr>
-        {% endfor %}
-      </tbody>
+<div id="view-list" class="view-container active">
+  <div style="overflow-x: auto;">
+    <table class="odoo-list-table">
+      <thead id="list-thead"></thead>
+      <tbody id="list-tbody"></tbody>
     </table>
   </div>
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-state-icon"><i data-lucide="message-square"></i></div>
-    <h3>No SMS Logs</h3>
-    <p>Once members start sending and receiving messages, they will appear here.</p>
-  </div>
-  {% endif %}
 </div>
+
+<div id="view-kanban" class="view-container">
+  <div class="odoo-kanban" id="kanban-board"></div>
+</div>
+
+<datalist id="sms-sender-options"></datalist>
+<datalist id="sms-recipient-options"></datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentData = [];
+  const canDeleteRecords = {{ 'true' if current_user.role == 'admin' else 'false' }};
+
+  function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+  }
+
+  function switchView(viewName) {
+    document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.odoo-view-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`view-${viewName}`).classList.add('active');
+    document.getElementById(`btn-view-${viewName}`).classList.add('active');
+    renderView(viewName);
+  }
+
+  function loadData() {
+    const params = getFilterParamsString();
+
+    fetch(`{{ url_for('sms.get_sms_data') }}?${params}`)
+      .then(res => res.json())
+      .then(data => {
+        currentData = data;
+        const activeView = document.querySelector('.view-container.active').id.replace('view-', '');
+        renderView(activeView);
+      })
+      .catch(err => console.error(err));
+  }
+
+  function getFilterParamsString() {
+    const search = document.getElementById('search-input').value;
+    const direction = document.getElementById('filter-direction').value;
+    const smsStatus = document.getElementById('filter-sms-status').value;
+    const memberId = document.getElementById('filter-member').value;
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+    const sender = document.getElementById('filter-sender').value;
+    const recipient = document.getElementById('filter-recipient').value;
+
+    return [
+      `entity=sms_logs`,
+      `search=${encodeURIComponent(search)}`,
+      `direction=${direction}`,
+      `sms_status=${smsStatus}`,
+      `member_id=${memberId}`,
+      `start_date=${encodeURIComponent(startDate)}`,
+      `end_date=${encodeURIComponent(endDate)}`,
+      `filter_sender=${encodeURIComponent(sender)}`,
+      `filter_recipient=${encodeURIComponent(recipient)}`,
+      `filter_direction=${encodeURIComponent(direction === 'all' ? '' : direction)}`,
+      `filter_status=${encodeURIComponent(smsStatus === 'all' ? '' : smsStatus)}`
+    ].join('&');
+  }
+
+  function getExportUrl(format) {
+    const params = getFilterParamsString();
+    return `{{ url_for('reports.custom_export') }}?${params}&format=${encodeURIComponent(format)}`;
+  }
+
+  function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-direction').value = 'all';
+    document.getElementById('filter-sms-status').value = 'all';
+    document.getElementById('filter-member').value = 'all';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    document.getElementById('filter-sender').value = '';
+    document.getElementById('filter-recipient').value = '';
+    loadData();
+  }
+
+  function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    datalist.innerHTML = '';
+    (values || []).forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      datalist.appendChild(option);
+    });
+  }
+
+  function loadFilterOptions() {
+    fetch(`{{ url_for('sms.get_sms_filter_options') }}`)
+      .then(res => res.json())
+      .then(options => {
+        populateDatalist('sms-sender-options', options.sender);
+        populateDatalist('sms-recipient-options', options.recipient);
+
+        // Populate member dropdown
+        const memberSelect = document.getElementById('filter-member');
+        const currentVal = memberSelect.value;
+        memberSelect.innerHTML = '<option value="all">All Members</option>';
+        (options.members || []).forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.label;
+          memberSelect.appendChild(opt);
+        });
+        memberSelect.value = currentVal || 'all';
+      })
+      .catch(err => console.error(err));
+  }
+
+  function renderView(viewName) {
+    if (viewName === 'list') renderList();
+    else if (viewName === 'kanban') renderKanban();
+  }
+
+  function renderList() {
+    const thead = document.getElementById('list-thead');
+    const tbody = document.getElementById('list-tbody');
+    thead.innerHTML = '<tr><th>Direction</th><th>Sender</th><th>Recipient</th><th>Message</th><th>Status</th><th>Time</th>' + (canDeleteRecords ? '<th>Actions</th>' : '') + '</tr>';
+    tbody.innerHTML = '';
+
+    if (currentData.length === 0) {
+      const colSpan = canDeleteRecords ? 7 : 6;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;">No SMS logs found.</td></tr>`;
+      return;
+    }
+
+    currentData.forEach(row => {
+      let tr = document.createElement('tr');
+      if (row.status === 'failed') tr.style.background = 'var(--color-danger-bg, #fef2f2)';
+
+      const dirBadge = row.direction === 'incoming'
+        ? `<span class="badge badge-info"><i data-lucide="arrow-down-left" style="width:12px;height:12px;"></i> In</span>`
+        : `<span class="badge badge-neutral"><i data-lucide="arrow-up-right" style="width:12px;height:12px;"></i> Out</span>`;
+
+      let senderCell = row.sender;
+      if (row.direction === 'incoming' && row.member_name && row.member_id) {
+        senderCell = `<a href="/members/${row.member_id}">${row.sender}</a><br><small class="text-muted">${row.member_name}</small>`;
+      }
+
+      let recipientCell = row.recipient;
+      if (row.direction === 'outgoing' && row.member_name && row.member_id) {
+        recipientCell = `<a href="/members/${row.member_id}">${row.recipient}</a><br><small class="text-muted">${row.member_name}</small>`;
+      }
+
+      let statusCell = '';
+      if (row.status === 'received') statusCell = '<span class="text-success fw-bold" style="font-size:0.85rem;">✓ Received</span>';
+      else if (row.status === 'sent') statusCell = '<span class="text-primary fw-bold" style="font-size:0.85rem;">✓ Sent</span>';
+      else if (row.status === 'failed') statusCell = '<span class="text-danger fw-bold" style="font-size:0.85rem;">✗ Failed</span>';
+      else statusCell = `<span class="text-muted" style="font-size:0.85rem;">${row.status}</span>`;
+
+      const msgPreview = row.message.length > 80 ? row.message.substring(0, 80) + '…' : row.message;
+
+      const dateParts = row.created_at ? row.created_at.split(' ') : ['', ''];
+
+      const deleteAction = canDeleteRecords ? `
+        <td>
+          <form method="POST" action="/sms/logs/${row.id}/delete" style="display:inline;" data-confirm-title="Delete SMS Log" data-confirm="Delete this SMS log?" data-confirm-action="Delete Log">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>
+          </form>
+        </td>
+      ` : '';
+
+      tr.innerHTML = `
+        <td>${dirBadge}</td>
+        <td class="td-primary">${senderCell}</td>
+        <td>${recipientCell}</td>
+        <td><div style="max-height:4.5em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;max-width:300px;" title="${row.message.replace(/"/g, '&quot;')}">${msgPreview}</div></td>
+        <td>${statusCell}</td>
+        <td style="white-space:nowrap;">${dateParts[0]}<br><small class="text-muted">${dateParts[1] || ''}</small></td>
+        ${deleteAction}
+      `;
+      tbody.appendChild(tr);
+    });
+    lucide.createIcons();
+  }
+
+  function renderKanban() {
+    const board = document.getElementById('kanban-board');
+    board.innerHTML = '';
+
+    if (currentData.length === 0) {
+      board.innerHTML = '<p>No SMS logs found.</p>';
+      return;
+    }
+
+    // Group by date
+    let grouped = {};
+    currentData.forEach(item => {
+      let key = item.created_at ? item.created_at.split(' ')[0] : 'Unknown Date';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+
+    for (const [key, items] of Object.entries(grouped)) {
+      let colDiv = document.createElement('div');
+      colDiv.className = 'kanban-column';
+      colDiv.innerHTML = `<div class="kanban-column-title"><span>${key}</span> <span>${items.length}</span></div>`;
+
+      items.forEach(item => {
+        let card = document.createElement('div');
+        card.className = 'kanban-card';
+
+        const dirIcon = item.direction === 'incoming' ? 'arrow-down-left' : 'arrow-up-right';
+        const dirLabel = item.direction === 'incoming' ? 'Received' : 'Sent';
+        const contact = item.direction === 'incoming' ? item.sender : item.recipient;
+        const msgSnippet = item.message.length > 60 ? item.message.substring(0, 60) + '…' : item.message;
+
+        card.innerHTML = `
+          <div class="kanban-card-title" style="display:flex;align-items:center;gap:6px;">
+            <i data-lucide="${dirIcon}" style="width:14px;height:14px;flex-shrink:0;"></i>
+            <span>${dirLabel}</span>
+            <span class="badge badge-${item.status === 'failed' ? 'danger' : 'neutral'}" style="margin-left:auto;font-size:0.7rem;">${item.status}</span>
+          </div>
+          <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">
+            <i data-lucide="phone" style="width:12px;height:12px;vertical-align:middle;"></i> ${contact}
+            ${item.member_name ? `<br><small>${item.member_name}</small>` : ''}
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 6px; opacity:0.8; font-style:italic;">"${msgSnippet}"</div>
+        `;
+        colDiv.appendChild(card);
+      });
+      board.appendChild(colDiv);
+    }
+    lucide.createIcons();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.initCustomSelects) window.initCustomSelects();
+    loadFilterOptions();
+    loadData();
+  });
+</script>
 {% endblock %}

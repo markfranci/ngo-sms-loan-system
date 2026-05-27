@@ -15,6 +15,7 @@ from app import db
 from app.models.member import Member
 from app.models.group import Group
 from app.models.loan import Loan
+from app.models.sms_log import SMSLog
 from app.models.survey import SurveyTemplate
 from sqlalchemy import func
 
@@ -247,6 +248,58 @@ def get_report_data():
         data = _filter_records(data)
         return jsonify(data)
         
+    elif entity == 'sms_logs':
+        query = SMSLog.query
+        direction = request.args.get('direction')
+        sms_status = request.args.get('sms_status')
+        member_id = request.args.get('member_id')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        if direction and direction != 'all':
+            query = query.filter(SMSLog.direction == direction)
+        if sms_status and sms_status != 'all':
+            query = query.filter(SMSLog.status == sms_status)
+        if member_id and member_id != 'all':
+            query = query.filter(SMSLog.member_id == int(member_id))
+        if start_date:
+            try:
+                dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(SMSLog.created_at >= dt)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt = datetime.strptime(end_date, '%Y-%m-%d')
+                query = query.filter(SMSLog.created_at <= dt.replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
+        if search:
+            query = query.outerjoin(Member, SMSLog.member_id == Member.id).filter(db.or_(
+                SMSLog.sender.ilike(f"%{search}%"),
+                SMSLog.recipient.ilike(f"%{search}%"),
+                SMSLog.message.ilike(f"%{search}%"),
+                Member.full_name.ilike(f"%{search}%")
+            ))
+
+        query = query.order_by(SMSLog.created_at.desc()).limit(500)
+
+        data = []
+        for log in query.all():
+            data.append({
+                'id': log.id,
+                'direction': log.direction,
+                'sender': log.sender,
+                'recipient': log.recipient,
+                'member_name': log.member.full_name if log.member else '',
+                'member_id': log.member_id or '',
+                'message': log.message,
+                'status': log.status,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else ''
+            })
+        data = _filter_records(data)
+        return jsonify(data)
+
     elif entity == 'surveys':
         from app.models.survey import SurveyTemplate
         query = SurveyTemplate.query
@@ -369,6 +422,29 @@ def get_filter_options():
             for group in Group.query.all()
         ]
         return jsonify(_unique_filter_options(records))
+
+    if entity == 'sms_logs':
+        members = Member.query.all()
+        member_options = sorted(
+            [{'id': m.id, 'label': f"{m.full_name} ({m.phone_number})"} for m in members],
+            key=lambda x: x['label'].casefold()
+        )
+        # Also return distinct dates for the datalist
+        logs = SMSLog.query.order_by(SMSLog.created_at.desc()).limit(500).all()
+        records = [
+            {
+                'sender': log.sender,
+                'recipient': log.recipient,
+                'member_name': log.member.full_name if log.member else '',
+                'status': log.status,
+                'direction': log.direction,
+                'created_at': log.created_at.strftime('%Y-%m-%d') if log.created_at else '',
+            }
+            for log in logs
+        ]
+        result = _unique_filter_options(records)
+        result['members'] = member_options
+        return jsonify(result)
 
     return jsonify({})
 
@@ -532,6 +608,7 @@ def _build_custom_report_payload():
         'members': ['full_name', 'phone_number', 'gender', 'location', 'group_name', 'registered_at'],
         'loans': ['applicant_name', 'phone_number', 'amount_requested', 'status', 'group_name', 'created_at'],
         'groups': ['name', 'description', 'member_count', 'manager', 'created_at'],
+        'sms_logs': ['direction', 'sender', 'recipient', 'member_name', 'message', 'status', 'created_at'],
         'surveys': ['title', 'description', 'question_count', 'creator', 'created_at'],
     }
 
@@ -683,6 +760,62 @@ def _build_custom_report_payload():
             [_format_column_label(col) for col in selected_columns],
             _rows_from_records(records, selected_columns),
             'custom_groups_report',
+            None,
+        )
+
+    if entity == 'sms_logs':
+        direction = request.args.get('direction')
+        sms_status = request.args.get('sms_status')
+        member_id = request.args.get('member_id')
+
+        query = SMSLog.query
+        if direction and direction != 'all':
+            query = query.filter(SMSLog.direction == direction)
+        if sms_status and sms_status != 'all':
+            query = query.filter(SMSLog.status == sms_status)
+        if member_id and member_id != 'all':
+            query = query.filter(SMSLog.member_id == int(member_id))
+        if search:
+            query = query.outerjoin(Member, SMSLog.member_id == Member.id).filter(db.or_(
+                SMSLog.sender.ilike(f"%{search}%"),
+                SMSLog.recipient.ilike(f"%{search}%"),
+                SMSLog.message.ilike(f"%{search}%"),
+                Member.full_name.ilike(f"%{search}%")
+            ))
+        if start_date:
+            try:
+                dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(SMSLog.created_at >= dt)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt = datetime.strptime(end_date, '%Y-%m-%d')
+                query = query.filter(SMSLog.created_at <= dt.replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
+
+        query = query.order_by(SMSLog.created_at.desc()).limit(500)
+
+        records = []
+        for log in query.all():
+            records.append({
+                'id': log.id,
+                'direction': log.direction,
+                'sender': log.sender,
+                'recipient': log.recipient,
+                'member_name': log.member.full_name if log.member else '',
+                'message': log.message,
+                'status': log.status,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '',
+            })
+        records = _filter_records(records)
+
+        return (
+            'SMS Logs Report',
+            [_format_column_label(col) for col in selected_columns],
+            _rows_from_records(records, selected_columns),
+            'custom_sms_logs_report',
             None,
         )
 
