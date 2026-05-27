@@ -2,12 +2,65 @@
 {% block title %}Responses: {{ survey.title }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div class="page-header-text">
+<div class="odoo-control-panel">
+  <div class="odoo-breadcrumb">
     <h2>Responses: {{ survey.title }}</h2>
-    <p>View all feedback collected from members.</p>
   </div>
-  <div class="page-header-actions">
+
+  <div class="odoo-actions">
+    <form method="GET" class="odoo-search-container">
+      <i data-lucide="search" class="odoo-search-icon" style="width: 16px; height: 16px;"></i>
+      <input type="text" id="member_name" name="member_name" class="odoo-search-bar" value="{{ filters.member_name }}" placeholder="Search member name..." onkeyup="if(event.key === 'Enter') this.form.submit()">
+      <button type="button" class="odoo-search-dropdown-btn" onclick="toggleFilterPanel()" title="Advanced Filters">
+        <i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i>
+      </button>
+
+      <div class="odoo-filter-panel" id="filter-panel">
+        <div class="filter-grid">
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="phone_number" name="phone_number" class="form-control" value="{{ filters.phone_number }}" placeholder="Phone number" onkeyup="if(event.key === 'Enter') this.form.submit()">
+          </div>
+          <div class="form-group">
+            <label>From Date</label>
+            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+          </div>
+          <div class="form-group">
+            <label>To Date</label>
+            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+          </div>
+          <div class="form-group">
+            <label>Group By</label>
+            <select id="group_by" name="group_by" class="form-control">
+              <option value="" {% if not filters.group_by %}selected{% endif %}>No Grouping</option>
+              <option value="member_name" {% if filters.group_by == 'member_name' %}selected{% endif %}>Member Name</option>
+              <option value="submitted_date" {% if filters.group_by == 'submitted_date' %}selected{% endif %}>Submitted Date</option>
+            </select>
+          </div>
+          {% for question in questions %}
+          <div class="form-group">
+            <label>Q{{ question.order_number }}</label>
+            <input type="text" id="answer_{{ question.id }}" name="answer_{{ question.id }}" class="form-control" value="{{ filters.answers.get(question.id, '') }}" placeholder="{{ question.question_text }}" onkeyup="if(event.key === 'Enter') this.form.submit()">
+          </div>
+          {% endfor %}
+        </div>
+        <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+          <div style="display:flex;gap:8px;">
+            <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-sm btn-outline-secondary">
+              <i data-lucide="x" style="width:14px;height:14px;"></i> Clear
+            </a>
+            <button type="submit" name="export" value="csv" class="btn btn-sm btn-outline-primary">
+              <i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Export CSV
+            </button>
+            <button type="submit" name="export" value="pdf" class="btn btn-sm btn-outline-primary">
+              <i data-lucide="file-text" style="width:14px;height:14px;"></i> Export PDF
+            </button>
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary">Apply Filters</button>
+        </div>
+      </div>
+    </form>
+
     <a href="{{ url_for('surveys.view_survey', survey_id=survey.id) }}" class="btn btn-ghost">
       <i data-lucide="settings" style="width:16px;height:16px;"></i> Questions
     </a>
@@ -15,57 +68,6 @@
       <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
     </a>
   </div>
-</div>
-
-<div class="glass-card" style="margin-bottom:1rem;">
-  <form method="GET">
-    <div class="filter-grid">
-      <div class="form-group">
-        <label class="form-label" for="member_name">Member Name</label>
-        <input type="text" id="member_name" name="member_name" class="form-input" value="{{ filters.member_name }}" placeholder="Member name">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="phone_number">Phone</label>
-        <input type="text" id="phone_number" name="phone_number" class="form-input" value="{{ filters.phone_number }}" placeholder="Phone number">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="start_date">From Date</label>
-        <input type="date" id="start_date" name="start_date" class="form-input" value="{{ filters.start_date }}">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="end_date">To Date</label>
-        <input type="date" id="end_date" name="end_date" class="form-input" value="{{ filters.end_date }}">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="group_by">Group By</label>
-        <select id="group_by" name="group_by" class="form-select">
-          <option value="" {% if not filters.group_by %}selected{% endif %}>No Grouping</option>
-          <option value="member_name" {% if filters.group_by == 'member_name' %}selected{% endif %}>Member Name</option>
-          <option value="submitted_date" {% if filters.group_by == 'submitted_date' %}selected{% endif %}>Submitted Date</option>
-        </select>
-      </div>
-      {% for question in questions %}
-      <div class="form-group">
-        <label class="form-label" for="answer_{{ question.id }}">Q{{ question.order_number }}</label>
-        <input type="text" id="answer_{{ question.id }}" name="answer_{{ question.id }}" class="form-input" value="{{ filters.answers.get(question.id, '') }}" placeholder="{{ question.question_text }}">
-      </div>
-      {% endfor %}
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem;">
-      <a href="{{ url_for('surveys.view_responses', survey_id=survey.id) }}" class="btn btn-ghost">
-        <i data-lucide="x" style="width:16px;height:16px;"></i> Clear
-      </a>
-      <button type="submit" class="btn btn-primary">
-        <i data-lucide="filter" style="width:16px;height:16px;"></i> Apply Filters
-      </button>
-      <button type="submit" name="export" value="csv" class="btn btn-outline-primary">
-        <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Export CSV
-      </button>
-      <button type="submit" name="export" value="pdf" class="btn btn-outline-primary">
-        <i data-lucide="file-text" style="width:16px;height:16px;"></i> Export PDF
-      </button>
-    </div>
-  </form>
 </div>
 
 {% if member_data %}
@@ -124,4 +126,12 @@
   </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+  }
+</script>
 {% endblock %}
