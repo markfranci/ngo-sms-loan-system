@@ -5,11 +5,9 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 from flask_login import login_required
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, Spacer
+from app.pdf_utils import build_pdf_response, modern_table, pdf_styles
 from app.decorators import admin_required
 from app import db
 from app.models.member import Member
@@ -530,60 +528,8 @@ def _build_report_filters():
     return filters
 
 
-def _draw_report_brand(canvas, doc, title):
-    canvas.saveState()
-
-    page_width, page_height = doc.pagesize
-    left = doc.leftMargin
-    right = page_width - doc.rightMargin
-
-    # Draw a simple vector logo to avoid external file dependencies.
-    logo_x = left
-    logo_y = page_height - 21 * mm
-    canvas.setFillColor(colors.HexColor('#0f766e'))
-    canvas.roundRect(logo_x, logo_y, 12 * mm, 12 * mm, 2 * mm, fill=1, stroke=0)
-    canvas.setFillColor(colors.white)
-    canvas.setFont('Helvetica-Bold', 10)
-    canvas.drawCentredString(logo_x + 6 * mm, logo_y + 4.1 * mm, 'NGO')
-
-    canvas.setFillColor(colors.HexColor('#111827'))
-    canvas.setFont('Helvetica-Bold', 14)
-    canvas.drawString(left + 16 * mm, page_height - 13 * mm, 'NGO SMS Loan System')
-    canvas.setFont('Helvetica', 10)
-    canvas.setFillColor(colors.HexColor('#4b5563'))
-    canvas.drawString(left + 16 * mm, page_height - 18 * mm, title)
-    canvas.drawRightString(
-        right,
-        page_height - 13 * mm,
-        f"Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-    )
-
-    canvas.setStrokeColor(colors.HexColor('#d1d5db'))
-    canvas.setLineWidth(0.6)
-    canvas.line(left, page_height - 24 * mm, right, page_height - 24 * mm)
-
-    footer_y = 11 * mm
-    canvas.line(left, footer_y + 4 * mm, right, footer_y + 4 * mm)
-    canvas.setFont('Helvetica', 9)
-    canvas.setFillColor(colors.HexColor('#6b7280'))
-    canvas.drawString(left, footer_y, 'Confidential report')
-    canvas.drawRightString(right, footer_y, f'Page {canvas.getPageNumber()}')
-
-    canvas.restoreState()
-
-
 def _build_pdf_response(title, headers, rows, filename, filters):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=14 * mm,
-        rightMargin=14 * mm,
-        topMargin=30 * mm,
-        bottomMargin=18 * mm,
-    )
-
-    styles = getSampleStyleSheet()
+    styles = pdf_styles()
     story = []
 
     if filters:
@@ -601,43 +547,9 @@ def _build_pdf_response(title, headers, rows, filename, filters):
             [str(header) for header in headers],
             *[[str(value) for value in row] for row in rows],
         ]
-        table = Table(table_data, repeatRows=1)
-        table.setStyle(
-            TableStyle(
-                [
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f766e')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 9),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                    ('TOPPADDING', (0, 0), (-1, 0), 8),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                    ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#111827')),
-                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 8),
-                    ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d1d5db')),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                ]
-            )
-        )
-        story.append(table)
+        story.append(modern_table(table_data))
 
-    doc.build(
-        story,
-        onFirstPage=lambda canvas, document: _draw_report_brand(canvas, document, title),
-        onLaterPages=lambda canvas, document: _draw_report_brand(canvas, document, title),
-    )
-
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    response = make_response(pdf)
-    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-    response.headers['Content-Type'] = 'application/pdf'
-    return response
+    return build_pdf_response(filename, title, story, pagesize=landscape(A4))
 
 
 def _build_custom_report_payload():

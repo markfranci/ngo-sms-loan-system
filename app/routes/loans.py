@@ -5,9 +5,9 @@ from html import escape
 
 from flask import Blueprint, current_app, render_template, request, redirect, send_from_directory, url_for, flash
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
@@ -23,6 +23,17 @@ from app.loan_assessment_surveys import (
 from app.kenya_locations import KENYA_COUNTIES_SUBCOUNTIES
 from app.decorators import admin_required
 from app import db
+from app.pdf_utils import (
+    BRAND_DARK,
+    BRAND_LINE,
+    BRAND_MUTED,
+    BRAND_SOFT,
+    BRAND_TEXT,
+    build_pdf_response,
+    key_value_table,
+    modern_table,
+    pdf_styles,
+)
 from flask_login import current_user, login_required
 from app.whatsapp_service import WhatsAppNotConfiguredError, send_whatsapp_message
 
@@ -109,21 +120,7 @@ def _notify_loan_disbursement(loan, disbursement):
 
 
 def _build_pdf_response(filename, title, story):
-    from io import BytesIO
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    styles = getSampleStyleSheet()
-    content = [Paragraph(title, styles['Title']), Spacer(1, 12), *story]
-    doc.build(content)
-    pdf = buffer.getvalue()
-    buffer.close()
-
-    from flask import make_response
-    response = make_response(pdf)
-    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-    response.headers['Content-Type'] = 'application/pdf'
-    return response
+    return build_pdf_response(filename, title, story, pagesize=A4)
 
 
 def _blank_inventory_data():
@@ -757,7 +754,7 @@ def confirm_disbursement(loan_id):
 @login_required
 def loan_statement(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    styles = getSampleStyleSheet()
+    styles = pdf_styles()
     rows = [['Date', 'Transaction', 'Reference', 'Method', 'Debit', 'Credit', 'Balance', 'Processed By', 'Notes']]
     transactions = []
     for disbursement in loan.confirmed_disbursements:
@@ -809,18 +806,23 @@ def loan_statement(loan_id):
         ['Outstanding', '', '', '', '', '', f"KSh {loan.outstanding_balance:,.2f}", '', ''],
     ])
 
-    table = Table(rows, repeatRows=1)
+    table = modern_table(rows, font_size=7, header_font_size=7)
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f766e')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d1d5db')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (4, 1), (6, -1), 'RIGHT'),
+        ('FONTNAME', (0, -4), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -4), (-1, -1), colors.HexColor('#FAFAFA')),
     ]))
     story = [
-        Paragraph(f'Member: {escape(loan.member.full_name)}', styles['BodyText']),
-        Paragraph(f'Phone: {escape(loan.member.phone_number)}', styles['BodyText']),
-        Paragraph(f'Loan Amount: KSh {loan.amount_requested:,.2f}', styles['BodyText']),
+        key_value_table([
+            ('Member', loan.member.full_name),
+            ('Phone', loan.member.phone_number),
+            ('Loan ID', f'#{loan.id}'),
+            ('Approved Amount', f'KSh {loan.amount_requested:,.2f}'),
+            ('Total Disbursed', f'KSh {loan.total_disbursed:,.2f}'),
+            ('Outstanding Balance', f'KSh {loan.outstanding_balance:,.2f}'),
+        ]),
         Spacer(1, 12),
+        Paragraph('Transaction History', styles['SectionTitle']),
         table,
     ]
     return _build_pdf_response(f'loan_{loan.id}_statement.pdf', 'Loan Repayment Statement', story)
@@ -835,13 +837,62 @@ def clearance_certificate(loan_id):
         flash('Clearance certificate is only available after the loan is fully repaid.', 'danger')
         return redirect(url_for('loans.view', loan_id=loan.id))
 
-    styles = getSampleStyleSheet()
+    styles = pdf_styles()
+    summary = key_value_table([
+        ('Member', loan.member.full_name),
+        ('Phone', loan.member.phone_number),
+        ('Loan Assessment', f'#{loan.id}'),
+        ('Issued On', datetime.utcnow().strftime('%Y-%m-%d')),
+    ], columns=2)
+
+    financials = modern_table([
+        ['Loan Amount', 'Total Repaid', 'Outstanding Balance'],
+        [
+            f'KSh {loan.amount_requested:,.2f}',
+            f'KSh {loan.total_repaid:,.2f}',
+            f'KSh {loan.outstanding_balance:,.2f}',
+        ],
+    ], font_size=10, header_font_size=9)
+    financials.setStyle(TableStyle([
+        ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
+        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, 1), (-1, 1), BRAND_DARK),
+    ]))
+
+    certificate_box = Table(
+        [[Paragraph(
+            f'This certifies that <b>{escape(loan.member.full_name)}</b> has fully repaid loan assessment '
+            f'<b>#{loan.id}</b>. The account has no outstanding balance as at the date of issue.',
+            styles['CertificateBody'],
+        )]],
+        colWidths=[165 *  mm],
+    )
+    certificate_box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1.2, BRAND_DARK),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, BRAND_LINE),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('TOPPADDING', (0, 0), (-1, -1), 24),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 24),
+        ('LEFTPADDING', (0, 0), (-1, -1), 20),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 20),
+    ]))
+
     story = [
-        Paragraph(f'This certifies that {escape(loan.member.full_name)} has fully repaid loan assessment #{loan.id}.', styles['BodyText']),
-        Spacer(1, 12),
-        Paragraph(f'Loan Amount: KSh {loan.amount_requested:,.2f}', styles['BodyText']),
-        Paragraph(f'Total Repaid: KSh {loan.total_repaid:,.2f}', styles['BodyText']),
-        Paragraph(f'Outstanding Balance: KSh {loan.outstanding_balance:,.2f}', styles['BodyText']),
-        Paragraph(f'Issued On: {datetime.utcnow().strftime("%Y-%m-%d")}', styles['BodyText']),
+        Paragraph('Loan Clearance Certificate', styles['CertificateTitle']),
+        summary,
+        Spacer(1, 18),
+        certificate_box,
+        Spacer(1, 18),
+        financials,
+        Spacer(1, 30),
+        Table([
+            ['Authorized Officer', 'Date'],
+            ['____________________________', datetime.utcnow().strftime('%Y-%m-%d')],
+        ], colWidths=[110 * mm, 55 * mm], style=TableStyle([
+            ('TEXTCOLOR', (0, 0), (-1, 0), BRAND_MUTED),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ])),
     ]
     return _build_pdf_response(f'loan_{loan.id}_clearance_certificate.pdf', 'Loan Clearance Certificate', story)

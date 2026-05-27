@@ -10,6 +10,7 @@ from app.decorators import admin_required
 from app.models.survey import SurveySkipRule, SurveyTemplate, SurveyQuestion, SurveyResponse
 from app.models.member import Member
 from app.models.group import Group
+from app.pdf_utils import build_pdf_response, landscape_a4, modern_table, pdf_styles
 
 # Create a new Blueprint for surveys
 surveys = Blueprint('surveys', __name__, url_prefix='/surveys')
@@ -357,18 +358,10 @@ def _export_survey_responses(survey, questions, member_rows, filters, export_for
     filename_base = f"survey_{survey.id}_responses"
 
     if export_format == 'pdf':
-        try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4, landscape
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-        except ImportError:
-            return make_response('PDF export requires reportlab to be installed.', 500)
+        from reportlab.platypus import Paragraph, Spacer
 
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-        styles = getSampleStyleSheet()
-        story = [Paragraph(f'Responses: {survey.title}', styles['Title'])]
+        styles = pdf_styles()
+        story = []
 
         active_filters = []
         if filters.get('member_name'):
@@ -383,21 +376,16 @@ def _export_survey_responses(survey, questions, member_rows, filters, export_for
             story.append(Paragraph(' | '.join(active_filters), styles['BodyText']))
             story.append(Spacer(1, 8))
 
-        table = Table([[Paragraph(str(cell), styles['BodyText']) for cell in headers]] + rows, repeatRows=1)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#18181B')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#d4d4d8')),
-            ('FONTSIZE', (0, 0), (-1, -1), 7),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        story.append(table)
-        doc.build(story)
+        table_data = [[Paragraph(str(cell), styles['BodyText']) for cell in headers]]
+        table_data.extend(rows)
+        story.append(modern_table(table_data, font_size=7, header_font_size=7))
 
-        response = make_response(buffer.getvalue())
-        response.headers['Content-Disposition'] = f'attachment; filename={filename_base}.pdf'
-        response.headers['Content-Type'] = 'application/pdf'
-        return response
+        return build_pdf_response(
+            f'{filename_base}.pdf',
+            f'Responses: {survey.title}',
+            story,
+            pagesize=landscape_a4(),
+        )
 
     si = io.StringIO()
     writer = csv.writer(si)
