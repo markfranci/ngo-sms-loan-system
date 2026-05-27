@@ -19,6 +19,7 @@ from app.loan_assessment_surveys import (
     CASH_FLOW_MONTH_COUNT,
     INVENTORY_ITEM_COUNT,
 )
+from app.kenya_locations import KENYA_COUNTIES_SUBCOUNTIES
 from app.decorators import admin_required
 from app import db
 from flask_login import current_user, login_required
@@ -203,6 +204,16 @@ def _missing_required_assessment_fields(form):
     ]
 
 
+def _validate_county_sub_county(form):
+    county = str(form.get('county', '')).strip()
+    sub_county = str(form.get('sub_county', '')).strip()
+    if county not in KENYA_COUNTIES_SUBCOUNTIES:
+        return None, None, 'Please select a valid Kenyan county.'
+    if sub_county not in KENYA_COUNTIES_SUBCOUNTIES[county]:
+        return None, None, 'Please select a valid sub-county for the selected county.'
+    return county, sub_county, None
+
+
 def _parse_required_float(form, field_name, label, minimum=0):
     raw_value = str(form.get(field_name, '')).strip().replace(',', '')
     try:
@@ -281,6 +292,11 @@ def new(member_id):
             flash(f'Please complete required assessment fields: {", ".join(missing_fields)}.', 'danger')
             return redirect(url_for('loans.new', member_id=member.id))
 
+        county, sub_county, location_error = _validate_county_sub_county(request.form)
+        if location_error:
+            flash(location_error, 'danger')
+            return redirect(url_for('loans.new', member_id=member.id))
+
         amount_requested, number_error = _parse_required_float(request.form, 'amount_requested', 'Amount requested', 1)
         if number_error:
             flash(number_error, 'danger')
@@ -346,8 +362,8 @@ def new(member_id):
         # Save Assessment Details
         details = LoanAssessmentDetails(
             loan_id=loan.id,
-            county=request.form.get('county', ''),
-            sub_county=request.form.get('sub_county', ''),
+            county=county,
+            sub_county=sub_county,
             ward=request.form.get('ward', ''),
             group_name=member.group.name,
             business_location=request.form.get('business_location', ''),
@@ -431,6 +447,7 @@ def new(member_id):
         assessment_data=assessment_data,
         assessment_inventory=assessment_inventory,
         assessment_cash_flow=assessment_cash_flow,
+        kenya_locations=KENYA_COUNTIES_SUBCOUNTIES,
     )
 
 

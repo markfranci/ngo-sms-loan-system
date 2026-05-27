@@ -76,11 +76,18 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label class="form-label">County</label>
-            <input type="text" name="county" class="form-input" value="{{ assessment_data.get('county', '') }}" required>
+            <select name="county" id="county" class="form-select" required>
+              <option value="">Select county</option>
+              {% for county in kenya_locations.keys()|sort %}
+              <option value="{{ county }}" {% if assessment_data.get('county') == county %}selected{% endif %}>{{ county }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Sub-County</label>
-            <input type="text" name="sub_county" class="form-input" value="{{ assessment_data.get('sub_county', '') }}" required>
+            <select name="sub_county" id="sub_county" class="form-select" data-selected="{{ assessment_data.get('sub_county', '') }}" required>
+              <option value="">Select county first</option>
+            </select>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
@@ -338,6 +345,40 @@ const assessmentTabOrder = [
   'tab-documents',
   'tab-approval'
 ];
+const kenyaLocations = {{ kenya_locations|tojson }};
+
+function fillSubCountyOptions() {
+  const countySelect = document.getElementById('county');
+  const subCountySelect = document.getElementById('sub_county');
+  const selectedCounty = countySelect.value;
+  const currentSubCounty = subCountySelect.dataset.selected || subCountySelect.value;
+  const subCounties = kenyaLocations[selectedCounty] || [];
+
+  subCountySelect.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = selectedCounty ? 'Select sub-county' : 'Select county first';
+  subCountySelect.appendChild(placeholder);
+
+  subCounties.forEach(subCounty => {
+    const option = document.createElement('option');
+    option.value = subCounty;
+    option.textContent = subCounty;
+    if (subCounty === currentSubCounty) {
+      option.selected = true;
+    }
+    subCountySelect.appendChild(option);
+  });
+
+  subCountySelect.dataset.selected = subCountySelect.value;
+}
+
+document.getElementById('county').addEventListener('change', function() {
+  document.getElementById('sub_county').dataset.selected = '';
+  fillSubCountyOptions();
+});
+fillSubCountyOptions();
 
 function activeTabId() {
   const activeTab = document.querySelector('.tab-content.active');
