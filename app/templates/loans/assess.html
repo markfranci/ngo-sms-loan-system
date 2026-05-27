@@ -90,17 +90,25 @@
           </div>
           <div class="form-group">
             <label class="form-label">Group Name</label>
-            <input type="text" name="group_name" class="form-input" value="{{ member.group.name if member.group else '' }}">
+            <input type="text" name="group_name" class="form-input" value="{{ member.group.name }}" readonly>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label class="form-label">Male Participants</label>
-            <input type="number" name="male_participants" class="form-input" value="{{ assessment_data.get('male_participants', 0) }}" min="0">
+            <input type="number" name="male_participants" class="form-input" value="{{ assessment_data.get('male_participants', 0) }}" min="0" readonly>
           </div>
           <div class="form-group">
             <label class="form-label">Female Participants</label>
-            <input type="number" name="female_participants" class="form-input" value="{{ assessment_data.get('female_participants', 0) }}" min="0">
+            <input type="number" name="female_participants" class="form-input" value="{{ assessment_data.get('female_participants', 0) }}" min="0" readonly>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Member is in SME Group</label>
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
+            <input type="checkbox" id="is_in_sme_group" style="width:18px;height:18px;" checked disabled>
+            <input type="hidden" name="is_in_sme_group" value="true">
+            <label for="is_in_sme_group" style="font-weight:500;">Yes, member belongs to an SME group</label>
           </div>
         </div>
         
@@ -320,8 +328,23 @@
 </div>
 
 <script>
-function openTab(evt, tabName) {
-  if (evt) evt.preventDefault();
+const assessmentTabOrder = [
+  'tab-applicant',
+  'tab-business',
+  'tab-balance',
+  'tab-income',
+  'tab-inventory',
+  'tab-cashflow',
+  'tab-documents',
+  'tab-approval'
+];
+
+function activeTabId() {
+  const activeTab = document.querySelector('.tab-content.active');
+  return activeTab ? activeTab.id : assessmentTabOrder[0];
+}
+
+function activateTab(tabName) {
   var i, tabcontent, tablinks;
   tabcontent = document.getElementsByClassName("tab-content");
   for (i = 0; i < tabcontent.length; i++) {
@@ -334,22 +357,64 @@ function openTab(evt, tabName) {
   }
   document.getElementById(tabName).style.display = "block";
   document.getElementById(tabName).classList.add("active");
-  
-  if(evt) {
-    evt.currentTarget.className += " active";
-  } else {
-    // Find button that opens this tab
-    const btns = document.querySelectorAll('.tab-btn');
-    btns.forEach(b => {
-      if(b.getAttribute('onclick').includes(tabName)) {
-        b.className += " active";
-      }
-    });
+
+  const btns = document.querySelectorAll('.tab-btn');
+  btns.forEach(b => {
+    if (b.getAttribute('onclick').includes(tabName)) {
+      b.className += " active";
+    }
+  });
+}
+
+function validateTab(tabName) {
+  const tab = document.getElementById(tabName);
+  const fields = tab.querySelectorAll('input, select, textarea');
+
+  for (const field of fields) {
+    if (field.disabled || field.type === 'hidden') {
+      continue;
+    }
+    if (!field.checkValidity()) {
+      activateTab(tabName);
+      field.focus();
+      field.reportValidity();
+      return false;
+    }
   }
+  return true;
+}
+
+function validatePreviousTabs(tabName) {
+  const targetIndex = assessmentTabOrder.indexOf(tabName);
+  const currentIndex = assessmentTabOrder.indexOf(activeTabId());
+
+  if (targetIndex <= currentIndex) {
+    return true;
+  }
+
+  for (let i = 0; i < targetIndex; i++) {
+    if (!validateTab(assessmentTabOrder[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function openTab(evt, tabName, skipValidation = false) {
+  if (evt) evt.preventDefault();
+  if (!skipValidation && !validatePreviousTabs(tabName)) {
+    return;
+  }
+  activateTab(tabName);
 }
 
 function nextTab(tabName) {
-  openTab(null, tabName);
+  const targetIndex = assessmentTabOrder.indexOf(tabName);
+  const currentIndex = assessmentTabOrder.indexOf(activeTabId());
+  if (targetIndex > currentIndex && !validateTab(activeTabId())) {
+    return;
+  }
+  openTab(null, tabName, true);
 }
 
 function addInventoryRow() {
@@ -369,19 +434,9 @@ function addInventoryRow() {
 }
 
 document.getElementById('loan-assessment-form').addEventListener('submit', function(event) {
-  const requiredFields = this.querySelectorAll('[required]');
-
-  for (const field of requiredFields) {
-    if (!field.value.trim()) {
+  for (const tabName of assessmentTabOrder) {
+    if (!validateTab(tabName)) {
       event.preventDefault();
-
-      const tabContent = field.closest('.tab-content');
-      if (tabContent) {
-        openTab(null, tabContent.id);
-      }
-
-      field.focus();
-      field.reportValidity();
       return;
     }
   }

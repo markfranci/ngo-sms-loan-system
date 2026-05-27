@@ -8,9 +8,15 @@
     <p class="td-mono">{{ member.phone_number }}</p>
   </div>
   <div class="page-header-actions">
+    {% if member.group %}
     <a href="{{ url_for('loans.new', member_id=member.id) }}" class="btn btn-primary" id="btn-new-loan">
       <i data-lucide="plus" style="width:16px;height:16px;"></i> New Loan Assessment
     </a>
+    {% else %}
+    <button type="button" class="btn btn-primary" id="btn-new-loan" disabled title="Assign this member to an SME group before creating a loan assessment.">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i> New Loan Assessment
+    </button>
+    {% endif %}
     {% if current_user.role == 'admin' %}
     <form method="POST" action="{{ url_for('members.delete', member_id=member.id) }}" data-confirm-title="Delete Member" data-confirm="Delete this member and all related loans, survey responses, SMS logs, and registration session?" data-confirm-action="Delete Member">
       <button type="submit" class="btn btn-outline-danger">
@@ -130,6 +136,58 @@
         </div>
       {% else %}
         <p class="text-muted" style="font-style:italic;">No loan assessments yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Verification Documents Card -->
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <h3 class="glass-card-title">Verification Documents</h3>
+      </div>
+      {% set member_documents = [] %}
+      {% for loan in member.loans %}
+        {% for document in loan.documents %}
+          {% set _ = member_documents.append(document) %}
+        {% endfor %}
+      {% endfor %}
+
+      {% if member_documents %}
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Assessment</th>
+                <th>Document</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in member_documents %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('loans.view', loan_id=document.loan.id) }}" class="td-primary">#{{ document.loan.id }}</a>
+                </td>
+                <td>
+                  <div class="td-primary">{{ document.document_type.replace('_', ' ')|title }}</div>
+                  <div class="text-muted" style="font-size:0.8rem;">{{ document.original_filename }}</div>
+                </td>
+                <td>{{ document.uploaded_at.strftime('%Y-%m-%d') }}</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.view_document', document_id=document.id) }}" target="_blank" rel="noopener">
+                    <i data-lucide="eye" style="width:14px;height:14px;"></i> View
+                  </a>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.download_document', document_id=document.id) }}">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i> Download
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted" style="font-style:italic;">No verification documents uploaded yet.</p>
       {% endif %}
     </div>
 

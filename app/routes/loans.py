@@ -140,6 +140,7 @@ def _blank_assessment_data():
         'county': '',
         'sub_county': '',
         'ward': '',
+        'is_in_sme_group': False,
         'male_participants': 0,
         'female_participants': 0,
         'business_location': '',
@@ -159,6 +160,18 @@ def _blank_assessment_data():
         'loan_purpose': '',
         'notes': '',
     }
+
+
+def _group_participant_counts(group):
+    male_count = 0
+    female_count = 0
+    for group_member in group.members:
+        gender = (group_member.gender or '').strip().lower()
+        if gender == 'male':
+            male_count += 1
+        elif gender == 'female':
+            female_count += 1
+    return male_count, female_count
 
 
 REQUIRED_ASSESSMENT_FIELDS = {
@@ -243,9 +256,19 @@ def view(loan_id):
 def new(member_id):
     # Page to start a new loan assessment for a specific member
     member = Member.query.get_or_404(member_id)
+    if not member.group_id or not member.group:
+        flash('Member must be assigned to an SME group before a loan assessment can be created.', 'danger')
+        return redirect(url_for('members.profile', member_id=member.id))
+
     assessment_data = _blank_assessment_data()
     assessment_inventory = _blank_inventory_data()
     assessment_cash_flow = _blank_cash_flow_data()
+    male_participants, female_participants = _group_participant_counts(member.group)
+    assessment_data.update({
+        'is_in_sme_group': True,
+        'male_participants': male_participants,
+        'female_participants': female_participants,
+    })
 
     if request.method == 'POST':
         valid_documents, document_error = _validate_required_documents(request.files)
@@ -326,12 +349,12 @@ def new(member_id):
             county=request.form.get('county', ''),
             sub_county=request.form.get('sub_county', ''),
             ward=request.form.get('ward', ''),
-            group_name=request.form.get('group_name', ''),
+            group_name=member.group.name,
             business_location=request.form.get('business_location', ''),
             nature_of_business=request.form.get('nature_of_business', ''),
             registration_number=request.form.get('registration_number', ''),
-            male_participants=request.form.get('male_participants', type=int) or 0,
-            female_participants=request.form.get('female_participants', type=int) or 0,
+            male_participants=male_participants,
+            female_participants=female_participants,
             loan_term_months=loan_term_months,
             monthly_instalment=monthly_instalment,
             loan_purpose=request.form.get('loan_purpose', '')
@@ -507,6 +530,18 @@ def download_document(document_id):
         _loan_document_dir(),
         document.stored_filename,
         as_attachment=True,
+        download_name=document.original_filename,
+    )
+
+
+@loans_bp.route('/documents/<int:document_id>/view')
+@login_required
+def view_document(document_id):
+    document = LoanDocument.query.get_or_404(document_id)
+    return send_from_directory(
+        _loan_document_dir(),
+        document.stored_filename,
+        as_attachment=False,
         download_name=document.original_filename,
     )
 

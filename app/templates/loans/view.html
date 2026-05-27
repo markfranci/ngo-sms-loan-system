@@ -167,6 +167,9 @@
               </td>
               <td>{{ document.uploaded_at.strftime('%Y-%m-%d') }}</td>
               <td>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.view_document', document_id=document.id) }}" target="_blank" rel="noopener">
+                  <i data-lucide="eye" style="width:14px;height:14px;"></i> View
+                </a>
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loans.download_document', document_id=document.id) }}">
                   <i data-lucide="download" style="width:14px;height:14px;"></i> Download
                 </a>
